@@ -1,0 +1,16 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+    "settings": {
+        "documentationRules": {
+            "companyName": "Raquellcesar",
+            "copyrightText": "     Copyright (c) {years} {companyName}. All rights reserved.\n\n     Use of this source code is governed by an {licenseName}-style license that can be\n     found in the {licenseFile} file in the project root or at\n     {licenseLink}.",
+            "variables": {
+                "licenseName": "MIT",
+                "licenseFile": "LICENSE",
+                "licenseLink": "https://opensource.org/licenses/MIT",
+                "years": "2021"
+            },
+            "headerDecoration": "-----------------------------------------------------------------------"
+        }
+    }
+}
