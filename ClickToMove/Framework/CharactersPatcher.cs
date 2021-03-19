@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="CharactersPatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="CharactersPatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of __instance source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -52,67 +53,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.BeforeHorseCheckAction)));
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="Child.checkAction" />.</summary>
-        /// <param name="instructions">The method instructions to transpile.</param>
-        private static IEnumerable<CodeInstruction> TranspileChildCheckAction(
-            IEnumerable<CodeInstruction> instructions)
-        {
-            // Check if CurrentToolIndex is greater than zero before accessing items.
-
-            // Relevant CIL code:
-            //     if (base.Age >= 3 && who.items.Count > who.CurrentToolIndex && who.items[who.CurrentToolIndex] != null && who.Items[who.CurrentToolIndex] is Hat)
-            //         IL_0079: ldarg.0
-            //         IL_007a: call instance int32 StardewValley.NPC::get_Age()
-            //         IL_007f: ldc.i4.3
-            //         IL_0080: blt IL_014f
-            //         ...
-            //
-            // Replace with:
-            //     // if (base.Age >= 3 && who.CurrentToolIndex >= 0 && who.items.Count > who.CurrentToolIndex && who.items[who.CurrentToolIndex] != null && who.Items[who.CurrentToolIndex] is Hat)
-
-            MethodInfo getCurrentToolIndex =
-                AccessTools.Property(typeof(Farmer), nameof(Farmer.CurrentToolIndex)).GetGetMethod();
-
-            List<CodeInstruction> codeInstructions = instructions.ToList();
-
-            bool found = false;
-
-            for (int i = 0; i < codeInstructions.Count; i++)
-            {
-                if (!found && codeInstructions[i].opcode == OpCodes.Blt
-                           && codeInstructions[i - 1].opcode == OpCodes.Ldc_I4_3)
-                {
-                    yield return codeInstructions[i];
-
-                    object jump = codeInstructions[i].operand;
-
-                    yield return new CodeInstruction(OpCodes.Ldarg_1);
-                    yield return new CodeInstruction(OpCodes.Callvirt, getCurrentToolIndex);
-                    yield return new CodeInstruction(OpCodes.Ldc_I4_0);
-                    yield return new CodeInstruction(OpCodes.Blt, jump);
-
-                    found = true;
-                }
-                else
-                {
-                    yield return codeInstructions[i];
-                }
-            }
-
-            if (!found)
-            {
-                ClickToMoveManager.Monitor.Log(
-                    $"Failed to patch {nameof(Child)}.{nameof(Child.checkAction)}.\nThe point of injection was not found.",
-                    LogLevel.Error);
-            }
-        }
-
         /// <summary>
         ///     Gets if an horse should allow action checking.
         /// </summary>
         /// <param name="horse">The <see cref="Horse" /> instance.</param>
-        /// <returns></returns>
-        public static bool IsCheckActionEnabled(Horse horse)
+        /// <returns>
+        ///     Returns <see langword="true"/> if this horse can check for action.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool IsCheckActionEnabled(this Horse horse)
         {
             return horse is not null && CharactersPatcher.HorsesData.GetOrCreateValue(horse).CheckActionEnabled;
         }
@@ -122,7 +71,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         /// <param name="horse">The <see cref="Horse" /> instance.</param>
         /// <param name="value">Determines whether the horse can check action.</param>
-        public static void SetCheckActionEnabled(Horse horse, bool value)
+        public static void SetCheckActionEnabled(this Horse horse, bool value)
         {
             if (horse is not null)
             {
@@ -295,6 +244,63 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             __result = true;
             return false;
+        }
+
+        /// <summary>A method called via Harmony to modify <see cref="Child.checkAction" />.</summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileChildCheckAction(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            // Check if CurrentToolIndex is greater than zero before accessing items.
+
+            /*
+             * Relevant CIL code:
+             *      if (base.Age >= 3 && who.items.Count > who.CurrentToolIndex && who.items[who.CurrentToolIndex] != null && who.Items[who.CurrentToolIndex] is Hat)
+             *          IL_0079: ldarg.0
+             *          IL_007a: call instance int32 StardewValley.NPC::get_Age()
+             *          IL_007f: ldc.i4.3
+             *          IL_0080: blt IL_014f
+             *          ...
+             *
+             * Replace with:
+             *      if (base.Age >= 3 && who.CurrentToolIndex >= 0 && who.items.Count > who.CurrentToolIndex && who.items[who.CurrentToolIndex] != null && who.Items[who.CurrentToolIndex] is Hat)
+             */
+
+            MethodInfo getCurrentToolIndex =
+                AccessTools.Property(typeof(Farmer), nameof(Farmer.CurrentToolIndex)).GetGetMethod();
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                if (!found && codeInstructions[i].opcode == OpCodes.Blt
+                           && codeInstructions[i - 1].opcode == OpCodes.Ldc_I4_3)
+                {
+                    yield return codeInstructions[i];
+
+                    object jump = codeInstructions[i].operand;
+
+                    yield return new CodeInstruction(OpCodes.Ldarg_1);
+                    yield return new CodeInstruction(OpCodes.Callvirt, getCurrentToolIndex);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_0);
+                    yield return new CodeInstruction(OpCodes.Blt, jump);
+
+                    found = true;
+                }
+                else
+                {
+                    yield return codeInstructions[i];
+                }
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(Child)}.{nameof(Child.checkAction)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
         }
 
         /// <summary>

@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="AStarNode.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="AStarNode.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 {
@@ -168,7 +169,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <returns>Returns <see langword="true"/> if there's an animal here. Returns <see langword="false"/> otherwise.</returns>
         public bool ContainsAnimal()
         {
-            return this.graph.gameLocation switch
+            return this.graph.GameLocation switch
                 {
                     AnimalHouse animalHouse => animalHouse.animals.Values.Any(
                         animal => animal.getTileX() == this.X && animal.getTileY() == this.Y),
@@ -180,14 +181,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool ContainsBoulder()
         {
-            return this.graph.gameLocation.IsBoulderAt(this.X, this.Y);
+            return this.graph.GameLocation.IsBoulderAt(this.X, this.Y);
         }
 
         public bool ContainsBuilding()
         {
             Vector2 position = new Vector2(this.X, this.Y);
 
-            if (this.graph.gameLocation is BuildableGameLocation buildableGameLocation)
+            if (this.graph.GameLocation is BuildableGameLocation buildableGameLocation)
             {
                 foreach (Building building in buildableGameLocation.buildings)
                 {
@@ -198,7 +199,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 }
             }
 
-            return this.graph.gameLocation.map.GetLayer("Buildings").PickTile(
+            return this.graph.GameLocation.map.GetLayer("Buildings").PickTile(
                        new Location(this.X * Game1.tileSize, this.Y * Game1.tileSize),
                        Game1.viewport.Size) is not null;
         }
@@ -209,7 +210,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <returns>Returns <see langword="true"/> if this node's tile is a Cinema's tile. Returns <see langword="false"/> otherwise.</returns>
         public bool ContainsCinema()
         {
-            if (this.graph.gameLocation is Town
+            if (this.graph.GameLocation is Town
                 && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater"))
             {
                 switch (this.X)
@@ -226,21 +227,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool ContainsCinemaDoor()
         {
-            return this.graph.gameLocation is Town
+            return this.graph.GameLocation is Town
                    && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater")
                    && (this.X == 52 || this.X == 53) && (this.Y == 18 || this.Y == 19);
         }
 
         public bool ContainsCinemaTicketOffice()
         {
-            return this.graph.gameLocation is Town
+            return this.graph.GameLocation is Town
                    && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater") && this.X >= 54
                    && this.X <= 56 && (this.Y == 19 || this.Y == 20);
         }
 
         public bool ContainsFence()
         {
-            this.graph.gameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
+            this.graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
             return @object is Fence;
         }
 
@@ -271,7 +272,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <returns>Returns <see langword="true"/> if there is some furniture occupying this node's tile.</returns>
         public bool ContainsFurniture()
         {
-            return this.graph.gameLocation is DecoratableLocation decoratableLocation
+            return this.graph.GameLocation is DecoratableLocation decoratableLocation
                    && decoratableLocation.furniture.Any(
                        furniture => furniture is not BedFurniture && furniture
                                         .getBoundingBox(furniture.tileLocation.Value).Intersects(this.TileRectangle));
@@ -284,7 +285,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <returns>Returns <see langword="true"/> if there is some furniture occupying this node's tile.</returns>
         public bool ContainsFurnitureIgnoreRugs()
         {
-            return this.graph.gameLocation is DecoratableLocation decoratableLocation
+            return this.graph.GameLocation is DecoratableLocation decoratableLocation
                    && decoratableLocation.furniture.Any(
                        furniture => furniture is not BedFurniture
                                     && furniture.furniture_type.Value != (int)FurnitureType.Rug
@@ -296,9 +297,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         {
             Vector2 position = new Vector2(this.X, this.Y);
 
-            if (this.graph.gameLocation.objects.ContainsKey(position))
+            if (this.graph.GameLocation.objects.ContainsKey(position))
             {
-                SObject @object = this.graph.gameLocation.objects[position];
+                SObject @object = this.graph.GameLocation.objects[position];
                 if (@object is Fence fence && fence.isGate.Value)
                 {
                     return true;
@@ -314,14 +315,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <returns>Returns <see langword="true"/> if there is some NPC occupying this node's tile.</returns>
         public bool ContainsNpc()
         {
-            if (this.graph.gameLocation is Beach && this.graph.OldMariner is not null
+            if (this.graph.GameLocation is Beach && this.graph.OldMariner is not null
                                                  && this.graph.OldMariner.getTileX() == this.X
                                                  && this.graph.OldMariner.getTileY() == this.Y)
             {
                 return true;
             }
 
-            foreach (NPC npc in this.graph.gameLocation.characters)
+            foreach (NPC npc in this.graph.GameLocation.characters)
             {
                 if ((npc is not Pet pet || !pet.isSleepingOnFarmerBed) && npc.getTileX() == this.X
                                                                        && npc.getTileY() == this.Y)
@@ -330,7 +331,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 }
             }
 
-            return this.graph.gameLocation.currentEvent?.actors?.Any(
+            return this.graph.GameLocation.currentEvent?.actors?.Any(
                        npc => npc.getTileX() == this.X && npc.getTileY() == this.Y) == true;
         }
 
@@ -338,7 +339,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         {
             Vector2 key = new Vector2(this.X, this.Y);
 
-            if (this.graph.gameLocation.objects.TryGetValue(key, out SObject @object))
+            if (this.graph.GameLocation.objects.TryGetValue(key, out SObject @object))
             {
                 if (@object.parentSheetIndex.Value == 8 || @object.parentSheetIndex.Value == 167
                                                         || @object.parentSheetIndex.Value == 110
@@ -359,7 +360,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool ContainsSomeKindOfWarp()
         {
-            Tile tile = this.graph.gameLocation.map.GetLayer("Buildings").PickTile(
+            Tile tile = this.graph.GameLocation.map.GetLayer("Buildings").PickTile(
                 new Location(this.X * Game1.tileSize, this.Y * Game1.tileSize),
                 Game1.viewport.Size);
 
@@ -371,7 +372,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool ContainsStump()
         {
-            return this.graph.gameLocation.IsStumpAt(this.X, this.Y);
+            return this.graph.GameLocation.IsStumpAt(this.X, this.Y);
         }
 
         /// <summary>
@@ -383,76 +384,64 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public bool ContainsStumpOrBoulder()
         {
-            switch (this.graph.gameLocation)
+            switch (this.graph.GameLocation)
             {
                 case Woods woods:
+                    if (woods.stumps.Any(t => t.occupiesTile(this.X, this.Y)))
                     {
-                        if (woods.stumps.Any(t => t.occupiesTile(this.X, this.Y)))
-                        {
-                            return true;
-                        }
-
-                        break;
+                        return true;
                     }
+
+                    break;
                 case Forest forest:
+                    if (forest.log is not null && forest.log.occupiesTile(this.X, this.Y))
                     {
-                        if (forest.log is not null && forest.log.occupiesTile(this.X, this.Y))
-                        {
-                            return true;
-                        }
-
-                        break;
+                        return true;
                     }
+
+                    break;
                 default:
+                    if (this.graph.GameLocation.resourceClumps.Any(t => t.occupiesTile(this.X, this.Y)))
                     {
-                        if (this.graph.gameLocation.resourceClumps.Any(t => t.occupiesTile(this.X, this.Y)))
-                        {
-                            return true;
-                        }
-
-                        break;
+                        return true;
                     }
+
+                    break;
             }
 
-            this.graph.gameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject value);
+            this.graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject value);
 
             return value is not null && value.Name == "Boulder";
         }
 
         public bool ContainsStumpOrHollowLog()
         {
-            switch (this.graph.gameLocation)
+            switch (this.graph.GameLocation)
             {
                 case Woods woods:
+                    if (woods.stumps.Any(t => t.occupiesTile(this.X, this.Y)))
                     {
-                        if (woods.stumps.Any(t => t.occupiesTile(this.X, this.Y)))
-                        {
-                            return true;
-                        }
-
-                        break;
+                        return true;
                     }
+
+                    break;
                 case Forest forest:
+                    if (forest.log is not null && forest.log.occupiesTile(this.X, this.Y))
                     {
-                        if (forest.log is not null && forest.log.occupiesTile(this.X, this.Y))
-                        {
-                            return true;
-                        }
-
-                        break;
+                        return true;
                     }
+
+                    break;
                 default:
-                    {
-                        if (this.graph.gameLocation.resourceClumps.Any(
+                    if (this.graph.GameLocation.resourceClumps.Any(
                             resourceClump => resourceClump.occupiesTile(this.X, this.Y)
                                              && (resourceClump.parentSheetIndex.Value == ResourceClump.hollowLogIndex
                                                  || resourceClump.parentSheetIndex.Value == ResourceClump.stumpIndex)))
-                        {
-                            return true;
-                        }
-
-                        break;
+                    {
+                        return true;
                     }
+
+                    break;
             }
 
             return false;
@@ -464,7 +453,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <returns>Returns <see langword="true"/> if the travelling cart is occupying this node's tile.</returns>
         public bool ContainsTravellingCart()
         {
-            return this.graph.gameLocation is Forest { travelingMerchantBounds: { } } forest
+            return this.graph.GameLocation is Forest { travelingMerchantBounds: { } } forest
                    && forest.travelingMerchantBounds.Any(
                        travelingMerchantBounds => travelingMerchantBounds.Intersects(this.TileRectangle));
         }
@@ -475,14 +464,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <returns>Returns <see langword="true"/> if the travelling desert shop is occupying this node's tile.</returns>
         public bool ContainsTravellingDesertShop()
         {
-            return this.graph.gameLocation is Desert desert && desert.IsTravelingMerchantHere()
+            return this.graph.GameLocation is Desert desert && desert.IsTravelingMerchantHere()
                                                             && desert.GetDesertMerchantBounds().Intersects(
                                                                 this.TileRectangle);
         }
 
         public bool ContainsTree()
         {
-            this.graph.gameLocation.terrainFeatures.TryGetValue(
+            this.graph.GameLocation.terrainFeatures.TryGetValue(
                 new Vector2(this.X, this.Y),
                 out TerrainFeature terrainFeature);
 
@@ -508,7 +497,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         public Building GetBuilding()
         {
             Vector2 position = new Vector2(this.X, this.Y);
-            if (this.graph.gameLocation is BuildableGameLocation buildableGameLocation)
+            if (this.graph.GameLocation is BuildableGameLocation buildableGameLocation)
             {
                 foreach (Building building in buildableGameLocation.buildings)
                 {
@@ -526,13 +515,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         {
             Vector2 key = new Vector2(this.X, this.Y);
 
-            this.graph.gameLocation.terrainFeatures.TryGetValue(key, out TerrainFeature terrainFeature);
+            this.graph.GameLocation.terrainFeatures.TryGetValue(key, out TerrainFeature terrainFeature);
             if (terrainFeature is Bush bush)
             {
                 return bush;
             }
 
-            foreach (LargeTerrainFeature largeTerrainFeature in this.graph.gameLocation.largeTerrainFeatures)
+            foreach (LargeTerrainFeature largeTerrainFeature in this.graph.GameLocation.largeTerrainFeatures)
             {
                 if (largeTerrainFeature is Bush bush2 && bush2
                         .getRenderBounds(new Vector2(bush2.tilePosition.X, bush2.tilePosition.Y)).Contains(
@@ -548,7 +537,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public Chest GetChest()
         {
-            this.graph.gameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
+            this.graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
 
             return @object is Chest chest ? chest : null;
         }
@@ -595,7 +584,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public Furniture GetFurnitureIgnoreRugs()
         {
-            return this.graph.gameLocation is DecoratableLocation decoratableLocation
+            return this.graph.GameLocation is DecoratableLocation decoratableLocation
                        ? decoratableLocation.furniture.FirstOrDefault(
                            furniture =>
                                furniture is not BedFurniture && furniture.furniture_type.Value != (int)FurnitureType.Rug
@@ -608,7 +597,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         {
             Vector2 key = new Vector2(this.X, this.Y);
 
-            if (this.graph.gameLocation.objects.TryGetValue(key, out SObject @object))
+            if (this.graph.GameLocation.objects.TryGetValue(key, out SObject @object))
             {
                 if (@object is Fence fence && fence.isGate.Value)
                 {
@@ -621,7 +610,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public GiantCrop GetGiantCrop()
         {
-            if (this.graph.gameLocation is Farm farm)
+            if (this.graph.GameLocation is Farm farm)
             {
                 foreach (ResourceClump resourceClump in farm.resourceClumps)
                 {
@@ -641,7 +630,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             {
                 Point point = new Point(this.X + walkDirection.X, this.Y + walkDirection.Y);
 
-                if (!this.graph.gameLocation.isWaterTile(point.X, point.Y))
+                if (!this.graph.GameLocation.isWaterTile(point.X, point.Y))
                 {
                     return this.graph.GetNode(point.X, point.Y);
                 }
@@ -697,14 +686,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public NPC GetNpc()
         {
-            if (this.graph.gameLocation is Beach && this.graph.OldMariner is not null
+            if (this.graph.GameLocation is Beach && this.graph.OldMariner is not null
                                                  && this.graph.OldMariner.getTileX() == this.X
                                                  && this.graph.OldMariner.getTileY() == this.Y)
             {
                 return this.graph.OldMariner;
             }
 
-            foreach (NPC npc in this.graph.gameLocation.characters)
+            foreach (NPC npc in this.graph.GameLocation.characters)
             {
                 if (npc.getTileX() == this.X && npc.getTileY() == this.Y)
                 {
@@ -712,28 +701,28 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 }
             }
 
-            return this.graph.gameLocation.currentEvent?.actors?.FirstOrDefault(
+            return this.graph.GameLocation.currentEvent?.actors?.FirstOrDefault(
                 npc => npc.getTileX() == this.X && npc.getTileY() == this.Y);
         }
 
         public SObject GetObject()
         {
             Vector2 position = new Vector2(this.X, this.Y);
-            return this.graph.gameLocation.objects.ContainsKey(position)
-                       ? this.graph.gameLocation.objects[position]
+            return this.graph.GameLocation.objects.ContainsKey(position)
+                       ? this.graph.GameLocation.objects[position]
                        : null;
         }
 
         public int GetObjectParentSheetIndex()
         {
-            this.graph.gameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
+            this.graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
 
             return @object?.parentSheetIndex.Value ?? -1;
         }
 
         public TerrainFeature GetTree()
         {
-            this.graph.gameLocation.terrainFeatures.TryGetValue(
+            this.graph.GameLocation.terrainFeatures.TryGetValue(
                 new Vector2(this.X, this.Y),
                 out TerrainFeature terrainFeature);
 
@@ -760,8 +749,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             Point nodeCenter = new Point(
                 (this.X * Game1.tileSize) + (Game1.tileSize / 2),
                 (this.Y * Game1.tileSize) + (Game1.tileSize / 2));
-            float warpRange = this.graph.gameLocation.WarpRange();
-            foreach (Warp warp in this.graph.gameLocation.warps)
+            float warpRange = this.graph.GameLocation.WarpRange();
+            foreach (Warp warp in this.graph.GameLocation.warps)
             {
                 Point warpPoint = new Point(warp.X * Game1.tileSize, warp.Y * Game1.tileSize);
 
@@ -776,7 +765,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool IsBlockingBedTile()
         {
-            if (this.graph.gameLocation is FarmHouse farmHouse)
+            if (this.graph.GameLocation is FarmHouse farmHouse)
             {
                 Point bedSpot = farmHouse.getBedSpot();
 
@@ -825,9 +814,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool IsGate()
         {
-            this.graph.gameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
+            this.graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
 
-            return @object is Fence fence && fence.isGate.Value && !this.graph.gameLocation.IsSoloGate(fence);
+            return @object is Fence fence && fence.isGate.Value && !this.graph.GameLocation.IsSoloGate(fence);
         }
 
         public bool IsLeftTo(AStarNode node)
@@ -896,7 +885,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool IsTilePassable()
         {
-            return this.graph.gameLocation.IsTilePassable(this.X, this.Y);
+            return this.graph.GameLocation.IsTilePassable(this.X, this.Y);
         }
 
         /// <summary>
@@ -909,19 +898,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             Location tileLocation = new Location(this.X * Game1.tileSize, this.Y * Game1.tileSize);
 
-            if (!this.graph.gameLocation.IsTilePassable(tileLocation))
+            if (!this.graph.GameLocation.IsTilePassable(tileLocation))
             {
                 return false;
             }
 
             // Is there any object at the tile?
-            this.graph.gameLocation.objects.TryGetValue(tileVector, out SObject @object);
+            this.graph.GameLocation.objects.TryGetValue(tileVector, out SObject @object);
 
             if (@object is not null)
             {
-                return
-                    (@object.isPassable() /* || @object is Fence fence && fence.isGate.Value && !this.graph.GameLocation.IsSoloGate(fence)*/
-                    );
+                return @object.isPassable() /* || @object is Fence fence && fence.isGate.Value && !this.graph.GameLocation.IsSoloGate(fence)*/;
             }
 
             // The tile interior.
@@ -932,7 +919,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 Game1.tileSize - 2);
 
             // Check for NPCs, ignoring horse.
-            foreach (NPC npc in this.graph.gameLocation.characters)
+            foreach (NPC npc in this.graph.GameLocation.characters)
             {
                 if (!(npc is Pet pet && pet.isSleepingOnFarmerBed)
                     && npc?.GetBoundingBox().Intersects(rectangle) == true)
@@ -942,7 +929,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
 
             // Check for terrain features.
-            this.graph.gameLocation.terrainFeatures.TryGetValue(tileVector, out TerrainFeature terrainFeature);
+            this.graph.GameLocation.terrainFeatures.TryGetValue(tileVector, out TerrainFeature terrainFeature);
             if (terrainFeature?.isPassable() == false
                 && rectangle.Intersects(terrainFeature.getBoundingBox(tileVector)))
             {
@@ -950,14 +937,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
 
             // Check for large terrain features.
-            if (this.graph.gameLocation.largeTerrainFeatures?.Any(
+            if (this.graph.GameLocation.largeTerrainFeatures?.Any(
                     largeTerrainFeature => largeTerrainFeature.getBoundingBox().Intersects(rectangle)) == true)
             {
                 return false;
             }
 
             // Check for resource clumps.
-            switch (this.graph.gameLocation)
+            switch (this.graph.GameLocation)
             {
                 case Woods woods:
                     if (woods.stumps.Any(t => t.occupiesTile(this.X, this.Y)))
@@ -974,7 +961,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
                     break;
                 default:
-                    if (this.graph.gameLocation.resourceClumps.Any(t => t.occupiesTile(this.X, this.Y)))
+                    if (this.graph.GameLocation.resourceClumps.Any(t => t.occupiesTile(this.X, this.Y)))
                     {
                         return false;
                     }
@@ -983,7 +970,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
 
             // If there's a building here, it must be passable.
-            if (this.graph.gameLocation is BuildableGameLocation buildableGameLocation
+            if (this.graph.GameLocation is BuildableGameLocation buildableGameLocation
                 && buildableGameLocation.buildings.Any(building => !building.isTilePassable(tileVector)))
             {
                 return false;
@@ -1011,14 +998,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public bool IsWater()
         {
-            if (this.graph.gameLocation is Submarine && this.X >= 9 && this.X <= 20 && this.Y >= 7 && this.Y <= 11)
+            if (this.graph.GameLocation is Submarine && this.X >= 9 && this.X <= 20 && this.Y >= 7 && this.Y <= 11)
             {
                 return true;
             }
 
-            if (this.graph.gameLocation.doesTileHaveProperty(this.X, this.Y, "Water", "Back") is null)
+            if (this.graph.GameLocation.doesTileHaveProperty(this.X, this.Y, "Water", "Back") is null)
             {
-                return this.graph.gameLocation.doesTileHaveProperty(this.X, this.Y, "WaterSource", "Back") is not null;
+                return this.graph.GameLocation.doesTileHaveProperty(this.X, this.Y, "WaterSource", "Back") is not null;
             }
 
             return true;
@@ -1031,7 +1018,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 return true;
             }
 
-            if (this.graph.gameLocation is BuildableGameLocation buildableGameLocation)
+            if (this.graph.GameLocation is BuildableGameLocation buildableGameLocation)
             {
                 Building building = buildableGameLocation.getBuildingAt(new Vector2(this.X, this.Y));
                 if (building is not null && (building is FishPond || building.buildingType.Value == "Well")
@@ -1041,18 +1028,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 }
             }
 
-            if (this.graph.gameLocation is Submarine && this.X >= 9 && this.X <= 20 && this.Y >= 7 && this.Y <= 11)
+            if (this.graph.GameLocation is Submarine && this.X >= 9 && this.X <= 20 && this.Y >= 7 && this.Y <= 11)
             {
                 return true;
             }
 
-            if (this.graph.gameLocation.name.Value == "Greenhouse"
+            if (this.graph.GameLocation.name.Value == "Greenhouse"
                 && ((this.X == 9 && this.Y == 7) || (this.X == 10 && this.Y == 7)))
             {
                 return true;
             }
 
-            if (this.graph.gameLocation.name.Value == "Railroad" && this.X >= 14 && this.X <= 16 && this.Y >= 55
+            if (this.graph.GameLocation.name.Value == "Railroad" && this.X >= 14 && this.X <= 16 && this.Y >= 55
                 && this.Y <= 56)
             {
                 return true;

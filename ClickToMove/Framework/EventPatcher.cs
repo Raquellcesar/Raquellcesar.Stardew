@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="EventPatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="EventPatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of __instance source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -47,17 +48,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             // Check if the farmer's CurrentToolIndex is -1.
 
-            // Relevant CIL code:
-            //     this.drawTool = true;
-            //         IL_7411: ldarg.0
-            //         IL_7412: ldc.i4.1
-            //         IL_7413: stfld bool StardewValley.Event::drawTool
-            //
-            // Code to include after:
-            //     if (this.farmer.CurrentToolIndex == -1)
-            //     {
-            //         this.farmer.CurrentToolIndex = 0;
-            //     }
+            /*
+            * Relevant CIL code:
+            *     this.drawTool = true;
+            *         IL_7411: ldarg.0
+            *         IL_7412: ldc.i4.1
+            *         IL_7413: stfld bool StardewValley.Event::drawTool
+            *
+            * Code to include after:
+            *     if (this.farmer.CurrentToolIndex == -1)
+            *     {
+            *         this.farmer.CurrentToolIndex = 0;
+            *     }
+            */
 
             MethodInfo getFarmer = AccessTools.Property(typeof(Event), nameof(Event.farmer)).GetGetMethod();
             MethodInfo getCurrentToolIndex =
@@ -113,17 +116,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileCheckAction(IEnumerable<CodeInstruction> instructions)
         {
-            // Reset the ClickToMove object associated with the current game location
-            // for the case "LuauSoup" if specialEventVariable2 is not defined.
+            /*
+            * Reset the ClickToMove object associated with the current game location
+            * for the case "LuauSoup" if specialEventVariable2 is not defined.
 
-            // Relevant CIL code:
-            //     if (!this.specialEventVariable2)
-            //         IL_0e41: ldarg.0
-            //         IL_0e42: ldfld bool StardewValley.Event::specialEventVariable2
-            //         IL_0e47: brtrue.s IL_0e87
-            //
-            // Code to include after:
-            //     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+            * Relevant CIL code:
+            *     if (!this.specialEventVariable2)
+            *         IL_0e41: ldarg.0
+            *         IL_0e42: ldfld bool StardewValley.Event::specialEventVariable2
+            *         IL_0e47: brtrue.s IL_0e87
+            *
+            * Code to include after:
+            *     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+            */
 
             MethodInfo getCurrentLocation =
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
@@ -174,17 +179,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             // Reset the ClickToMove object associated with the current game location
             // after the test for isFestival.
 
-            // Relevant CIL code:
-            //     if (who.IsLocalPlayer && this.isFestival)
-            //         IL_00e5: ldarg.2
-            //         IL_00e6: callvirt instance bool StardewValley.Farmer::get_IsLocalPlayer()
-            //         IL_00eb: brfalse IL_0182
-            //         IL_00f0: ldarg.0
-            //         IL_00f1: ldfld bool StardewValley.Event::isFestival
-            //         IL_00f6: brfalse IL_0182
-            //
-            // Code to include after:
-            //     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+            /*
+            * Relevant CIL code:
+            *     if (who.IsLocalPlayer && this.isFestival)
+            *         IL_00e5: ldarg.2
+            *         IL_00e6: callvirt instance bool StardewValley.Farmer::get_IsLocalPlayer()
+            *         IL_00eb: brfalse IL_0182
+            *         IL_00f0: ldarg.0
+            *         IL_00f1: ldfld bool StardewValley.Event::isFestival
+            *         IL_00f6: brfalse IL_0182
+            *
+            * Code to include after:
+            *     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+            */
 
             MethodInfo getCurrentLocation =
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();

@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="UtilityPatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="UtilityPatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of __instance source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -45,6 +46,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileTryToPlaceItem(IEnumerable<CodeInstruction> instructions)
         {
+            /*
             // Relevant CIL code:
             //     Game1.player.reduceActiveItemByOne();
             //         IL_0058: call class StardewValley.Farmer StardewValley.Game1::get_player()
@@ -52,6 +54,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             //
             // Insert code after:
             //     UtilityPatcher.TryToPlaceItemTranspiler();
+            */
 
             MethodInfo reduceActiveItemByOne = AccessTools.Method(typeof(Farmer), nameof(Farmer.reduceActiveItemByOne));
             MethodInfo tryToPlaceItemTranspiler =

@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="GameLocationPatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="GameLocationPatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of __instance source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -132,15 +133,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             while (true)
             {
-                // Relevant CIL code:
-                //     this.playSound("debuffHit");
-                //         IL_05ad: ldarg.0
-                //         IL_05ae: ldstr "debuffHit"
-                //         IL_05b3: ldc.i4.0
-                //         IL_05b4: call instance void StardewValley.GameLocation::playSound(string, valuetype StardewValley.Network.NetAudio / SoundContext)
-                //
-                // Code to include after:
-                //     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+                /*
+                * Relevant CIL code:
+                *     this.playSound("debuffHit");
+                *         IL_05ad: ldarg.0
+                *         IL_05ae: ldstr "debuffHit"
+                *         IL_05b3: ldc.i4.0
+                *         IL_05b4: call instance void StardewValley.GameLocation::playSound(string, valuetype StardewValley.Network.NetAudio / SoundContext)
+                *
+                * Code to include after:
+                *     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+                */
 
                 int index = codeInstructions.FindIndex(
                     0,
@@ -159,14 +162,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 codeInstructions.Insert(index + 5, new CodeInstruction(OpCodes.Ldc_I4_1));
                 codeInstructions.Insert(index + 6, new CodeInstruction(OpCodes.Callvirt, reset));
 
-                // Relevant CIL code:
-                //     if (!Game1.newDay && Game1.shouldTimePass() && Game1.player.hasMoved && !Game1.player.passedOut)
-                //         ...
-                //         IL_0c82: ldfld bool StardewValley.Farmer::passedOut
-                //         IL_0c87: brtrue.s IL_0caf
-                //
-                // Code to include after:
-                //     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+                /*
+                * Relevant CIL code:
+                *     if (!Game1.newDay && Game1.shouldTimePass() && Game1.player.hasMoved && !Game1.player.passedOut)
+                *         ...
+                *         IL_0c82: ldfld bool StardewValley.Farmer::passedOut
+                *         IL_0c87: brtrue.s IL_0caf
+                *
+                * Code to include after:
+                *     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+                */
 
                 index += 7;
 

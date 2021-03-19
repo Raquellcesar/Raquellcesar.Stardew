@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="ToolsPatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="ToolsPatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of __instance source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -57,15 +58,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             // Set the farmer CurrentToolIndex to -1.
 
-            // Relevant CIL code:
-            //     location.playSound("wand");
-            //         IL_0102: ldarg.1
-            //         IL_0103: ldstr "wand"
-            //         IL_0108: ldc.i4.0
-            //         IL_0109: callvirt instance void StardewValley.GameLocation::playSound(string, valuetype StardewValley.Network.NetAudio / SoundContext)
-            //
-            // Code to insert after:
-            //     Game1.player.CurrentToolIndex = -1;
+            /*
+            * Relevant CIL code:
+            *     location.playSound("wand");
+            *         IL_0102: ldarg.1
+            *         IL_0103: ldstr "wand"
+            *         IL_0108: ldc.i4.0
+            *         IL_0109: callvirt instance void StardewValley.GameLocation::playSound(string, valuetype StardewValley.Network.NetAudio / SoundContext)
+            *
+            * Code to insert after:
+            *     Game1.player.CurrentToolIndex = -1;
+            */
 
             MethodInfo getPlayer = AccessTools.Property(typeof(Game1), nameof(Game1.player)).GetGetMethod();
             MethodInfo setCurrentToolIndex =

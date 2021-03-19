@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="GamePatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="GamePatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of __instance source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -40,15 +41,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     public static class GamePatcher
     {
-        private static IReflectedProperty<Dictionary<Game1.MusicContext, KeyValuePair<string, bool>>>
-            requestedMusicTracks;
-
-        /// <summary>
-        ///     A reference to the private property <see cref="Game1.thumbstickToMouseModifier"/>.
-        ///     Needed for the reimplementation of <see cref="Game1.UpdateControlInput"/>.
-        /// </summary>
-        private static IReflectedProperty<float> thumbstickToMouseModifier;
-
         /// <summary>
         ///     A reference to the private method <see cref="Game1.addHour"/>. Needed for the
         ///     reimplementation of <see cref="Game1.UpdateControlInput"/>.
@@ -62,7 +54,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static IReflectedMethod addMinute;
 
         private static IReflectedMethod checkIfDialogueIsQuestion;
+
         private static bool lastMouseLeftButtonDown;
+
+        private static IReflectedProperty<Dictionary<Game1.MusicContext, KeyValuePair<string, bool>>>
+                                            requestedMusicTracks;
+
+        /// <summary>
+        ///     A reference to the private property <see cref="Game1.thumbstickToMouseModifier"/>.
+        ///     Needed for the reimplementation of <see cref="Game1.UpdateControlInput"/>.
+        /// </summary>
+        private static IReflectedProperty<float> thumbstickToMouseModifier;
 
         /// <summary>
         ///     Initialize the Harmony patches.
@@ -108,17 +110,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 AccessTools.Method(typeof(Game1), nameof(Game1.exitActiveMenu)),
                 postfix: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.AfterExitActiveMenu)));
 
-            /*harmony.Patch(
-                AccessTools.Method(typeof(Game1), nameof(Game1.pressActionButton)),
-                new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforePressActionButton)));*/
-
             harmony.Patch(
                 AccessTools.Method(typeof(Game1), nameof(Game1.pressActionButton)),
                 transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspilePressActionButton)));
-
-            /*harmony.Patch(
-                AccessTools.Method(typeof(Game1), nameof(Game1.pressUseToolButton)),
-                new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforepressUseToolButton)));*/
 
             harmony.Patch(
                 AccessTools.Method(typeof(Game1), nameof(Game1.pressUseToolButton)),
@@ -134,430 +128,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     "warpFarmer",
                     new[] { typeof(LocationRequest), typeof(int), typeof(int), typeof(int) }),
                 new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforeWarpFarmer)));
-        }
-
-        /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1.pressUseToolButton"/>.
-        /// </summary>
-        /// <param name="instructions">The method instructions to transpile.</param>
-        private static IEnumerable<CodeInstruction> TranspilePressUseToolButton(
-            IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
-        {
-            // Get clicked information from the path finding controller.
-            
-            FieldInfo pointX = AccessTools.Field(typeof(Point), nameof(Point.X));
-            FieldInfo pointY = AccessTools.Field(typeof(Point), nameof(Point.Y));
-            FieldInfo wasMouseVisibleThisFrame = AccessTools.Field(typeof(Game1), nameof(Game1.wasMouseVisibleThisFrame));
-
-            MethodInfo getCurrentLocation =
-                AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
-            MethodInfo getPlayer =
-                AccessTools.Property(typeof(Game1), nameof(Game1.player)).GetGetMethod();
-            MethodInfo getToolLocation =
-                AccessTools.Method(typeof(Farmer), nameof(Farmer.GetToolLocation), new Type[] { typeof(bool) });
-            MethodInfo getPlacementGrabTile = AccessTools.Method(typeof(Game1), nameof(Game1.GetPlacementGrabTile));
-            MethodInfo getPointZero = AccessTools.Property(typeof(Point), nameof(Point.Zero)).GetGetMethod();
-            MethodInfo pointInequality = AccessTools.Method(typeof(Point), "op_Inequality");
-            MethodInfo pointToVector2 =
-                AccessTools.Method(typeof(Utility), nameof(Utility.PointToVector2));
-
-            MethodInfo getOrCreate = AccessTools.Method(
-                typeof(ClickToMoveManager),
-                nameof(ClickToMoveManager.GetOrCreate));
-            MethodInfo getClickPoint =
-                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.ClickPoint)).GetGetMethod();
-            MethodInfo getClickedTile =
-                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.ClickedTile)).GetGetMethod();
-            MethodInfo getGrabTile =
-                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.GrabTile)).GetGetMethod();
-            MethodInfo setGrabTile =
-                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.GrabTile)).GetSetMethod();
-
-            List<CodeInstruction> codeInstructions = instructions.ToList();
-
-            bool found = false;
-
-            for (int i = 0; i < codeInstructions.Count; i++)
-            {
-                // Relevant CIL code:
-                //     Vector2 position = Vector2 position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y);
-                //         ldsfld bool StardewValley.Game1::wasMouseVisibleThisFrame
-                //         ...
-                //         stloc.2
-                //
-                // Replace with:
-                //     Vector2 position;
-                //     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-                //     {
-                //         position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y);
-                //     }
-                //     else
-                //     {
-                //         position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
-                //     }
-
-                if (!found && codeInstructions[i].opcode == OpCodes.Ldsfld && codeInstructions[i].operand is FieldInfo { Name: "wasMouseVisibleThisFrame" })
-                {
-                    Label jumpFalse = ilGenerator.DefineLabel();
-                    Label jumpEndIf = ilGenerator.DefineLabel();
-
-                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
-                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                    yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                    yield return new CodeInstruction(OpCodes.Ldfld, pointX);
-                    yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
-                    yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
-
-                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
-                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                    yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                    yield return new CodeInstruction(OpCodes.Ldfld, pointY);
-                    yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
-                    yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
-
-                    // If block.
-                    // Replicate the original code.
-                    codeInstructions[i].labels = new List<Label>();
-                    yield return codeInstructions[i];
-                    i++;
-                    for (; i < codeInstructions.Count; i++)
-                    {
-                        yield return codeInstructions[i];
-
-                        if (codeInstructions[i].opcode == OpCodes.Stloc_2)
-                        {
-                            yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
-                            break;
-                        }
-                    }
-
-                    // Else block.
-                    // position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
-                    yield return new CodeInstruction(OpCodes.Ldsfld, wasMouseVisibleThisFrame) { labels = new List<Label>() { jumpFalse } };
-
-                    jumpFalse = ilGenerator.DefineLabel();
-                    Label jumpUnconditional = ilGenerator.DefineLabel();
-
-                    yield return new CodeInstruction(OpCodes.Brfalse_S, jumpFalse);
-                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
-                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                    yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                    yield return new CodeInstruction(OpCodes.Call, pointToVector2);
-                    yield return new CodeInstruction(OpCodes.Br_S, jumpUnconditional);
-                    yield return new CodeInstruction(OpCodes.Call, getPlayer) { labels = new List<Label>() { jumpFalse } };
-                    yield return new CodeInstruction(OpCodes.Ldc_I4_0);
-                    yield return new CodeInstruction(OpCodes.Callvirt, getToolLocation);
-                    yield return new CodeInstruction(OpCodes.Stloc_2) { labels = new List<Label>() { jumpUnconditional } };
-
-                    // Next modification.
-                    bool first = true;
-                    i++;
-                    for (; i < codeInstructions.Count; i++)
-                    {
-                        if (first)
-                        {
-                            codeInstructions[i].labels.Add(jumpEndIf);
-                            first = false;
-                        }
-
-                        // Relevant CIL code:
-                        //     Vector2 tile = new Vector2(position.X / Game1.tileSize, position.Y / Game1.tileSize);
-                        //         IL_03e4: ldloca.s 7
-                        //         ...
-                        //         IL_03fe: call instance void [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Vector2::.ctor(float32, float32)
-                        //
-                        // Replace with:
-                        //     Vector2 tile;
-                        //     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-                        //     {
-                        //         tile = new Vector2(position.X / Game1.tileSize, position.Y / Game1.tileSize);
-                        //     }
-                        //     else
-                        //     {
-                        //         tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
-                        //     }
-
-                        if (!found && codeInstructions[i].opcode == OpCodes.Ldloca_S && (codeInstructions[i].operand as LocalBuilder).LocalIndex == 7)
-                        {
-                            jumpFalse = ilGenerator.DefineLabel();
-
-                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
-                            yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                            yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                            yield return new CodeInstruction(OpCodes.Ldfld, pointX);
-                            yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
-                            yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
-
-                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
-                            yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                            yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                            yield return new CodeInstruction(OpCodes.Ldfld, pointY);
-                            yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
-                            yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
-
-                            // If block.
-                            // Replicate original code.
-                            codeInstructions[i].labels = new List<Label>();
-                            yield return codeInstructions[i];
-                            i++;
-                            for (; i < codeInstructions.Count; i++)
-                            {
-                                yield return codeInstructions[i];
-
-                                if (codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is ConstructorInfo)
-                                {
-                                    jumpEndIf = ilGenerator.DefineLabel();
-                                    yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
-                                    break;
-                                }
-                            }
-
-                            // Else block.
-                            // tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
-                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpFalse } };
-                            yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                            yield return new CodeInstruction(OpCodes.Callvirt, getClickedTile);
-                            yield return new CodeInstruction(OpCodes.Call, pointToVector2);
-                            yield return new CodeInstruction(OpCodes.Stloc_S, 7);
-
-                            // Next modification.
-                            first = true;
-                            i++;
-                            for (; i < codeInstructions.Count; i++)
-                            {
-                                if (first)
-                                {
-                                    codeInstructions[i].labels.Add(jumpEndIf);
-                                    first = false;
-                                }
-
-                                // Relevant CIL code:
-                                //     Vector2 grabTile = Game1.GetPlacementGrabTile();
-                                //         IL_053e: call valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Vector2 StardewValley.Game1::GetPlacementGrabTile()
-                                //         IL_0543: stloc.s 8
-                                //
-                                // Replace with:
-                                //     Vector2 grabTile;
-                                //     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Point.Zero)
-                                //     {
-                                //         grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
-                                //         ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Point.Zero;
-                                //     }
-                                //     else
-                                //     {
-                                //         grabTile = Game1.GetPlacementGrabTile();
-                                //     }
-
-                                if (!found && codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is MethodInfo { Name: "GetPlacementGrabTile" }
-                                && i + 2 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
-                                {
-                                    jumpFalse = ilGenerator.DefineLabel();
-
-                                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Point.Zero)
-                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
-                                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                                    yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
-                                    yield return new CodeInstruction(OpCodes.Call, getPointZero);
-                                    yield return new CodeInstruction(OpCodes.Call, pointInequality);
-                                    yield return new CodeInstruction(OpCodes.Brfalse_S, jumpFalse);
-
-                                    // If block.
-                                    // grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
-                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
-                                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                                    yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
-                                    yield return new CodeInstruction(OpCodes.Call, pointToVector2);
-                                    yield return new CodeInstruction(OpCodes.Stloc_S, 8);
-
-                                    // ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Point.Zero;
-                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
-                                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                                    yield return new CodeInstruction(OpCodes.Call, getPointZero);
-                                    yield return new CodeInstruction(OpCodes.Callvirt, setGrabTile);
-
-                                    jumpEndIf = ilGenerator.DefineLabel();
-                                    yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
-
-                                    // Else block.
-                                    // Return original code.
-                                    codeInstructions[i].labels = new List<Label>() { jumpFalse };
-                                    yield return codeInstructions[i];
-                                    i++;
-                                    yield return codeInstructions[i];
-                                    i++;
-                                    codeInstructions[i].labels.Add(jumpEndIf);
-                                    yield return codeInstructions[i];
-
-                                    found = true;
-                                }
-                                else
-                                {
-                                    yield return codeInstructions[i];
-                                }
-                            }
-                        }
-                        else
-                        {
-                            yield return codeInstructions[i];
-                        }
-                    }
-                }
-                else
-                {
-                    yield return codeInstructions[i];
-                }
-            }
-
-            if (!found)
-            {
-                ClickToMoveManager.Monitor.Log(
-                    $"Failed to patch {nameof(Game1)}.{nameof(Game1.pressUseToolButton)}.\nSome block of code to modify wasn't found.",
-                    LogLevel.Error);
-            }
-        }
-
-        /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1.pressActionButton"/>.
-        /// </summary>
-        /// <param name="instructions">The method instructions to transpile.</param>
-        private static IEnumerable<CodeInstruction> TranspilePressActionButton(
-            IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
-        {
-            // Initialize the grab tile with the current clicked tile from the path finding controller.
-
-            // Relevant CIL code:
-            //     Vector2 grabTile = new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y) / Game1.tileSize;
-            //     Vector2 cursorTile = grabTile;
-            //     if (!Game1.wasMouseVisibleThisFrame || Game1.mouseCursorTransparency == 0 || !Utility.tileWithinRadiusOfPlayer((int)grabTile.X, (int)grabTile.Y, 1, Game1.player))
-            //     {
-            //         grabTile = Game1.player.GetGrabTile();
-            //     }
-            //         IL_0590: call int32 StardewValley.Game1::getOldMouseX()
-            //         ...
-            //         IL_05f8: callvirt instance valuetype[Microsoft.Xna.Framework] Microsoft.Xna.Framework.Vector2 StardewValley.Character::GetGrabTile()
-            //         IL_05fd: stloc.3
-            //
-            // Replace with:
-            //     Vector2 grabTile;
-            //     Vector2 cursorTile;
-            //     if ((ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X == -1 && ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y == -1))
-            //     {
-            //         grabTile = new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y) / Game1.tileSize;
-            //         cursorTile = grabTile;
-            //
-            //         if (!Game1.wasMouseVisibleThisFrame || Game1.mouseCursorTransparency == 0 || !Utility.tileWithinRadiusOfPlayer((int)grabTile.X, (int)grabTile.Y, 1, Game1.player))
-            //         {
-            //             grabTile = Game1.player.GetGrabTile();
-            //         }
-            //     }
-            //     else
-            //     {
-            //         grabTile = Utility.PointToVector2(ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile);
-            //         cursorTile = grabTile;
-            //     }
-
-            FieldInfo pointX = AccessTools.Field(typeof(Point), nameof(Point.X));
-            FieldInfo pointY = AccessTools.Field(typeof(Point), nameof(Point.Y));
-
-            MethodInfo getCurrentLocation =
-                AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
-            MethodInfo getOrCreate = AccessTools.Method(
-                typeof(ClickToMoveManager),
-                nameof(ClickToMoveManager.GetOrCreate));
-            MethodInfo clickedTile =
-                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.ClickedTile)).GetGetMethod();
-            MethodInfo pointToVector2 =
-                AccessTools.Method(typeof(Utility), nameof(Utility.PointToVector2));
-
-            List<CodeInstruction> codeInstructions = instructions.ToList();
-
-            bool found = false;
-            int count = 0;
-
-            for (int i = 0; i < codeInstructions.Count; i++)
-            {
-                if (count < 2 && codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is MethodInfo { Name: "getOldMouseX" })
-                {
-                    count++;
-
-                    // Modify the code upon finding the second call to getOldMouseX.
-                    if (count == 2)
-                    {
-                        Label jumpElseBlock = ilGenerator.DefineLabel();
-                        Label jumpUnconditional = ilGenerator.DefineLabel();
-
-                        // if ((ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X == -1 && ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y == -1) || Game1.controlpadActionButtonPressed)
-                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
-                        yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                        yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
-                        yield return new CodeInstruction(OpCodes.Ldfld, pointX);
-                        yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
-                        yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpElseBlock);
-
-                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
-                        yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                        yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
-                        yield return new CodeInstruction(OpCodes.Ldfld, pointY);
-                        yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
-                        yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpElseBlock);
-
-                        // If block.
-                        codeInstructions[i].labels = new List<Label>();
-                        yield return codeInstructions[i];
-                        i++;
-                        for (; i < codeInstructions.Count; i++)
-                        {
-                            yield return codeInstructions[i];
-
-                            if (codeInstructions[i].opcode == OpCodes.Callvirt && codeInstructions[i].operand is MethodInfo { Name: "GetGrabTile" } && i + 1 < codeInstructions.Count
-                                && codeInstructions[i + 1].opcode == OpCodes.Stloc_3)
-                            {
-                                i++;
-                                yield return codeInstructions[i];
-                                yield return new CodeInstruction(OpCodes.Br_S, jumpUnconditional);
-                                break;
-                            }
-                        }
-
-                        // Else block.
-                        // grabTile = Utility.PointToVector2(ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile);
-                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpElseBlock } };
-                        yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                        yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
-                        yield return new CodeInstruction(OpCodes.Call, pointToVector2);
-                        yield return new CodeInstruction(OpCodes.Stloc_3);
-
-                        // cursorTile = grabTile;
-                        yield return new CodeInstruction(OpCodes.Ldloc_3);
-                        yield return new CodeInstruction(OpCodes.Stloc_S, 4);
-
-                        i++;
-                        if (i < codeInstructions.Count)
-                        {
-                            codeInstructions[i].labels.Add(jumpUnconditional);
-                            yield return codeInstructions[i];
-                            found = true;
-                        }
-                    }
-                    else
-                    {
-                        yield return codeInstructions[i];
-                    }
-                }
-                else
-                {
-                    yield return codeInstructions[i];
-                }
-            }
-
-            if (!found)
-            {
-                ClickToMoveManager.Monitor.Log(
-                    $"Failed to patch {nameof(Game1)}.{nameof(Game1.pressActionButton)}.\nThe block of code to modify wasn't found.",
-                    LogLevel.Error);
-            }
         }
 
         public static void UpdateClickToMove(MouseState currentMouseState)
@@ -668,858 +238,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
             }
-        }
-
-        /// <summary>A method called via Harmony before <see cref="Game1.pressActionButton" />.</summary>
-        /// <returns>
-        ///     Returns a boolean that, if false, terminates prefixes and skips the execution of the original method,
-        ///     effectively replacing the original method.
-        /// </returns>
-        private static bool BeforePressActionButton(
-            KeyboardState currentKBState,
-            GamePadState currentPadState,
-            ref bool __result)
-        {
-            if (Game1.IsChatting)
-            {
-                currentKBState = default(KeyboardState);
-            }
-
-            if (Game1.dialogueTyping)
-            {
-                bool consume = true;
-                Game1.dialogueTyping = false;
-                if (Game1.currentSpeaker is not null)
-                {
-                    Game1.currentDialogueCharacterIndex =
-                        Game1.currentSpeaker.CurrentDialogue.Peek().getCurrentDialogue().Length;
-                }
-                else if (Game1.currentObjectDialogue.Count > 0)
-                {
-                    Game1.currentDialogueCharacterIndex = Game1.currentObjectDialogue.Peek().Length;
-                }
-                else
-                {
-                    consume = false;
-                }
-
-                Game1.dialogueTypingInterval = 0;
-                Game1.oldKBState = currentKBState;
-                Game1.oldMouseState = Game1.input.GetMouseState();
-                Game1.oldPadState = currentPadState;
-                if (consume)
-                {
-                    Game1.playSound("dialogueCharacterClose");
-
-                    __result = false;
-                    return false;
-                }
-            }
-
-            if (Game1.dialogueUp && Game1.numberOfSelectedItems == -1)
-            {
-                if (Game1.isQuestion)
-                {
-                    Game1.isQuestion = false;
-                    if (Game1.currentSpeaker is not null)
-                    {
-                        if (Game1.currentSpeaker.CurrentDialogue.Peek()
-                            .chooseResponse(Game1.questionChoices[Game1.currentQuestionChoice]))
-                        {
-                            Game1.currentDialogueCharacterIndex = 1;
-                            Game1.dialogueTyping = true;
-                            Game1.oldKBState = currentKBState;
-                            Game1.oldMouseState = Game1.input.GetMouseState();
-                            Game1.oldPadState = currentPadState;
-
-                            __result = false;
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        Game1.dialogueUp = false;
-                        if (Game1.eventUp && Game1.currentLocation.afterQuestion is null)
-                        {
-                            Game1.currentLocation.currentEvent.answerDialogue(
-                                Game1.currentLocation.lastQuestionKey,
-                                Game1.currentQuestionChoice);
-                            Game1.currentQuestionChoice = 0;
-                            Game1.oldKBState = currentKBState;
-                            Game1.oldMouseState = Game1.input.GetMouseState();
-                            Game1.oldPadState = currentPadState;
-                        }
-                        else if (Game1.currentLocation.answerDialogue(
-                            Game1.questionChoices[Game1.currentQuestionChoice]))
-                        {
-                            Game1.currentQuestionChoice = 0;
-                            Game1.oldKBState = currentKBState;
-                            Game1.oldMouseState = Game1.input.GetMouseState();
-                            Game1.oldPadState = currentPadState;
-
-                            __result = false;
-                            return false;
-                        }
-
-                        if (Game1.dialogueUp)
-                        {
-                            Game1.currentDialogueCharacterIndex = 1;
-                            Game1.dialogueTyping = true;
-                            Game1.oldKBState = currentKBState;
-                            Game1.oldMouseState = Game1.input.GetMouseState();
-                            Game1.oldPadState = currentPadState;
-
-                            __result = false;
-                            return false;
-                        }
-                    }
-
-                    Game1.currentQuestionChoice = 0;
-                }
-
-                string exitDialogue = null;
-                if (Game1.currentSpeaker is not null)
-                {
-                    if (Game1.currentSpeaker.immediateSpeak)
-                    {
-                        Game1.currentSpeaker.immediateSpeak = false;
-
-                        __result = false;
-                        return false;
-                    }
-
-                    exitDialogue = Game1.currentSpeaker.CurrentDialogue.Count > 0
-                                       ? Game1.currentSpeaker.CurrentDialogue.Peek().exitCurrentDialogue()
-                                       : null;
-                }
-
-                if (exitDialogue is null)
-                {
-                    if (Game1.currentSpeaker is not null && Game1.currentSpeaker.CurrentDialogue.Count > 0
-                                                     && Game1.currentSpeaker.CurrentDialogue.Peek().isOnFinalDialogue()
-                                                     && Game1.currentSpeaker.CurrentDialogue.Count > 0)
-                    {
-                        Game1.currentSpeaker.CurrentDialogue.Pop();
-                    }
-
-                    Game1.dialogueUp = false;
-
-                    if (Game1.messagePause)
-                    {
-                        Game1.pauseTime = 500f;
-                    }
-
-                    if (Game1.currentObjectDialogue.Count > 0)
-                    {
-                        Game1.currentObjectDialogue.Dequeue();
-                    }
-
-                    Game1.currentDialogueCharacterIndex = 0;
-
-                    if (Game1.currentObjectDialogue.Count > 0)
-                    {
-                        Game1.dialogueUp = true;
-                        Game1.questionChoices.Clear();
-                        Game1.oldKBState = currentKBState;
-                        Game1.oldMouseState = Game1.input.GetMouseState();
-                        Game1.oldPadState = currentPadState;
-                        Game1.dialogueTyping = true;
-                        __result = false;
-                        return false;
-                    }
-
-                    Game1.tvStation = -1;
-
-                    if (Game1.currentSpeaker is not null && !Game1.currentSpeaker.Name.Equals("Gunther") && !Game1.eventUp
-                        && !Game1.currentSpeaker.doingEndOfRouteAnimation)
-                    {
-                        Game1.currentSpeaker.doneFacingPlayer(Game1.player);
-                    }
-
-                    Game1.currentSpeaker = null;
-
-                    if (!Game1.eventUp)
-                    {
-                        Game1.player.CanMove = true;
-                    }
-                    else if (Game1.currentLocation.currentEvent.CurrentCommand > 0
-                             || Game1.currentLocation.currentEvent.specialEventVariable1)
-                    {
-                        if (!Game1.isFestival() || !Game1.currentLocation.currentEvent.canMoveAfterDialogue())
-                        {
-                            Game1.currentLocation.currentEvent.CurrentCommand++;
-                        }
-                        else
-                        {
-                            Game1.player.CanMove = true;
-                        }
-                    }
-
-                    Game1.questionChoices.Clear();
-                    Game1.playSound("smallSelect");
-                }
-                else
-                {
-                    Game1.playSound("smallSelect");
-                    Game1.currentDialogueCharacterIndex = 0;
-                    Game1.dialogueTyping = true;
-                    GamePatcher.checkIfDialogueIsQuestion.Invoke();
-                }
-
-                Game1.oldKBState = currentKBState;
-                Game1.oldMouseState = Game1.input.GetMouseState();
-                Game1.oldPadState = currentPadState;
-
-                if (Game1.questOfTheDay is not null && (bool)Game1.questOfTheDay.accepted
-                                                && Game1.questOfTheDay is SocializeQuest)
-                {
-                    ((SocializeQuest)Game1.questOfTheDay).checkIfComplete();
-                }
-
-                __result = false;
-                return false;
-            }
-
-            if (Game1.currentBillboard != 0)
-            {
-                Game1.currentBillboard = 0;
-                Game1.player.CanMove = true;
-                Game1.oldKBState = currentKBState;
-                Game1.oldMouseState = Game1.input.GetMouseState();
-                Game1.oldPadState = currentPadState;
-
-                __result = false;
-                return false;
-            }
-
-            if (!Game1.player.UsingTool && !Game1.pickingTool && !Game1.menuUp
-                && (!Game1.eventUp || (Game1.currentLocation.currentEvent is not null
-                                       && Game1.currentLocation.currentEvent.playerControlSequence))
-                && !Game1.nameSelectUp && Game1.numberOfSelectedItems == -1 && !Game1.fadeToBlack)
-            {
-                if (Game1.wasMouseVisibleThisFrame && Game1.currentLocation is IAnimalLocation animalLocation)
-                {
-                    Vector2 mousePosition = new Vector2(
-                        Game1.getOldMouseX() + Game1.viewport.X,
-                        Game1.getOldMouseY() + Game1.viewport.Y);
-                    if (Utility.withinRadiusOfPlayer((int)mousePosition.X, (int)mousePosition.Y, 1, Game1.player))
-                    {
-                        if (animalLocation.CheckPetAnimal(mousePosition, Game1.player))
-                        {
-                            __result = true;
-                            return false;
-                        }
-
-                        if (Game1.didPlayerJustRightClick(true)
-                            && animalLocation.CheckInspectAnimal(mousePosition, Game1.player))
-                        {
-                            __result = true;
-                            return false;
-                        }
-                    }
-                }
-
-                Vector2 grabTile;
-                if ((ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile.X == -1
-                     && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile.Y == -1))
-                {
-                    grabTile = new Vector2(
-                                   Game1.getOldMouseX() + Game1.viewport.X,
-                                   Game1.getOldMouseY() + Game1.viewport.Y) / Game1.tileSize;
-
-                    if (Game1.mouseCursorTransparency == 0f || !Game1.wasMouseVisibleThisFrame
-                                                            || (!Game1.lastCursorMotionWasMouse
-                                                                && (Game1.player.ActiveObject is null
-                                                                    || (!Game1.player.ActiveObject.isPlaceable()
-                                                                        && Game1.player.ActiveObject.Category
-                                                                        != SObject.SeedsCategory))))
-                    {
-                        grabTile = Game1.player.GetGrabTile();
-                        if (grabTile.Equals(Game1.player.getTileLocation()))
-                        {
-                            grabTile = Utility.getTranslatedVector2(grabTile, Game1.player.FacingDirection, 1f);
-                        }
-                    }
-
-                    if (!Utility.tileWithinRadiusOfPlayer((int)grabTile.X, (int)grabTile.Y, 1, Game1.player))
-                    {
-                        grabTile = Game1.player.GetGrabTile();
-                        if (grabTile.Equals(Game1.player.getTileLocation()) && Game1.isAnyGamePadButtonBeingPressed())
-                        {
-                            grabTile = Utility.getTranslatedVector2(grabTile, Game1.player.FacingDirection, 1f);
-                        }
-                    }
-                }
-                else
-                {
-                    grabTile = new Vector2(
-                        ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile.X,
-                        ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile.Y);
-                }
-
-                Vector2 cursorTile = grabTile;
-                if (Game1.eventUp && !Game1.isFestival())
-                {
-                    if (Game1.CurrentEvent is not null)
-                    {
-                        Game1.CurrentEvent.receiveActionPress((int)grabTile.X, (int)grabTile.Y);
-                    }
-
-                    Game1.oldKBState = currentKBState;
-                    Game1.oldMouseState = Game1.input.GetMouseState();
-                    Game1.oldPadState = currentPadState;
-
-                    __result = false;
-                    return false;
-                }
-
-                if (Game1.tryToCheckAt(grabTile, Game1.player))
-                {
-                    __result = false;
-                    return false;
-                }
-
-                if (Game1.player.isRidingHorse())
-                {
-                    Game1.player.mount.checkAction(Game1.player, Game1.player.currentLocation);
-
-                    __result = false;
-                    return false;
-                }
-
-                if (!Game1.player.canMove)
-                {
-                    __result = false;
-                    return false;
-                }
-
-                bool isPlacingObject = false;
-                if (Game1.player.ActiveObject is not null && !(Game1.player.ActiveObject is Furniture))
-                {
-                    if (Game1.player.ActiveObject.performUseAction(Game1.currentLocation))
-                    {
-                        Game1.player.reduceActiveItemByOne();
-                        Game1.oldKBState = currentKBState;
-                        Game1.oldMouseState = Game1.input.GetMouseState();
-                        Game1.oldPadState = currentPadState;
-
-                        __result = false;
-                        return false;
-                    }
-
-                    int stack = Game1.player.ActiveObject.Stack;
-                    Game1.isCheckingNonMousePlacement = !Game1.IsPerformingMousePlacement() || Game1.isOneOfTheseKeysDown(currentKBState, Game1.options.actionButton);
-
-                    Vector2 validPosition = Utility.GetNearbyValidPlacementPosition(
-                        Game1.player,
-                        Game1.currentLocation,
-                        Game1.player.ActiveObject,
-                        ((int)grabTile.X * Game1.tileSize) + (Game1.tileSize / 2),
-                        ((int)grabTile.Y * Game1.tileSize) + (Game1.tileSize / 2));
-                    if (!Game1.isCheckingNonMousePlacement && Game1.player.ActiveObject is Wallpaper
-                                                           && Utility.tryToPlaceItem(
-                                                               Game1.currentLocation,
-                                                               Game1.player.ActiveObject,
-                                                               (int)cursorTile.X * Game1.tileSize,
-                                                               (int)cursorTile.Y * Game1.tileSize))
-                    {
-                        Game1.isCheckingNonMousePlacement = false;
-
-                        __result = true;
-                        return false;
-                    }
-
-                    if (Utility.tryToPlaceItem(
-                        Game1.currentLocation,
-                        Game1.player.ActiveObject,
-                        (int)validPosition.X,
-                        (int)validPosition.Y))
-                    {
-                        Game1.isCheckingNonMousePlacement = false;
-
-                        __result = true;
-                        return false;
-                    }
-
-                    if (!Game1.eventUp && (Game1.player.ActiveObject is null || Game1.player.ActiveObject.Stack < stack
-                                                                             || Game1.player.ActiveObject
-                                                                                 .isPlaceable()))
-                    {
-                        isPlacingObject = true;
-                    }
-
-                    Game1.isCheckingNonMousePlacement = false;
-                }
-
-                if (!isPlacingObject)
-                {
-                    grabTile.Y += 1f;
-                    if (Game1.player.FacingDirection >= 0 && Game1.player.FacingDirection <= 3)
-                    {
-                        Vector2 normalizedOffset2 = grabTile - Game1.player.getTileLocation();
-                        if (normalizedOffset2.X > 0f || normalizedOffset2.Y > 0f)
-                        {
-                            normalizedOffset2.Normalize();
-                        }
-
-                        if (Vector2.Dot(Utility.DirectionsTileVectors[Game1.player.FacingDirection], normalizedOffset2)
-                            >= 0f && Game1.tryToCheckAt(grabTile, Game1.player))
-                        {
-                            __result = false;
-                            return false;
-                        }
-                    }
-
-                    if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject is Furniture furniture)
-                    {
-                        furniture.rotate();
-                        Game1.playSound("dwoop");
-                        Game1.oldKBState = currentKBState;
-                        Game1.oldMouseState = Game1.input.GetMouseState();
-                        Game1.oldPadState = currentPadState;
-
-                        __result = false;
-                        return false;
-                    }
-
-                    grabTile = Game1.player.getTileLocation();
-                    if (Game1.tryToCheckAt(grabTile, Game1.player))
-                    {
-                        __result = false;
-                        return false;
-                    }
-
-                    if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject is Furniture)
-                    {
-                        (Game1.player.ActiveObject as Furniture).rotate();
-                        Game1.playSound("dwoop");
-                        Game1.oldKBState = currentKBState;
-                        Game1.oldMouseState = Game1.input.GetMouseState();
-                        Game1.oldPadState = currentPadState;
-
-                        __result = false;
-                        return false;
-                    }
-                }
-
-                if (!Game1.player.isEating && Game1.player.ActiveObject is not null && !Game1.dialogueUp && !Game1.eventUp
-                    && !Game1.player.canOnlyWalk && !Game1.player.FarmerSprite.PauseForSingleAnimation
-                    && !Game1.fadeToBlack && Game1.player.ActiveObject.Edibility != -300
-                    && Game1.didPlayerJustRightClick(true))
-                {
-                    if (Game1.player.team.SpecialOrderRuleActive("SC_NO_FOOD")
-                        && Game1.player.currentLocation is MineShaft
-                        && (Game1.player.currentLocation as MineShaft).getMineArea() == 121)
-                    {
-                        Game1.addHUDMessage(
-                            new HUDMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.13053"), 3));
-
-                        __result = false;
-                        return false;
-                    }
-
-                    if (Game1.buffsDisplay.hasBuff(25) && Game1.player.ActiveObject is not null
-                                                       && !Game1.player.ActiveObject.HasContextTag("ginger_item"))
-                    {
-                        Game1.addHUDMessage(
-                            new HUDMessage(
-                                Game1.content.LoadString("Strings\\StringsFromCSFiles:Nauseous_CantEat"),
-                                3));
-
-                        __result = false;
-                        return false;
-                    }
-
-                    Game1.player.faceDirection(2);
-                    Game1.player.itemToEat = Game1.player.ActiveObject;
-                    Game1.player.FarmerSprite.setCurrentSingleAnimation(304);
-                    Game1.currentLocation.createQuestionDialogue(
-                        Game1.objectInformation[Game1.player.ActiveObject.parentSheetIndex].Split('/').Length > 6
-                        && Game1.objectInformation[Game1.player.ActiveObject.parentSheetIndex].Split('/')[6]
-                            .Equals("drink")
-                            ? Game1.content.LoadString(
-                                "Strings\\StringsFromCSFiles:Game1.cs.3159",
-                                Game1.player.ActiveObject.DisplayName)
-                            : Game1.content.LoadString(
-                                "Strings\\StringsFromCSFiles:Game1.cs.3160",
-                                Game1.player.ActiveObject.DisplayName),
-                        Game1.currentLocation.createYesNoResponses(),
-                        "Eat");
-                    Game1.oldKBState = currentKBState;
-                    Game1.oldMouseState = Game1.input.GetMouseState();
-                    Game1.oldPadState = currentPadState;
-
-                    __result = false;
-                    return false;
-                }
-            }
-            else if (Game1.numberOfSelectedItems != -1)
-            {
-                Game1.tryToBuySelectedItems();
-                Game1.playSound("smallSelect");
-                Game1.oldKBState = currentKBState;
-                Game1.oldMouseState = Game1.input.GetMouseState();
-                Game1.oldPadState = currentPadState;
-
-                __result = false;
-                return false;
-            }
-
-            if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool is MeleeWeapon && Game1.player.CanMove
-                && !Game1.player.canOnlyWalk && !Game1.eventUp && !Game1.player.onBridge
-                && Game1.didPlayerJustRightClick(true))
-            {
-                ((MeleeWeapon)Game1.player.CurrentTool).animateSpecialMove(Game1.player);
-
-                __result = false;
-                return false;
-            }
-
-            __result = true;
-            return false;
-        }
-
-        private static bool BeforepressUseToolButton(ref bool __result)
-        {
-            if (Game1.fadeToBlack)
-            {
-                __result = false;
-                return false;
-            }
-
-            Game1.player.toolPower = 0;
-            Game1.player.toolHold = 0;
-
-            bool didAttemptObjectRemoval = false;
-
-            if (Game1.player.CurrentTool is null && Game1.player.ActiveObject is null)
-            {
-                Vector2 key = Game1.player.GetToolLocation() / Game1.tileSize;
-                key.X = (int)key.X;
-                key.Y = (int)key.Y;
-
-                if (Game1.currentLocation.Objects.ContainsKey(key))
-                {
-                    SObject @object = Game1.currentLocation.Objects[key];
-                    if (!@object.readyForHarvest && @object.heldObject.Value is null && !(@object is Fence)
-                        && !(@object is CrabPot) && @object.type is not null
-                        && (@object.type.Value == "Crafting" || @object.type.Value == "interactive")
-                        && @object.name != "Twig")
-                    {
-                        didAttemptObjectRemoval = true;
-                        @object.setHealth(@object.getHealth() - 1);
-                        @object.shakeTimer = 300;
-                        Game1.currentLocation.playSound("hammer");
-
-                        if (@object.getHealth() < 2)
-                        {
-                            Game1.currentLocation.playSound("hammer");
-
-                            if (@object.getHealth() < 1)
-                            {
-                                Tool tool = new Pickaxe();
-                                tool.DoFunction(Game1.currentLocation, -1, -1, 0, Game1.player);
-
-                                if (@object.performToolAction(tool, Game1.currentLocation))
-                                {
-                                    @object.performRemoveAction(@object.tileLocation.Value, Game1.currentLocation);
-
-                                    if (@object.type.Value.Equals("Crafting") && @object.fragility.Value != 2)
-                                    {
-                                        Game1.currentLocation.debris.Add(
-                                            new Debris(
-                                                @object.bigCraftable.Value
-                                                    ? -@object.ParentSheetIndex
-                                                    : @object.ParentSheetIndex,
-                                                Game1.player.GetToolLocation(),
-                                                new Vector2(
-                                                    Game1.player.GetBoundingBox().Center.X,
-                                                    Game1.player.GetBoundingBox().Center.Y)));
-                                    }
-
-                                    Game1.currentLocation.Objects.Remove(key);
-
-                                    __result = true;
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (Game1.currentMinigame is null && !Game1.player.UsingTool && (Game1.player.IsSitting()
-                                                                             || Game1.player.isRidingHorse()
-                                                                             || Game1.player.onBridge.Value
-                                                                             || Game1.dialogueUp
-                                                                             || (Game1.eventUp
-                                                                                         && !Game1.CurrentEvent
-                                                                                             .canPlayerUseTool()
-                                                                                         && (!Game1.currentLocation
-                                                                                                         .currentEvent
-                                                                                                         .playerControlSequence
-                                                                                                     || (Game1
-                                                                                                                     .activeClickableMenu
-                                                                                                                 is null
-                                                                                                                 && Game1
-                                                                                                                     .currentMinigame
-                                                                                                                 is null
-                                                                                                         )))
-                                                                             || (Game1.player.CurrentTool is not null
-                                                                                         && Game1.currentLocation
-                                                                                             .doesPositionCollideWithCharacter(
-                                                                                                 Utility
-                                                                                                     .getRectangleCenteredAt(
-                                                                                                         Game1.player
-                                                                                                             .GetToolLocation(),
-                                                                                                         Game1
-                                                                                                             .tileSize),
-                                                                                                 true) is not null
-                                                                                         && Game1.currentLocation
-                                                                                             .doesPositionCollideWithCharacter(
-                                                                                                 Utility
-                                                                                                     .getRectangleCenteredAt(
-                                                                                                         Game1.player
-                                                                                                             .GetToolLocation(),
-                                                                                                         Game1
-                                                                                                             .tileSize),
-                                                                                                 true).isVillager())))
-            {
-                Game1.pressActionButton(
-                    Game1.GetKeyboardState(),
-                    Game1.input.GetMouseState(),
-                    Game1.input.GetGamePadState());
-
-                __result = false;
-                return false;
-            }
-
-            if (Game1.player.canOnlyWalk)
-            {
-                __result = true;
-                return false;
-            }
-
-            Vector2 position;
-            if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1
-                && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-            {
-                position = !Game1.wasMouseVisibleThisFrame
-                               ? Game1.player.GetToolLocation()
-                               : new Vector2(
-                                   Game1.getOldMouseX() + Game1.viewport.X,
-                                   Game1.getOldMouseY() + Game1.viewport.Y);
-
-                if (Game1.isAnyGamePadButtonBeingPressed() || Game1.isAnyGamePadButtonBeingHeld())
-                {
-                    position = Game1.player.ActiveObject is not null
-                                   ? GamePatcher.GetPointInFacingDirection(
-                                       Game1.player,
-                                       Game1.player.ActiveObject.boundingBox.Width)
-                                   : GamePatcher.GetPointInFacingDirection(Game1.player);
-                }
-            }
-            else
-            {
-                position = !Game1.wasMouseVisibleThisFrame
-                               ? Game1.player.GetToolLocation()
-                               : new Vector2(
-                                   ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X,
-                                   ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y);
-            }
-
-            if (Utility.canGrabSomethingFromHere((int)position.X, (int)position.Y, Game1.player))
-            {
-                Vector2 tile;
-                if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1
-                    && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-                {
-                    tile = new Vector2(
-                        (Game1.getOldMouseX() + Game1.viewport.X) / Game1.tileSize,
-                        (Game1.getOldMouseY() + Game1.viewport.Y) / Game1.tileSize);
-                }
-                else
-                {
-                    tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
-                }
-
-                if (Game1.currentLocation.checkAction(
-                    new Location((int)tile.X, (int)tile.Y),
-                    Game1.viewport,
-                    Game1.player))
-                {
-                    Game1.updateCursorTileHint();
-
-                    __result = true;
-                    return false;
-                }
-
-                if (Game1.currentLocation.terrainFeatures.ContainsKey(tile))
-                {
-                    Game1.currentLocation.terrainFeatures[tile].performUseAction(tile, Game1.currentLocation);
-
-                    __result = true;
-                    return false;
-                }
-
-                __result = false;
-                return false;
-            }
-
-            if (Game1.currentLocation.leftClick((int)position.X, (int)position.Y, Game1.player))
-            {
-                __result = true;
-                return false;
-            }
-
-            Game1.isCheckingNonMousePlacement = !Game1.IsPerformingMousePlacement();
-
-            if (Game1.player.ActiveObject is not null)
-            {
-                if (Game1.options.allowStowing)
-                {
-                    if (Game1.CanPlayerStowItem(Game1.GetPlacementGrabTile()))
-                    {
-                        if (Game1.didPlayerJustLeftClick())
-                        {
-                            Game1.playSound("stoneStep");
-
-                            Game1.player.netItemStowed.Set(true);
-
-                            __result = true;
-                            return false;
-                        }
-
-                        __result = true;
-                        return false;
-                    }
-                }
-
-                if (Utility.withinRadiusOfPlayer((int)position.X, (int)position.Y, 1, Game1.player)
-                    && Game1.currentLocation.checkAction(
-                        new Location((int)position.X / Game1.tileSize, (int)position.Y / Game1.tileSize),
-                        Game1.viewport,
-                        Game1.player))
-                {
-                    __result = true;
-                    return false;
-                }
-
-                Point grabTile;
-                if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Point.Zero)
-                {
-                    grabTile = ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile;
-                    ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Point.Zero;
-                }
-                else
-                {
-                    grabTile = Utility.Vector2ToPoint(Game1.GetPlacementGrabTile());
-                }
-
-                Vector2 nearbyValidPlacementPosition = Utility.GetNearbyValidPlacementPosition(
-                    Game1.player,
-                    Game1.currentLocation,
-                    Game1.player.ActiveObject,
-                    grabTile.X * 64,
-                    grabTile.Y * 64);
-                if (Utility.tryToPlaceItem(
-                    Game1.currentLocation,
-                    Game1.player.ActiveObject,
-                    (int)nearbyValidPlacementPosition.X,
-                    (int)nearbyValidPlacementPosition.Y))
-                {
-                    Game1.isCheckingNonMousePlacement = false;
-
-                    __result = true;
-                    return false;
-                }
-
-                Game1.isCheckingNonMousePlacement = false;
-            }
-
-            if (Game1.currentLocation.LowPriorityLeftClick((int)position.X, (int)position.Y, Game1.player))
-            {
-                __result = true;
-                return false;
-            }
-
-            if (Game1.options.allowStowing && Game1.player.netItemStowed.Value && !didAttemptObjectRemoval)
-            {
-                Game1.playSound("toolSwap");
-                Game1.player.netItemStowed.Set(false);
-
-                __result = true;
-                return false;
-            }
-
-            if (Game1.player.UsingTool)
-            {
-                Game1.player.lastClick = new Vector2((int)position.X, (int)position.Y);
-                Game1.player.CurrentTool.DoFunction(
-                    Game1.player.currentLocation,
-                    (int)Game1.player.lastClick.X,
-                    (int)Game1.player.lastClick.Y,
-                    1,
-                    Game1.player);
-
-                __result = true;
-                return false;
-            }
-
-            if (Game1.player.ActiveObject is null && !Game1.player.isEating && Game1.player.CurrentTool is not null)
-            {
-                if (Game1.player.Stamina <= 20f && Game1.player.CurrentTool is not null
-                                                && !(Game1.player.CurrentTool is MeleeWeapon))
-                {
-                    Game1.staminaShakeTimer = 1000;
-                    for (int i = 0; i < 4; i++)
-                    {
-                        int num = Game1.random.Next(32) + Game1.uiViewport.Width - 56;
-                        int num2 = Game1.uiViewport.Height - 224 - 16 - (int)((Game1.player.MaxStamina - 270) * 0.715);
-                        Game1.uiOverlayTempSprites.Add(
-                            new TemporaryAnimatedSprite(
-                                "LooseSprites\\Cursors",
-                                new Rectangle(366, 412, 5, 6),
-                                new Vector2(num, num2),
-                                false,
-                                0.012f,
-                                Color.SkyBlue)
-                                {
-                                    motion = new Vector2(-2f, -10f),
-                                    acceleration = new Vector2(0f, 0.5f),
-                                    local = true,
-                                    scale = 4 + Game1.random.Next(-1, 0),
-                                    delayBeforeAnimationStart = i * 30
-                                });
-                    }
-                }
-
-                if (Game1.player.CurrentTool is not null || Game1.didPlayerJustLeftClick(true))
-                {
-                    if (Utility.withinRadiusOfPlayer((int)position.X, (int)position.Y, 1, Game1.player))
-                    {
-                        if (Game1.player.CurrentTool is WateringCan
-                            || Math.Abs(position.X - Game1.player.getStandingX()) >= 32f
-                            || Math.Abs(position.Y - Game1.player.getStandingY()) >= 32f)
-                        {
-                            Game1.player.Halt();
-                            if ((!(Game1.player.CurrentTool is MeleeWeapon)
-                                 || Game1.player.CurrentTool.InitialParentTileIndex == 47)
-                                && Game1.mouseCursorTransparency != 0f && !Game1.isAnyGamePadButtonBeingHeld())
-                            {
-                                Game1.player.faceGeneralDirection(new Vector2((int)position.X, (int)position.Y));
-                            }
-
-                            Game1.player.lastClick = new Vector2((int)position.X, (int)position.Y);
-                        }
-                    }
-
-                    Game1.player.BeginUsingTool();
-                }
-            }
-
-            __result = false;
-            return false;
         }
 
         /// <summary>
@@ -2664,8 +1382,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (currentKbState.IsKeyDown(Keys.U) && !Game1.oldKBState.IsKeyDown(Keys.U))
                 {
                     FarmHouse farmHouse = Game1.getLocationFromName("FarmHouse") as FarmHouse;
-                    farmHouse.setWallpaper(Game1.random.Next(112), -1,
-                        true);
+                    farmHouse.setWallpaper(Game1.random.Next(112), -1, true);
                     farmHouse.setFloor(Game1.random.Next(40), -1, true);
                 }
 
@@ -2985,17 +1702,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             switch (player.FacingDirection)
             {
                 case 0:
-                    return new Vector2(boundingBox.X + boundingBox.Width / 2, boundingBox.Y - Game1.tileSize);
+                    return new Vector2(boundingBox.X + (boundingBox.Width / 2), boundingBox.Y - Game1.tileSize);
                 case 2:
                     return new Vector2(
-                        boundingBox.X + boundingBox.Width / 2,
+                        boundingBox.X + (boundingBox.Width / 2),
                         boundingBox.Y + boundingBox.Height + Game1.tileSize);
                 case 3:
-                    return new Vector2(boundingBox.X - offset, boundingBox.Y + boundingBox.Height / 2);
+                    return new Vector2(boundingBox.X - offset, boundingBox.Y + (boundingBox.Height / 2));
                 case 1:
                     return new Vector2(
                         boundingBox.X + boundingBox.Width + Game1.tileSize,
-                        boundingBox.Y + boundingBox.Height / 2);
+                        boundingBox.Y + (boundingBox.Height / 2));
                 default:
                     return new Vector2(player.getStandingX(), player.getStandingY());
             }
@@ -3101,46 +1818,135 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="Game1._update" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Game1.pressActionButton"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
-        private static IEnumerable<CodeInstruction> TranspileUpdate(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> TranspilePressActionButton(
+            IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
         {
-            // Add a call to UpdateClickToMove method after the first call to GetMouseState.
+            // Initialize the grab tile with the current clicked tile from the path finding controller.
 
-            // Relevant CIL code:
-            //    mouseState = Game1.input.GetMouseState();
-            //        IL_06e1: ldsfld class StardewValley.InputState StardewValley.Game1::input
-            //        IL_06e6: callvirt instance valuetype[Microsoft.Xna.Framework] Microsoft.Xna.Framework.Input.MouseState StardewValley.InputState::GetMouseState()
-            //        IL_06eb: stloc.s 13
-            //
-            // Code to include after the variable mouseState is defined:
-            //    GamePatcher.UpdateClickToMove(mouseState);
-            //        IL_0937: ldloc.s 13
-            //        IL_0939: call void Raquellcesar.Stardew.ClickToMove.Framework.GamePatcher::UpdateClickToMove(valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Input.MouseState)
+            /*
+            * Relevant CIL code:
+            *     Vector2 grabTile = new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y) / Game1.tileSize;
+            *     Vector2 cursorTile = grabTile;
+            *     if (!Game1.wasMouseVisibleThisFrame || Game1.mouseCursorTransparency == 0 || !Utility.tileWithinRadiusOfPlayer((int)grabTile.X, (int)grabTile.Y, 1, Game1.player))
+            *     {
+            *         grabTile = Game1.player.GetGrabTile();
+            *     }
+            *         IL_0590: call int32 StardewValley.Game1::getOldMouseX()
+            *         ...
+            *         IL_05f8: callvirt instance valuetype[Microsoft.Xna.Framework] Microsoft.Xna.Framework.Vector2 StardewValley.Character::GetGrabTile()
+            *         IL_05fd: stloc.3
+            *
+            * Replace with:
+            *     Vector2 grabTile;
+            *     Vector2 cursorTile;
+            *     if ((ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X == -1 && ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y == -1))
+            *     {
+            *         grabTile = new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y) / Game1.tileSize;
+            *         cursorTile = grabTile;
+            *
+            *         if (!Game1.wasMouseVisibleThisFrame || Game1.mouseCursorTransparency == 0 || !Utility.tileWithinRadiusOfPlayer((int)grabTile.X, (int)grabTile.Y, 1, Game1.player))
+            *         {
+            *             grabTile = Game1.player.GetGrabTile();
+            *         }
+            *     }
+            *     else
+            *     {
+            *         grabTile = Utility.PointToVector2(ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile);
+            *         cursorTile = grabTile;
+            *     }
+            */
 
-            MethodInfo updateClickToMove = AccessTools.Method(
-                typeof(GamePatcher),
-                nameof(GamePatcher.UpdateClickToMove));
+            FieldInfo pointX = AccessTools.Field(typeof(Point), nameof(Point.X));
+            FieldInfo pointY = AccessTools.Field(typeof(Point), nameof(Point.Y));
+
+            MethodInfo getCurrentLocation =
+                AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
+            MethodInfo getOrCreate = AccessTools.Method(
+                typeof(ClickToMoveManager),
+                nameof(ClickToMoveManager.GetOrCreate));
+            MethodInfo clickedTile =
+                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.ClickedTile)).GetGetMethod();
+            MethodInfo pointToVector2 =
+                AccessTools.Method(typeof(Utility), nameof(Utility.PointToVector2));
 
             List<CodeInstruction> codeInstructions = instructions.ToList();
 
             bool found = false;
+            int count = 0;
 
             for (int i = 0; i < codeInstructions.Count; i++)
             {
-                if (!found && codeInstructions[i].opcode == OpCodes.Callvirt && codeInstructions[i].operand is MethodInfo { Name: "GetMouseState" }
-                && i + 1 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
+                if (count < 2 && codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is MethodInfo { Name: "getOldMouseX" })
                 {
-                    object mouseStateLocIndex = codeInstructions[i + 1].operand;
+                    count++;
 
-                    yield return codeInstructions[i];
-                    i++;
-                    yield return codeInstructions[i];
+                    // Modify the code upon finding the second call to getOldMouseX.
+                    if (count == 2)
+                    {
+                        Label jumpElseBlock = ilGenerator.DefineLabel();
+                        Label jumpUnconditional = ilGenerator.DefineLabel();
 
-                    yield return new CodeInstruction(OpCodes.Ldloc_S, mouseStateLocIndex);
-                    yield return new CodeInstruction(OpCodes.Call, updateClickToMove);
+                        // if ((ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X == -1 && ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y == -1) || Game1.controlpadActionButtonPressed)
+                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                        yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                        yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
+                        yield return new CodeInstruction(OpCodes.Ldfld, pointX);
+                        yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                        yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpElseBlock);
 
-                    found = true;
+                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
+                        yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                        yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
+                        yield return new CodeInstruction(OpCodes.Ldfld, pointY);
+                        yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                        yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpElseBlock);
+
+                        // If block.
+                        codeInstructions[i].labels = new List<Label>();
+                        yield return codeInstructions[i];
+                        i++;
+                        for (; i < codeInstructions.Count; i++)
+                        {
+                            yield return codeInstructions[i];
+
+                            if (codeInstructions[i].opcode == OpCodes.Callvirt && codeInstructions[i].operand is MethodInfo { Name: "GetGrabTile" } && i + 1 < codeInstructions.Count
+                                && codeInstructions[i + 1].opcode == OpCodes.Stloc_3)
+                            {
+                                i++;
+                                yield return codeInstructions[i];
+                                yield return new CodeInstruction(OpCodes.Br_S, jumpUnconditional);
+                                break;
+                            }
+                        }
+
+                        // Else block.
+                        // grabTile = Utility.PointToVector2(ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile);
+                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpElseBlock } };
+                        yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                        yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
+                        yield return new CodeInstruction(OpCodes.Call, pointToVector2);
+                        yield return new CodeInstruction(OpCodes.Stloc_3);
+
+                        // cursorTile = grabTile;
+                        yield return new CodeInstruction(OpCodes.Ldloc_3);
+                        yield return new CodeInstruction(OpCodes.Stloc_S, 4);
+
+                        i++;
+                        if (i < codeInstructions.Count)
+                        {
+                            codeInstructions[i].labels.Add(jumpUnconditional);
+                            yield return codeInstructions[i];
+                            found = true;
+                        }
+                    }
+                    else
+                    {
+                        yield return codeInstructions[i];
+                    }
                 }
                 else
                 {
@@ -3151,8 +1957,296 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (!found)
             {
                 ClickToMoveManager.Monitor.Log(
-                        $"Failed to patch {nameof(Game1)}._update.\nThe point of injection was not found.",
-                        LogLevel.Error);
+                    $"Failed to patch {nameof(Game1)}.{nameof(Game1.pressActionButton)}.\nThe block of code to modify wasn't found.",
+                    LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Game1.pressUseToolButton"/>.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspilePressUseToolButton(
+            IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
+        {
+            // Get clicked information from the path finding controller.
+
+            FieldInfo pointX = AccessTools.Field(typeof(Point), nameof(Point.X));
+            FieldInfo pointY = AccessTools.Field(typeof(Point), nameof(Point.Y));
+            FieldInfo wasMouseVisibleThisFrame = AccessTools.Field(typeof(Game1), nameof(Game1.wasMouseVisibleThisFrame));
+
+            MethodInfo getCurrentLocation =
+                AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
+            MethodInfo getPlayer =
+                AccessTools.Property(typeof(Game1), nameof(Game1.player)).GetGetMethod();
+            MethodInfo getToolLocation =
+                AccessTools.Method(typeof(Farmer), nameof(Farmer.GetToolLocation), new Type[] { typeof(bool) });
+            MethodInfo getPlacementGrabTile = AccessTools.Method(typeof(Game1), nameof(Game1.GetPlacementGrabTile));
+            MethodInfo getPointZero = AccessTools.Property(typeof(Point), nameof(Point.Zero)).GetGetMethod();
+            MethodInfo pointInequality = AccessTools.Method(typeof(Point), "op_Inequality");
+            MethodInfo pointToVector2 =
+                AccessTools.Method(typeof(Utility), nameof(Utility.PointToVector2));
+
+            MethodInfo getOrCreate = AccessTools.Method(
+                typeof(ClickToMoveManager),
+                nameof(ClickToMoveManager.GetOrCreate));
+            MethodInfo getClickPoint =
+                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.ClickPoint)).GetGetMethod();
+            MethodInfo getClickedTile =
+                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.ClickedTile)).GetGetMethod();
+            MethodInfo getGrabTile =
+                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.GrabTile)).GetGetMethod();
+            MethodInfo setGrabTile =
+                AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.GrabTile)).GetSetMethod();
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                /*
+                * Relevant CIL code:
+                *     Vector2 position = Vector2 position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y);
+                *         ldsfld bool StardewValley.Game1::wasMouseVisibleThisFrame
+                *         ...
+                *         stloc.2
+                *
+                * Replace with:
+                *     Vector2 position;
+                *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                *     {
+                *         position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y);
+                *     }
+                *     else
+                *     {
+                *         position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
+                *     }
+                */
+
+                if (!found && codeInstructions[i].opcode == OpCodes.Ldsfld && codeInstructions[i].operand is FieldInfo { Name: "wasMouseVisibleThisFrame" })
+                {
+                    Label jumpFalse = ilGenerator.DefineLabel();
+                    Label jumpEndIf = ilGenerator.DefineLabel();
+
+                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                    yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
+                    yield return new CodeInstruction(OpCodes.Ldfld, pointX);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                    yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
+
+                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
+                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                    yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
+                    yield return new CodeInstruction(OpCodes.Ldfld, pointY);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                    yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
+
+                    // If block.
+                    // Replicate the original code.
+                    codeInstructions[i].labels = new List<Label>();
+                    yield return codeInstructions[i];
+                    i++;
+                    for (; i < codeInstructions.Count; i++)
+                    {
+                        yield return codeInstructions[i];
+
+                        if (codeInstructions[i].opcode == OpCodes.Stloc_2)
+                        {
+                            yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
+                            break;
+                        }
+                    }
+
+                    // Else block.
+                    // position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
+                    yield return new CodeInstruction(OpCodes.Ldsfld, wasMouseVisibleThisFrame) { labels = new List<Label>() { jumpFalse } };
+
+                    jumpFalse = ilGenerator.DefineLabel();
+                    Label jumpUnconditional = ilGenerator.DefineLabel();
+
+                    yield return new CodeInstruction(OpCodes.Brfalse_S, jumpFalse);
+                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
+                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                    yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
+                    yield return new CodeInstruction(OpCodes.Call, pointToVector2);
+                    yield return new CodeInstruction(OpCodes.Br_S, jumpUnconditional);
+                    yield return new CodeInstruction(OpCodes.Call, getPlayer) { labels = new List<Label>() { jumpFalse } };
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_0);
+                    yield return new CodeInstruction(OpCodes.Callvirt, getToolLocation);
+                    yield return new CodeInstruction(OpCodes.Stloc_2) { labels = new List<Label>() { jumpUnconditional } };
+
+                    // Next modification.
+                    bool first = true;
+                    i++;
+                    for (; i < codeInstructions.Count; i++)
+                    {
+                        if (first)
+                        {
+                            codeInstructions[i].labels.Add(jumpEndIf);
+                            first = false;
+                        }
+
+                        /*
+                        * Relevant CIL code:
+                        *     Vector2 tile = new Vector2(position.X / Game1.tileSize, position.Y / Game1.tileSize);
+                        *         IL_03e4: ldloca.s 7
+                        *         ...
+                        *         IL_03fe: call instance void [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Vector2::.ctor(float32, float32)
+                        *
+                        * Replace with:
+                        *     Vector2 tile;
+                        *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                        *     {
+                        *         tile = new Vector2(position.X / Game1.tileSize, position.Y / Game1.tileSize);
+                        *     }
+                        *     else
+                        *     {
+                        *         tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
+                        *     }
+                        */
+
+                        if (!found && codeInstructions[i].opcode == OpCodes.Ldloca_S && (codeInstructions[i].operand as LocalBuilder).LocalIndex == 7)
+                        {
+                            jumpFalse = ilGenerator.DefineLabel();
+
+                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                            yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                            yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
+                            yield return new CodeInstruction(OpCodes.Ldfld, pointX);
+                            yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                            yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
+
+                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
+                            yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                            yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
+                            yield return new CodeInstruction(OpCodes.Ldfld, pointY);
+                            yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                            yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
+
+                            // If block.
+                            // Replicate original code.
+                            codeInstructions[i].labels = new List<Label>();
+                            yield return codeInstructions[i];
+                            i++;
+                            for (; i < codeInstructions.Count; i++)
+                            {
+                                yield return codeInstructions[i];
+
+                                if (codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is ConstructorInfo)
+                                {
+                                    jumpEndIf = ilGenerator.DefineLabel();
+                                    yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
+                                    break;
+                                }
+                            }
+
+                            // Else block.
+                            // tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
+                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpFalse } };
+                            yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                            yield return new CodeInstruction(OpCodes.Callvirt, getClickedTile);
+                            yield return new CodeInstruction(OpCodes.Call, pointToVector2);
+                            yield return new CodeInstruction(OpCodes.Stloc_S, 7);
+
+                            // Next modification.
+                            first = true;
+                            i++;
+                            for (; i < codeInstructions.Count; i++)
+                            {
+                                if (first)
+                                {
+                                    codeInstructions[i].labels.Add(jumpEndIf);
+                                    first = false;
+                                }
+
+                                /*
+                                * Relevant CIL code:
+                                *     Vector2 grabTile = Game1.GetPlacementGrabTile();
+                                *         IL_053e: call valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Vector2 StardewValley.Game1::GetPlacementGrabTile()
+                                *         IL_0543: stloc.s 8
+                                *
+                                * Replace with:
+                                *     Vector2 grabTile;
+                                *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Point.Zero)
+                                *     {
+                                *         grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
+                                *         ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Point.Zero;
+                                *     }
+                                *     else
+                                *     {
+                                *         grabTile = Game1.GetPlacementGrabTile();
+                                *     }
+                                */
+
+                                if (!found && codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is MethodInfo { Name: "GetPlacementGrabTile" }
+                                && i + 2 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
+                                {
+                                    jumpFalse = ilGenerator.DefineLabel();
+
+                                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Point.Zero)
+                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                                    yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
+                                    yield return new CodeInstruction(OpCodes.Call, getPointZero);
+                                    yield return new CodeInstruction(OpCodes.Call, pointInequality);
+                                    yield return new CodeInstruction(OpCodes.Brfalse_S, jumpFalse);
+
+                                    // If block.
+                                    // grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
+                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
+                                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                                    yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
+                                    yield return new CodeInstruction(OpCodes.Call, pointToVector2);
+                                    yield return new CodeInstruction(OpCodes.Stloc_S, 8);
+
+                                    // ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Point.Zero;
+                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
+                                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                                    yield return new CodeInstruction(OpCodes.Call, getPointZero);
+                                    yield return new CodeInstruction(OpCodes.Callvirt, setGrabTile);
+
+                                    jumpEndIf = ilGenerator.DefineLabel();
+                                    yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
+
+                                    // Else block.
+                                    // Return original code.
+                                    codeInstructions[i].labels = new List<Label>() { jumpFalse };
+                                    yield return codeInstructions[i];
+                                    i++;
+                                    yield return codeInstructions[i];
+                                    i++;
+                                    codeInstructions[i].labels.Add(jumpEndIf);
+                                    yield return codeInstructions[i];
+
+                                    found = true;
+                                }
+                                else
+                                {
+                                    yield return codeInstructions[i];
+                                }
+                            }
+                        }
+                        else
+                        {
+                            yield return codeInstructions[i];
+                        }
+                    }
+                }
+                else
+                {
+                    yield return codeInstructions[i];
+                }
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(Game1)}.{nameof(Game1.pressUseToolButton)}.\nSome block of code to modify wasn't found.",
+                    LogLevel.Error);
             }
         }
 
@@ -3164,13 +2258,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             // Reset the ClickToMove object associated with the current game location
             // after the game checks that the current location is not null.
 
-            // Relevant CIL code:
-            //     if (Game1.currentLocation is not null)
-            //         IL_0009: call class StardewValley.GameLocation StardewValley.Game1::get_currentLocation()
-            //         IL_000e: brfalse.s IL_0024
-            //
-            // Code to include:
-            //     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+            /*
+            * Relevant CIL code:
+            *     if (Game1.currentLocation is not null)
+            *         IL_0009: call class StardewValley.GameLocation StardewValley.Game1::get_currentLocation()
+            *         IL_000e: brfalse.s IL_0024
+            *
+            * Code to include:
+            *     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+            */
 
             MethodInfo getCurrentLocation =
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
@@ -3209,6 +2305,63 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 ClickToMoveManager.Monitor.Log(
                         $"Failed to patch the setter for {nameof(Game1)}.{nameof(Game1.currentMinigame)}.\nThe point of injection was not found.",
+                        LogLevel.Error);
+            }
+        }
+
+        /// <summary>A method called via Harmony to modify <see cref="Game1._update" />.</summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileUpdate(IEnumerable<CodeInstruction> instructions)
+        {
+            // Add a call to UpdateClickToMove method after the first call to GetMouseState.
+
+            /*
+            * Relevant CIL code:
+            *    mouseState = Game1.input.GetMouseState();
+            *        IL_06e1: ldsfld class StardewValley.InputState StardewValley.Game1::input
+            *        IL_06e6: callvirt instance valuetype[Microsoft.Xna.Framework] Microsoft.Xna.Framework.Input.MouseState StardewValley.InputState::GetMouseState()
+            *        IL_06eb: stloc.s 13
+            *
+            * Code to include after the variable mouseState is defined:
+            *    GamePatcher.UpdateClickToMove(mouseState);
+            *        IL_0937: ldloc.s 13
+            *        IL_0939: call void Raquellcesar.Stardew.ClickToMove.Framework.GamePatcher::UpdateClickToMove(valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Input.MouseState)
+            */
+
+            MethodInfo updateClickToMove = AccessTools.Method(
+                typeof(GamePatcher),
+                nameof(GamePatcher.UpdateClickToMove));
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                if (!found && codeInstructions[i].opcode == OpCodes.Callvirt && codeInstructions[i].operand is MethodInfo { Name: "GetMouseState" }
+                && i + 1 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
+                {
+                    object mouseStateLocIndex = codeInstructions[i + 1].operand;
+
+                    yield return codeInstructions[i];
+                    i++;
+                    yield return codeInstructions[i];
+
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, mouseStateLocIndex);
+                    yield return new CodeInstruction(OpCodes.Call, updateClickToMove);
+
+                    found = true;
+                }
+                else
+                {
+                    yield return codeInstructions[i];
+                }
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                        $"Failed to patch {nameof(Game1)}._update.\nThe point of injection was not found.",
                         LogLevel.Error);
             }
         }

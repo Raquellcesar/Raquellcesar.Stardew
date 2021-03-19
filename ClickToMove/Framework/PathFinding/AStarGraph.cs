@@ -1,11 +1,12 @@
-// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="AStarGraph.cs">
-//   Copyright (c) 2021 Raquellcesar
+// -----------------------------------------------------------------------
+// <copyright file="AStarGraph.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 {
@@ -48,7 +49,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </param>
         public AStarGraph(GameLocation gameLocation)
         {
-            this.gameLocation = gameLocation;
+            this.GameLocation = gameLocation;
 
             if (gameLocation is Beach)
             {
@@ -77,129 +78,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     The <see cref="GameLocation" /> to which this graph is associated.
+        ///     Gets the <see cref="StardewValley.GameLocation" /> to which this graph is associated.
         /// </summary>
-        public GameLocation gameLocation { get; }
+        public GameLocation GameLocation { get; }
 
         /// <summary>
-        ///     Get the Old Mariner NPC.
+        ///     Gets the Old Mariner NPC.
         /// </summary>
-        public NPC OldMariner => this.oldMariner.GetValue();
-
-        public Point GetNearestTileNextToBuilding(Building building)
-        {
-            int buildingTileX = building.tileX.Value;
-            int buildingTileY = building.tileY.Value;
-            int buildingTilesWidth = building.tilesWide.Value;
-            int buildingTilesHeight = building.tilesHigh.Value;
-
-            int tileX;
-            int tileY;
-
-            if (Game1.player.getTileX() < buildingTileX)
-            {
-                tileX = buildingTileX;
-            }
-            else if (Game1.player.getTileX() > buildingTileX + buildingTilesWidth - 1)
-            {
-                tileX = buildingTileX + buildingTilesWidth - 1;
-            }
-            else
-            {
-                tileX = Game1.player.getTileX();
-            }
-
-            if (Game1.player.getTileY() < buildingTileY)
-            {
-                tileY = buildingTileY;
-            }
-            else if (Game1.player.getTileY() > buildingTileY + buildingTilesHeight)
-            {
-                tileY = buildingTileY + buildingTilesHeight - 1;
-            }
-            else
-            {
-                tileY = Game1.player.getTileY();
-            }
-
-            Point tile = this.GetTileNextToBuilding(tileX, tileY);
-
-            if (tile != Point.Zero)
-            {
-                return tile;
-            }
-
-            // There is no direct path to the nearest tile, let's search for an alternative around it.
-
-            List<Point> tilesAroundBuilding = building.ListOfSurroundingTiles();
-
-            int tileIndex = 0;
-
-            for (int i = 0; i < tilesAroundBuilding.Count; i++)
-            {
-                if (tilesAroundBuilding[i].X == tileX && tilesAroundBuilding[i].Y == tileY)
-                {
-                    tileIndex = i;
-                    break;
-                }
-            }
-
-            for (int i = 1, previousIndex = tileIndex - 1, nextIndex = tileIndex + 1;
-                 i < tilesAroundBuilding.Count / 2;
-                 i++, previousIndex--, nextIndex++)
-            {
-                if (previousIndex < 0)
-                {
-                    previousIndex += tilesAroundBuilding.Count;
-                }
-
-                tile = this.GetTileNextToBuilding(
-                    tilesAroundBuilding[previousIndex].X,
-                    tilesAroundBuilding[previousIndex].Y);
-
-                if (tile != Point.Zero)
-                {
-                    return tile;
-                }
-
-                if (nextIndex > tilesAroundBuilding.Count - 1)
-                {
-                    nextIndex -= tilesAroundBuilding.Count;
-                }
-
-                tile = this.GetTileNextToBuilding(
-                    tilesAroundBuilding[nextIndex].X,
-                    tilesAroundBuilding[nextIndex].Y);
-
-                if (tile != Point.Zero)
-                {
-                    return tile;
-                }
-            }
-
-            return new Point(Game1.player.getTileX(), Game1.player.getTileY());
-        }
-
-        private Point GetTileNextToBuilding(int tileX, int tileY)
-        {
-            AStarNode tileNode = this.GetNode(tileX, tileY);
-
-            if (tileNode is not null)
-            {
-                tileNode.FakeTileClear = true;
-
-                AStarPath path = this.FindPathWithBubbleCheck(this.FarmerNodeOffset, tileNode);
-
-                if (path is not null && path.Count > 0)
-                {
-                    return new Point(tileX, tileY);
-                }
-
-                tileNode.FakeTileClear = false;
-            }
-
-            return Point.Zero;
-        }
+        public NPC OldMariner => this.oldMariner?.GetValue();
 
         /// <summary>
         ///     Computes a path between the two specified nodes.
@@ -240,7 +126,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 foreach (AStarNode neighbour in currentNode.GetNeighbours())
                 {
                     if (closedSet.Contains(neighbour)
-                        || (this.gameLocation is FarmHouse && !endNode.IsBlockingBedTile()
+                        || (this.GameLocation is FarmHouse && !endNode.IsBlockingBedTile()
                                                        && neighbour.IsBlockingBedTile()))
                     {
                         continue;
@@ -414,6 +300,99 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return node;
         }
 
+        public Point GetNearestTileNextToBuilding(Building building)
+        {
+            int buildingTileX = building.tileX.Value;
+            int buildingTileY = building.tileY.Value;
+            int buildingTilesWidth = building.tilesWide.Value;
+            int buildingTilesHeight = building.tilesHigh.Value;
+
+            int tileX;
+            int tileY;
+
+            if (Game1.player.getTileX() < buildingTileX)
+            {
+                tileX = buildingTileX;
+            }
+            else if (Game1.player.getTileX() > buildingTileX + buildingTilesWidth - 1)
+            {
+                tileX = buildingTileX + buildingTilesWidth - 1;
+            }
+            else
+            {
+                tileX = Game1.player.getTileX();
+            }
+
+            if (Game1.player.getTileY() < buildingTileY)
+            {
+                tileY = buildingTileY;
+            }
+            else if (Game1.player.getTileY() > buildingTileY + buildingTilesHeight)
+            {
+                tileY = buildingTileY + buildingTilesHeight - 1;
+            }
+            else
+            {
+                tileY = Game1.player.getTileY();
+            }
+
+            Point tile = this.GetTileNextToBuilding(tileX, tileY);
+
+            if (tile != Point.Zero)
+            {
+                return tile;
+            }
+
+            // There is no direct path to the nearest tile, let's search for an alternative around it.
+            List<Point> tilesAroundBuilding = building.GetBorderTilesList();
+
+            int tileIndex = 0;
+
+            for (int i = 0; i < tilesAroundBuilding.Count; i++)
+            {
+                if (tilesAroundBuilding[i].X == tileX && tilesAroundBuilding[i].Y == tileY)
+                {
+                    tileIndex = i;
+                    break;
+                }
+            }
+
+            for (int i = 1, previousIndex = tileIndex - 1, nextIndex = tileIndex + 1;
+                 i < tilesAroundBuilding.Count / 2;
+                 i++, previousIndex--, nextIndex++)
+            {
+                if (previousIndex < 0)
+                {
+                    previousIndex += tilesAroundBuilding.Count;
+                }
+
+                tile = this.GetTileNextToBuilding(
+                    tilesAroundBuilding[previousIndex].X,
+                    tilesAroundBuilding[previousIndex].Y);
+
+                if (tile != Point.Zero)
+                {
+                    return tile;
+                }
+
+                if (nextIndex > tilesAroundBuilding.Count - 1)
+                {
+                    nextIndex -= tilesAroundBuilding.Count;
+                }
+
+                tile = this.GetTileNextToBuilding(
+                    tilesAroundBuilding[nextIndex].X,
+                    tilesAroundBuilding[nextIndex].Y);
+
+                if (tile != Point.Zero)
+                {
+                    return tile;
+                }
+            }
+
+            return new Point(Game1.player.getTileX(), Game1.player.getTileY());
+        }
+
         /// <summary>
         ///     Gets the node for the tile with coordinates (x, y).
         /// </summary>
@@ -476,7 +455,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             float minDistance = float.MaxValue;
             for (int i = 1; i < list.Count; i++)
             {
-                float distance = Vector2.Distance(ClickToMoveHelper.PlayerOffsetPosition, list[i].NodeCenterOnMap);
+                float distance = Vector2.Distance(Game1.player.OffsetPositionOnMap(), list[i].NodeCenterOnMap);
                 if (distance < minDistance)
                 {
                     minDistance = distance;
@@ -504,8 +483,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </summary>
         public void Init()
         {
-            int layerWidth = this.gameLocation.map.Layers[0].LayerWidth;
-            int layerHeight = this.gameLocation.map.Layers[0].LayerHeight;
+            int layerWidth = this.GameLocation.map.Layers[0].LayerWidth;
+            int layerHeight = this.GameLocation.map.Layers[0].LayerHeight;
             this.nodes = new AStarNode[layerWidth, layerHeight];
             for (int i = 0; i < layerWidth; i++)
             {
@@ -514,6 +493,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                     this.nodes[i, j] = new AStarNode(this, i, j);
                 }
             }
+        }
+
+        public bool IsTileOnMap(int x, int y)
+        {
+            return x >= 0 && x < this.GameLocation.map.Layers[0].LayerWidth && y >= 0 && y < this.GameLocation.map.Layers[0].LayerHeight;
         }
 
         public void RefreshBubbles()
@@ -528,14 +512,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public void ResetBubbles(bool one = true, bool two = false)
         {
-            if (this.gameLocation.map is null)
+            if (this.GameLocation.map is null)
             {
                 return;
             }
 
-            for (int i = 0; i < this.gameLocation.map.Layers[0].LayerWidth; i++)
+            for (int i = 0; i < this.GameLocation.map.Layers[0].LayerWidth; i++)
             {
-                for (int j = 0; j < this.gameLocation.map.Layers[0].LayerHeight; j++)
+                for (int j = 0; j < this.GameLocation.map.Layers[0].LayerHeight; j++)
                 {
                     this.nodes[i, j].BubbleChecked = false;
 
@@ -552,11 +536,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
         }
 
-        public bool IsTileOnMap(int x, int y)
-        {
-            return x >= 0 && x < this.gameLocation.map.Layers[0].LayerWidth && y >= 0 && y < this.gameLocation.map.Layers[0].LayerHeight;
-        }
-
         /// <summary>
         ///     Computes the Manhattan distance from the current node to the end node.
         /// </summary>
@@ -568,11 +547,32 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return Math.Abs(current.X - end.X) + Math.Abs(current.Y - current.Y);
         }
 
+        private Point GetTileNextToBuilding(int tileX, int tileY)
+        {
+            AStarNode tileNode = this.GetNode(tileX, tileY);
+
+            if (tileNode is not null)
+            {
+                tileNode.FakeTileClear = true;
+
+                AStarPath path = this.FindPathWithBubbleCheck(this.FarmerNodeOffset, tileNode);
+
+                if (path is not null && path.Count > 0)
+                {
+                    return new Point(tileX, tileY);
+                }
+
+                tileNode.FakeTileClear = false;
+            }
+
+            return Point.Zero;
+        }
+
         private void MergeBubbleId2IntoBubbleId()
         {
-            for (int i = 0; i < this.gameLocation.map.Layers[0].LayerWidth; i++)
+            for (int i = 0; i < this.GameLocation.map.Layers[0].LayerWidth; i++)
             {
-                for (int j = 0; j < this.gameLocation.map.Layers[0].LayerHeight; j++)
+                for (int j = 0; j < this.GameLocation.map.Layers[0].LayerHeight; j++)
                 {
                     if (this.nodes[i, j].BubbleId2 == 0)
                     {

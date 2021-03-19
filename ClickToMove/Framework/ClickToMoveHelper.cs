@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="ClickToMoveHelper.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="ClickToMoveHelper.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -17,7 +18,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Netcode;
 
-    using Raquellcesar.Stardew.ClickToMove.Framework.PathFinding;
     using Raquellcesar.Stardew.Common;
 
     using StardewValley;
@@ -39,13 +39,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     /// <summary>Provides methods for interacting with the game code.</summary>
     internal static class ClickToMoveHelper
     {
-        public static Vector2 PlayerOffsetPosition =>
-            new Vector2(Game1.player.position.X + (Game1.tileSize / 2), Game1.player.position.Y + (Game1.tileSize / 2));
+        /// <summary>
+        ///     This <see cref="Farmer"/> position on map considering an offset of half tile.
+        /// </summary>
+        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
+        /// <returns>This farmer's position on map considering an offset of half tile.</returns>
+        public static Vector2 OffsetPositionOnMap(this Farmer farmer)
+        {
+            return new Vector2(farmer.position.X + (Game1.tileSize / 2), farmer.position.Y + (Game1.tileSize / 2));
+        }
 
-        public static Vector2 PlayerPositionOnScreen =>
-            new Vector2(
-                Game1.player.position.X + (Game1.tileSize / 2) - Game1.viewport.X,
-                Game1.player.position.Y + (Game1.tileSize / 2) - Game1.viewport.Y);
+        /// <summary>
+        ///     This <see cref="Farmer"/> position on screen considering an offset of half tile.
+        /// </summary>
+        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
+        /// <returns>This farmer's position on screen considering an offset of half tile.</returns>
+        public static Vector2 OffsetPositionOnScreen(this Farmer farmer)
+        {
+            return new Vector2(farmer.position.X + (Game1.tileSize / 2) - Game1.viewport.X, farmer.position.Y + (Game1.tileSize / 2) - Game1.viewport.Y);
+        }
 
         public static bool AtWarpOrDoor(this NPC npc, GameLocation gameLocation)
         {
@@ -82,7 +94,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
         /// <param name="x">The x coordinate of the clicked position.</param>
         /// <param name="y">The y coordinate of the clicked position.</param>
-        /// <returns>Returns <see langword="true"/> if the player was clicked, false otherwise.</returns>
+        /// <returns>Returns <see langword="true"/> if the farmer was clicked, false otherwise.</returns>
         public static bool ClickedOn(this Farmer farmer, int x, int y)
         {
             return new Rectangle((int)farmer.position.X, (int)farmer.position.Y - 85, Game1.tileSize, 125)
@@ -95,13 +107,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return boundingRect.Contains(point.X, point.Y);
         }
 
-        public static bool ContainsTravellingCart(this GameLocation gameLocation, int pointX, int pointY)
+        /// <summary>
+        ///     Checks if the travelling cart is occupying the given tile coordinates in the given
+        ///     game location.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the travelling cart is occupying the given tile coordinates in the
+        ///     given game location. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool ContainsTravellingCart(this GameLocation gameLocation, int tileX, int tileY)
         {
             if (gameLocation is Forest { travelingMerchantBounds: { } } forest)
             {
                 foreach (Rectangle travelingMerchantBounds in forest.travelingMerchantBounds)
                 {
-                    if (travelingMerchantBounds.Contains(pointX, pointY))
+                    if (travelingMerchantBounds.Contains(tileX, tileY))
                     {
                         return true;
                     }
@@ -111,9 +134,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
-        public static bool ContainsTravellingDesertShop(this GameLocation gameLocation, int pointX, int pointY)
+        /// <summary>
+        ///     Checks if the travelling desert shop is occupying the given tile coordinates in the
+        ///     given game location.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns true if the travelling desert shop is occupying the given tile coordinates
+        ///     in the given game location. Returns false otherwise.
+        /// </returns>
+        public static bool ContainsTravellingDesertShop(this GameLocation gameLocation, int tileX, int tileY)
         {
-            return gameLocation is Desert desert && desert.IsTravelingMerchantHere() && desert.GetDesertMerchantBounds().Contains(pointX, pointY);
+            return gameLocation is Desert desert && desert.IsTravelingMerchantHere() && desert.GetDesertMerchantBounds().Contains(tileX, tileY);
         }
 
         public static int CountNonNullItems(this Chest chest)
@@ -128,11 +162,27 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return (float)Math.Sqrt((num1 * (double)num1) + (num2 * (double)num2));
         }
 
+        /// <summary>
+        ///     Gets the Bounding box for the Desert Merchant.
+        /// </summary>
+        /// <param name="desert">The <see cref="Desert"/> instance.</param>
+        /// <returns>The Bounding box for the Desert Merchant.</returns>
         public static Rectangle GetDesertMerchantBounds(this Desert desert)
         {
             return new Rectangle(2112, 1280, 836, 280);
         }
 
+
+        /// <summary>
+        ///     Gets the farm animal at the tile associated with this node, if there's one.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The tile x coordinate.</param>
+        /// <param name="y">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns the farm animal at the tile associated with this node, if there's one.
+        ///     Returns null if there isn't any animal at the tile.
+        /// </returns>
         public static FarmAnimal GetFarmAnimal(this GameLocation gameLocation, int x, int y)
         {
             if (gameLocation is AnimalHouse animalHouse)
@@ -219,6 +269,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return result;
         }
 
+        /// <summary>
+        ///     Checks whether this <see cref="Farmer"/> has the given tool in their inventory.
+        /// </summary>
+        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
+        /// <param name="toolName">The tool name.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this <see cref="Farmer"/> has the given tool in their inventory.
+        ///     Return <see langword="false"/> otherwise.
+        /// </returns>
         public static bool HasTool(this Farmer farmer, string toolName)
         {
             return farmer.items.Any(item => item?.Name.Contains(toolName) == true);
@@ -254,7 +313,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public static bool IsBoulderAt(this GameLocation gameLocation, int x, int y)
         {
             if (!(gameLocation is Forest || gameLocation is Woods) && gameLocation.resourceClumps.Any(
-                    resourceClump => ClickToMoveHelper.IsBoulderAt(resourceClump, x, y)))
+                    resourceClump => resourceClump.IsBoulderAt(x, y)))
             {
                 return true;
             }
@@ -264,6 +323,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return @object is not null && (@object.Name == "Stone" || @object.Name == "Boulder");
         }
 
+        /// <summary>
+        ///     Checks whether a bush is destroyable from a given tile. Extends the game's <see
+        ///     cref="Bush.isDestroyable"/> method to deal with bushes created by the Deep Woods mod.
+        /// </summary>
+        /// <param name="bush">The <see cref="Bush"/> instance.</param>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> where the bush is.</param>
+        /// <param name="tile">The tile to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the bush can be destroyed by the player, 
+        ///     <see langword="false"/> otherwise.
+        /// </returns>
         public static bool IsDestroyable(this Bush bush, GameLocation gameLocation, Point tile)
         {
             if (bush.isDestroyable(gameLocation, new Vector2(tile.X, tile.Y)))
@@ -271,6 +341,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
+            // Test for bushes from the mod Deep Woods.
             Type bushType = bush.GetType();
 
             return bushType.Name == "DestroyableBush" || bushType.BaseType?.Name == "DestroyableBush";
@@ -357,6 +428,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return true;
         }
 
+        /// <summary>
+        ///     Checks if there's a tree stump at a tile in a game location.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The tile x coordinate.</param>
+        /// <param name="y">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns true if there's a tree stump at the given tile in this game location.
+        ///     Returns false otherwise.
+        /// </returns>
         public static bool IsStumpAt(this GameLocation gameLocation, int x, int y)
         {
             if (gameLocation is Woods woods)
@@ -378,6 +459,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Checks if a tile is passable, i.e. it can be reached by the player.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation" /> to check.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the given tile is passable. Returns <see langword="false"/> otherwise.
+        /// </returns>
         public static bool IsTilePassable(this GameLocation gameLocation, int tileX, int tileY)
         {
             return gameLocation.IsTilePassable(new Location(tileX * Game1.tileSize, tileY * Game1.tileSize));
@@ -434,10 +524,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Checks if the travelling merchant is present at the desert.
+        ///     Checks if the travelling merchant is present at this desert.
         /// </summary>
-        /// <param name="desert">The <see cref="Desert" /> instance.</param>
-        /// <returns></returns>
+        /// <param name="desert">The <see cref="Desert"/> instance.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the travelling merchant is present at the desert;
+        ///     returns <see langword="false"/> otherwise.
+        /// </returns>
         public static bool IsTravelingMerchantHere(this Desert desert)
         {
             if (Game1.currentSeason == "winter" && Game1.dayOfMonth >= 15)
@@ -515,7 +608,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
-        public static List<Point> ListOfSurroundingTiles(this Building building)
+        /// <summary>
+        ///     Returns a list of the tiles at the border of this building.
+        /// </summary>
+        /// <param name="building">The <see cref="Building"/> instance.</param>
+        /// <returns>A list of the tiles at the border of this building.</returns>
+        public static List<Point> GetBorderTilesList(this Building building)
         {
             List<Point> list = new List<Point>();
 
@@ -564,13 +662,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Selects a tool by name.
+        ///     This <see cref="Farmer"/> selects a tool by name.
         /// </summary>
-        /// <param name="toolName">
-        ///     The tool name.
-        /// </param>
+        /// <param name="farmer">This <see cref="Farmer"/> instance.</param>
+        /// <param name="toolName"> The tool's name.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the tool was found and selected in the player's inventory; false, otherwise.
+        ///     Returns <see langword="true"/> if the tool was found and selected in the farmer's inventory; <see langword="false"/>, otherwise.
         /// </returns>
         public static bool SelectTool(this Farmer farmer, string toolName)
         {
@@ -587,6 +684,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Returns the squared Euclidean distance between two points.
+        /// </summary>
+        /// <param name="x1">The x coordinate of the first point.</param>
+        /// <param name="y1">The y coordinate of the first point.</param>
+        /// <param name="x2">The x coordinate of the second point.</param>
+        /// <param name="y2">The y coordinate of the second point.</param>
+        /// <returns>The squared Euclidean distance between two points.</returns>
         public static double SquaredEuclideanDistance(int x1, int y1, int x2, int y2)
         {
             return Math.Pow(x1 - x2, 2.0) + Math.Pow(y1 - y2, 2.0);
@@ -635,6 +740,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return Game1.tileSize * 1.5f;
         }
 
+        /// <summary>
+        ///     Checks if a resource clump is a boulder occupying a given tile.
+        /// </summary>
+        /// <param name="resourceClump">The <see cref="ResourceClump"/> instance.</param>
+        /// <param name="x">The tile x coordinate.</param>
+        /// <param name="y">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns true if this <see cref="ResourceClump"/> is a boulder at the given tile
+        ///     coordinates. Returns false otherwise.
+        /// </returns>
         private static bool IsBoulderAt(this ResourceClump resourceClump, int x, int y)
         {
             return resourceClump.occupiesTile(x, y)

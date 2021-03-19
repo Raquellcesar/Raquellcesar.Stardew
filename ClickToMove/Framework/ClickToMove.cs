@@ -58,12 +58,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     286, 287, 288, 298, 322, 323, 324, 325, 599, 621, 645, 405, 407, 409, 411, 415, 309, 310, 311, 313,
                     314, 315, 316, 317, 318, 319, 320, 321, 328, 329, 331, 401, 93, 94, 294, 295, 297, 461, 463, 464,
-                    746, 326
+                    746, 326,
                 });
 
         private static readonly string[] FestivalNames =
             {
-                "eggFestival", "flowerFestival", "luau", "jellies", "fair", "iceFestival"
+                "eggFestival", "flowerFestival", "luau", "jellies", "fair", "iceFestival",
             };
 
         private static MeleeWeapon mostRecentlyChosenMeleeWeapon;
@@ -186,7 +186,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             this.ignoreWarps = ClickToMoveManager.Reflection.GetField<bool>(gameLocation, "ignoreWarps");
 
-            this.Graph = new AStarGraph(this.gameLocation); //this.Init();
+            this.Graph = new AStarGraph(this.gameLocation);
         }
 
         public static MeleeWeapon MostRecentlyChosenMeleeWeapon
@@ -211,7 +211,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public Point GrabTile { get; set; } = Point.Zero;
 
         /// <summary>
-        ///     The graph used for path finding.
+        ///     Gets the graph used for path finding.
         /// </summary>
         public AStarGraph Graph { get; }
 
@@ -224,12 +224,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool PreventMountingHorse { get; set; }
 
         /// <summary>
-        ///     The <see cref="FarmAnimal" /> that's at the current goal node, if any.
+        ///     Gets the <see cref="FarmAnimal" /> that's at the current goal node, if any.
         /// </summary>
         public FarmAnimal TargetFarmAnimal { get; private set; }
 
         /// <summary>
-        ///     The <see cref="NPC" /> that's at the current goal node, if any.
+        ///     Gets the <see cref="NPC" /> that's at the current goal node, if any.
         /// </summary>
         public NPC TargetNpc { get; private set; }
 
@@ -286,7 +286,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     if (this.ClickedOnAnotherQueueableCrop(clickedNode))
                     {
                         if (this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY)
-                            && Game1.player.CurrentTool is WateringCan && (bool)Game1.player.usingTool
+                            && Game1.player.CurrentTool is WateringCan && Game1.player.usingTool
                             && this.phase == ClickToMovePhase.None)
                         {
                             this.waitingToFinishWatering = true;
@@ -929,7 +929,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             else if ((Game1.player.CurrentItem is Furniture || Game1.player.ActiveObject is Furniture)
                      && this.gameLocation is DecoratableLocation)
             {
-                this.ClickKeyStates.SetMovePressed(WalkDirection.None);
+                this.ClickKeyStates.SetMovement(WalkDirection.None);
                 this.phase = ClickToMovePhase.None;
             }
             else if (this.Furniture is not null
@@ -957,36 +957,36 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 Vector2 mousePosition = new Vector2(mouseX + viewportX, mouseY + viewportY);
-                Vector2 playerOffsetPosition = ClickToMoveHelper.PlayerOffsetPosition;
+                Vector2 playerOffsetPosition = Game1.player.OffsetPositionOnMap();
 
                 bool flag = false;
                 if (Game1.input.GetMouseState().X < GameRunner.instance.Window.ClientBounds.Width * 0.2f
-                    && ClickToMoveHelper.PlayerPositionOnScreen.X < 3 * Game1.tileSize)
+                    && Game1.player.OffsetPositionOnScreen().X < 3 * Game1.tileSize)
                 {
                     playerOffsetPosition.X = Game1.viewport.X + (3 * Game1.tileSize);
                     flag = true;
                 }
                 else if (Game1.input.GetMouseState().X > GameRunner.instance.Window.ClientBounds.Width * 0.8f
-                         && ClickToMoveHelper.PlayerPositionOnScreen.X > Game1.viewport.Width - (3 * Game1.tileSize))
+                         && Game1.player.OffsetPositionOnScreen().X > Game1.viewport.Width - (3 * Game1.tileSize))
                 {
                     playerOffsetPosition.X = Game1.viewport.X + Game1.viewport.Width - (3 * Game1.tileSize);
                     flag = true;
                 }
 
                 if (Game1.input.GetMouseState().Y < GameRunner.instance.Window.ClientBounds.Height * 0.2f
-                    && ClickToMoveHelper.PlayerPositionOnScreen.Y < 3 * Game1.tileSize)
+                    && Game1.player.OffsetPositionOnScreen().Y < 3 * Game1.tileSize)
                 {
                     playerOffsetPosition.Y = Game1.viewport.Y + (3 * Game1.tileSize);
                     flag = true;
                 }
                 else if (Game1.input.GetMouseState().Y > GameRunner.instance.Window.ClientBounds.Height * 0.8f
-                         && ClickToMoveHelper.PlayerPositionOnScreen.Y > Game1.viewport.Height - (3 * Game1.tileSize))
+                         && Game1.player.OffsetPositionOnScreen().Y > Game1.viewport.Height - (3 * Game1.tileSize))
                 {
                     playerOffsetPosition.Y = Game1.viewport.Y + Game1.viewport.Height - (3 * Game1.tileSize);
                     flag = true;
                 }
 
-                float distanceToMouse = Vector2.Distance(ClickToMoveHelper.PlayerOffsetPosition, mousePosition);
+                float distanceToMouse = Vector2.Distance(Game1.player.OffsetPositionOnMap(), mousePosition);
                 float num3 = Game1.tileSize / 4f / Game1.options.zoomLevel;
                 if (distanceToMouse > num3 || flag)
                 {
@@ -1005,11 +1005,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.walkDirectionFarmerToMouse = WalkDirection.None;
                 }
 
-                this.ClickKeyStates.SetMovePressed(this.walkDirectionFarmerToMouse);
+                this.ClickKeyStates.SetMovement(this.walkDirectionFarmerToMouse);
 
                 if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.usingTool.Value
                     && !this.warping && !this.IgnoreWarps && this.gameLocation.WarpIfInRange(
-                        ClickToMoveHelper.PlayerOffsetPosition))
+                        Game1.player.OffsetPositionOnMap()))
                 {
                     this.Reset();
 
@@ -1115,8 +1115,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         public void Reset(bool resetKeyStates = true)
         {
-            //this.justClosedActiveMenu = false;
-
             this.phase = ClickToMovePhase.None;
 
             this.mouseX = -1;
@@ -1165,7 +1163,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.player.mount is not null)
             {
-                CharactersPatcher.SetCheckActionEnabled(Game1.player.mount, true);
+                Game1.player.mount.SetCheckActionEnabled(true);
             }
         }
 
@@ -1201,7 +1199,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         public void Update()
         {
-            this.ClickKeyStates.UpdateReleasedStates();
+            this.ClickKeyStates.ClearReleasedStates();
 
             if (Game1.eventUp && !Game1.player.CanMove && !Game1.dialogueUp && this.phase != ClickToMovePhase.None
                 && (Game1.currentSeason != "winter" || Game1.dayOfMonth != 8)
@@ -1281,7 +1279,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (Game1.player.CanMove && !Game1.player.UsingTool && Game1.player.CurrentTool is not null
                 && Game1.player.CurrentTool.isHeavyHitter())
             {
-                this.ClickKeyStates.SetMovePressed(WalkDirection.None);
+                this.ClickKeyStates.SetMovement(WalkDirection.None);
 
                 Game1.player.faceDirection(0);
 
@@ -1496,7 +1494,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private void CheckToOpenClosedGate()
         {
             if (this.gateNode is not null && Vector2.Distance(
-                    ClickToMoveHelper.PlayerOffsetPosition,
+                    Game1.player.OffsetPositionOnMap(),
                     new Vector2(this.gateNode.NodeCenterOnMap.X, this.gateNode.NodeCenterOnMap.Y)) < 83.2f)
             {
                 Fence fence = this.gateNode.GetGate();
@@ -1698,11 +1696,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     Vector2 nextNodeCenter = this.path[0].NodeCenterOnMap;
                     WalkDirection walkDirection = WalkDirection.GetWalkDirection(
-                        ClickToMoveHelper.PlayerOffsetPosition,
+                        Game1.player.OffsetPositionOnMap(),
                         nextNodeCenter,
                         Game1.player.getMovementSpeed());
 
-                    float distanceToNextNode = Vector2.Distance(ClickToMoveHelper.PlayerOffsetPosition, nextNodeCenter);
+                    float distanceToNextNode = Vector2.Distance(Game1.player.OffsetPositionOnMap(), nextNodeCenter);
 
                     if (distanceToNextNode >= this.lastDistance)
                     {
@@ -1761,7 +1759,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             else
                             {
                                 walkDirection2 = WalkDirection.GetWalkDirection(
-                                    ClickToMoveHelper.PlayerOffsetPosition,
+                                    Game1.player.OffsetPositionOnMap(),
                                     nextNodeCenter);
 
                                 if (walkDirection2 != walkDirection)
@@ -1775,7 +1773,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         }
                     }
 
-                    this.ClickKeyStates.SetMovePressed(walkDirection);
+                    this.ClickKeyStates.SetMovement(walkDirection);
                 }
             }
 
@@ -1849,11 +1847,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.performActionFromNeighbourTile)
             {
                 float distanceToGoal = Vector2.Distance(
-                    ClickToMoveHelper.PlayerOffsetPosition,
+                    Game1.player.OffsetPositionOnMap(),
                     this.clickedNode.NodeCenterOnMap);
-                float deltaX = Math.Abs(this.clickedNode.NodeCenterOnMap.X - ClickToMoveHelper.PlayerOffsetPosition.X)
+                float deltaX = Math.Abs(this.clickedNode.NodeCenterOnMap.X - Game1.player.OffsetPositionOnMap().X)
                                - Game1.player.speed;
-                float deltaY = Math.Abs(this.clickedNode.NodeCenterOnMap.Y - ClickToMoveHelper.PlayerOffsetPosition.Y)
+                float deltaY = Math.Abs(this.clickedNode.NodeCenterOnMap.Y - Game1.player.OffsetPositionOnMap().Y)
                                - Game1.player.speed;
 
                 if (distanceToGoal == this.lastDistance)
@@ -1870,9 +1868,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     WalkDirection walkDirection = WalkDirection.GetWalkDirection(
                         this.ClickVector,
-                        ClickToMoveHelper.PlayerOffsetPosition);
+                        Game1.player.OffsetPositionOnMap());
 
-                    this.ClickKeyStates.SetMovePressed(walkDirection);
+                    this.ClickKeyStates.SetMovement(walkDirection);
                 }
                 else if (this.distanceToTarget != DistanceToTarget.TooClose
                          && this.stuckCount < ClickToMove.MaxStuckCount && Math.Max(deltaX, deltaY) > Game1.tileSize)
@@ -1881,11 +1879,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     WalkDirection walkDirection = WalkDirection.GetWalkDirectionForAngle(
                         (float)(Math.Atan2(
-                                    this.clickedNode.NodeCenterOnMap.Y - ClickToMoveHelper.PlayerOffsetPosition.Y,
-                                    this.clickedNode.NodeCenterOnMap.X - ClickToMoveHelper.PlayerOffsetPosition.X)
+                                    this.clickedNode.NodeCenterOnMap.Y - Game1.player.OffsetPositionOnMap().Y,
+                                    this.clickedNode.NodeCenterOnMap.X - Game1.player.OffsetPositionOnMap().X)
                                 / Math.PI / 2 * 360));
 
-                    this.ClickKeyStates.SetMovePressed(walkDirection);
+                    this.ClickKeyStates.SetMovement(walkDirection);
                 }
                 else
                 {
@@ -1896,7 +1894,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             else
             {
                 float distance = Vector2.Distance(
-                    ClickToMoveHelper.PlayerOffsetPosition,
+                    Game1.player.OffsetPositionOnMap(),
                     this.clickedNode.NodeCenterOnMap);
 
                 if (distance >= this.lastDistance)
@@ -1907,8 +1905,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.lastDistance = distance;
 
                 if (distance < Game1.player.getMovementSpeed() || this.stuckCount >= ClickToMove.MaxStuckCount
-                                                               || (this.endNodeToBeActioned
-                                                                   && distance < Game1.tileSize)
+                                                               || (this.endNodeToBeActioned && distance < Game1.tileSize)
                                                                || (this.endNodeOccupied && distance < 66f))
                 {
                     this.OnReachEndOfPath();
@@ -1916,18 +1913,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 WalkDirection walkDirection = WalkDirection.GetWalkDirection(
-                    ClickToMoveHelper.PlayerOffsetPosition,
+                    Game1.player.OffsetPositionOnMap(),
                     this.finalNode.NodeCenterOnMap,
                     Game1.player.getMovementSpeed());
 
-                this.ClickKeyStates.SetMovePressed(walkDirection);
+                this.ClickKeyStates.SetMovement(walkDirection);
             }
         }
 
         /// <summary>
-        /// 
+        ///     Checks if a node is occupied by something.
         /// </summary>
-        /// <param name="node"></param>
+        /// <param name="node">The node to check.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if the node is occupied by something.
         ///     Returns <see langword="false"/> otherwise.
@@ -2745,7 +2742,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         }
 
                         if (landNode is not null && Game1.player.CurrentTool is FishingRod && Vector2.Distance(
-                                ClickToMoveHelper.PlayerOffsetPosition,
+                                Game1.player.OffsetPositionOnMap(),
                                 landNode.NodeCenterOnMap) < Game1.tileSize * fishingDistance)
                         {
                             this.FaceTileClicked();
@@ -2845,23 +2842,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 && Game1.player.ActiveObject.canBePlacedHere(
                     this.gameLocation,
                     new Vector2(this.clickedTile.X, this.clickedTile.Y))
-                && ((bool)Game1.player.ActiveObject.bigCraftable || Game1.player.ActiveObject.parentSheetIndex == BigCraftableId.Heater
-                                                                 || (int)Game1.player.ActiveObject.parentSheetIndex
-                                                                 == 688
-                                                                 || (int)Game1.player.ActiveObject.parentSheetIndex
-                                                                 == 689
-                                                                 || (int)Game1.player.ActiveObject.parentSheetIndex
-                                                                 == 690
-                                                                 || (int)Game1.player.ActiveObject.parentSheetIndex
-                                                                 == 681
-                                                                 || (int)Game1.player.ActiveObject.parentSheetIndex
-                                                                 == 261
-                                                                 || (int)Game1.player.ActiveObject.parentSheetIndex
-                                                                 == 161 || (int)Game1.player.ActiveObject
-                                                                     .parentSheetIndex == 155
-                                                                 || Game1.player.ActiveObject.parentSheetIndex.Value
-                                                                 == 162 || Game1.player.ActiveObject.name.Contains(
-                                                                     "Sapling")))
+                && (Game1.player.ActiveObject.bigCraftable || Game1.player.ActiveObject.parentSheetIndex.Value == 104
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemFarm
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemMountains
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemBeach
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.RainTotem
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemDesert
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == 161
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == 155
+                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == 162
+                                                           || Game1.player.ActiveObject.name.Contains("Sapling")))
             {
                 this.performActionFromNeighbourTile = true;
                 return true;
@@ -2869,8 +2859,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.player.mount is null)
             {
-                this.endNodeToBeActioned =
-                    ClickToMoveHelper.HoeSelectedAndTileHoeable(this.gameLocation, this.clickedTile);
+                this.endNodeToBeActioned = ClickToMoveHelper.HoeSelectedAndTileHoeable(this.gameLocation, this.clickedTile);
 
                 if (this.endNodeToBeActioned)
                 {
@@ -3001,13 +2990,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     {
                         walkDirection = WalkDirection.GetFacingWalkDirection(
                             new Vector2(this.clickPoint.X, this.ClickPoint.Y),
-                            ClickToMoveHelper.PlayerOffsetPosition);
+                            Game1.player.OffsetPositionOnMap());
                         this.FaceTileClicked();
                     }
                     else
                     {
                         walkDirection = WalkDirection.GetWalkDirection(
-                            ClickToMoveHelper.PlayerOffsetPosition,
+                            Game1.player.OffsetPositionOnMap(),
                             this.ClickVector);
 
                         if (Game1.player.CurrentTool is not null
@@ -3017,7 +3006,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             Game1.player.faceDirection(
                                 WalkDirection.GetFacingDirection(
                                     new Vector2(this.clickPoint.X, this.ClickPoint.Y),
-                                    ClickToMoveHelper.PlayerOffsetPosition));
+                                    Game1.player.OffsetPositionOnMap()));
                         }
                     }
                 }
@@ -3027,7 +3016,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     if (walkDirection == WalkDirection.None)
                     {
                         walkDirection = WalkDirection.GetWalkDirection(
-                            ClickToMoveHelper.PlayerOffsetPosition,
+                            Game1.player.OffsetPositionOnMap(),
                             this.clickedNode.NodeCenterOnMap,
                             Game1.tileSize / 4);
                     }
@@ -3038,7 +3027,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     walkDirection = this.ClickKeyStates.LastWalkDirection;
                 }
 
-                this.ClickKeyStates.SetMovePressed(walkDirection);
+                this.ClickKeyStates.SetMovement(walkDirection);
 
                 if (this.endNodeToBeActioned || !this.PerformAction())
                 {
@@ -3075,7 +3064,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
             else if (!this.PerformAction())
             {
-                this.ClickKeyStates.SetPressed(false, false, false, false);
+                this.ClickKeyStates.SetMovement(false, false, false, false);
             }
 
             this.phase = ClickToMovePhase.ReachedEndOfPath;
@@ -3091,7 +3080,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.actionableBuilding is not null)
             {
                 this.actionableBuilding.doAction(
-                    new Vector2((int)this.actionableBuilding.tileX, (int)this.actionableBuilding.tileY),
+                    new Vector2(this.actionableBuilding.tileX, this.actionableBuilding.tileY),
                     Game1.player);
                 return true;
             }
@@ -3132,7 +3121,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.player.mount is not null && this.clickedOnHorse is null)
             {
-                CharactersPatcher.SetCheckActionEnabled(Game1.player.mount, false);
+                Game1.player.mount.SetCheckActionEnabled(false);
             }
 
             _ = this.Furniture;
@@ -3177,12 +3166,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (this.endNodeOccupied && !this.endTileIsActionable && !this.performActionFromNeighbourTile)
             {
-                if (this.Furniture is not null)
-                {
-                    return true;
-                }
-
-                return false;
+                return this.Furniture is not null;
             }
 
             if (this.gameLocation is Farm && this.gameLocation.isActionableTile(
@@ -3190,7 +3174,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.clickedTile.Y + 1,
                     Game1.player))
             {
-                this.ClickKeyStates.SetMovePressed(WalkDirection.Down);
+                this.ClickKeyStates.SetMovement(WalkDirection.Down);
                 this.ClickKeyStates.ActionButtonPressed = true;
                 return true;
             }
@@ -3339,7 +3323,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private void StopMovingAfterReachingEndOfPath()
         {
-            this.ClickKeyStates.SetMovePressed(WalkDirection.None);
+            this.ClickKeyStates.SetMovement(WalkDirection.None);
 
             this.ClickKeyStates.ActionButtonPressed = false;
 

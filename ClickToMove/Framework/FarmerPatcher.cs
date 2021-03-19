@@ -1,10 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="FarmerPatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
-//   Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+﻿// -----------------------------------------------------------------------
+// <copyright file="FarmerPatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -64,10 +66,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 AccessTools.Constructor(
                     typeof(Farmer),
                     new[]
-                        {
-                            typeof(FarmerSprite), typeof(Vector2), typeof(int), typeof(string), typeof(List<Item>),
-                            typeof(bool)
-                        }),
+                    {
+                        typeof(FarmerSprite),
+                        typeof(Vector2),
+                        typeof(int),
+                        typeof(string),
+                        typeof(List<Item>),
+                        typeof(bool),
+                    }),
                 postfix: new HarmonyMethod(typeof(FarmerPatcher), nameof(FarmerPatcher.AfterConstructor)));
 
             harmony.Patch(

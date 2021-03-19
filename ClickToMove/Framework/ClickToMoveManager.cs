@@ -1,11 +1,12 @@
-﻿// // --------------------------------------------------------------------------------------------------------------------
-// // <copyright company="Raquellcesar" file="ClickToMoveManager.cs">
-// //   Copyright (c) 2021 Raquellcesar
-// //
-// //   Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
-// //   or at https://opensource.org/licenses/MIT.
-// // </copyright>
-// // --------------------------------------------------------------------------------------------------------------------
+﻿// -----------------------------------------------------------------------
+// <copyright file="ClickToMoveManager.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
+// </copyright>
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -21,8 +22,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     public class ClickToMoveManager
     {
-        public static bool OnScreenButtonClicked { get; set; }
-
         /// <summary>
         ///     Enables attachment of a <see cref="ClickToMove" /> object to a <see cref="GameLocation" /> at run time.
         /// </summary>
@@ -35,16 +34,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private static Texture2D targetTexture;
 
-        /// <summary>The mod configuration.</summary>
+        /// <summary>Gets the mod configuration.</summary>
         public static ModConfig Config { get; private set; }
 
-        /// <summary>Provides simplified APIs for writing mods.</summary>
+        /// <summary>Gets the helper for writing mods.</summary>
         public static IModHelper Helper { get; private set; }
 
-        /// <summary>Encapsulates monitoring and logging.</summary>
+        /// <summary>Gets the monitor for monitoring and logging.</summary>
         public static IMonitor Monitor { get; private set; }
 
-        /// <summary>Simplifies access to private game code.</summary>
+        public static bool OnScreenButtonClicked { get; set; }
+
+        /// <summary>Gets the reflection helper, which Simplifies access to private game code.</summary>
         public static IReflectionHelper Reflection { get; private set; }
 
         /// <summary>
@@ -89,8 +90,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                          && clickToMove.TargetFarmAnimal is null)
                 {
                     Vector2 vector = new Vector2(
-                        clickToMove.ClickedTile.X * Game1.tileSize - Game1.viewport.X,
-                        clickToMove.ClickedTile.Y * Game1.tileSize - Game1.viewport.Y);
+                        (clickToMove.ClickedTile.X * Game1.tileSize) - Game1.viewport.X,
+                        (clickToMove.ClickedTile.Y * Game1.tileSize) - Game1.viewport.Y);
 
                     long ticks = DateTime.Now.Ticks;
 
@@ -120,8 +121,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 else if (Game1.player.canMove && clickToMove.NoPathHere.X != -1)
                 {
                     Vector2 position = new Vector2(
-                        clickToMove.NoPathHere.X * Game1.tileSize - Game1.viewport.X,
-                        clickToMove.NoPathHere.Y * Game1.tileSize - Game1.viewport.Y);
+                        (clickToMove.NoPathHere.X * Game1.tileSize) - Game1.viewport.X,
+                        (clickToMove.NoPathHere.Y * Game1.tileSize) - Game1.viewport.Y);
 
                     spriteBatch.Draw(
                         Game1.mouseCursors,

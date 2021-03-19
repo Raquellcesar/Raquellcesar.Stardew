@@ -1,11 +1,12 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="FarmerSpritePatcher.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="FarmerSpritePatcher.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of __instance source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -191,18 +192,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             // Switch back to last tool.
 
-            // Relevant CIL code:
-            //     if (base.currentAnimationIndex > this.currentAnimationFrames - 1)
-            //         IL_0056: ldarg.0
-            //         IL_0057: ldfld int32 StardewValley.AnimatedSprite::currentAnimationIndex
-            //         IL_005c: ldarg.0
-            //         IL_005d: ldfld int32 StardewValley.FarmerSprite::currentAnimationFrames
-            //         IL_0062: ldc.i4.1
-            //         IL_0063: sub
-            //         IL_0064: ble IL_014c
-            //
-            // Code to include after:
-            //     FarmerSpritePatcher.SwitchBackToLastTool(this.owner);
+            /*
+            * Relevant CIL code:
+            *     if (base.currentAnimationIndex > this.currentAnimationFrames - 1)
+            *         IL_0056: ldarg.0
+            *         IL_0057: ldfld int32 StardewValley.AnimatedSprite::currentAnimationIndex
+            *         IL_005c: ldarg.0
+            *         IL_005d: ldfld int32 StardewValley.FarmerSprite::currentAnimationFrames
+            *         IL_0062: ldc.i4.1
+            *         IL_0063: sub
+            *         IL_0064: ble IL_014c
+            *
+            * Code to include after:
+            *     FarmerSpritePatcher.SwitchBackToLastTool(this.owner);
+            */
 
             FieldInfo owner = AccessTools.Field(typeof(FarmerSprite), "owner");
             MethodInfo switchBackToLastTool =

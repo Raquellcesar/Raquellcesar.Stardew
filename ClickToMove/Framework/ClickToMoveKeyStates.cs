@@ -1,54 +1,118 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright company="Raquellcesar" file="ClickToMoveKeyStates.cs">
-//   Copyright (c) 2021 Raquellcesar
+﻿// -----------------------------------------------------------------------
+// <copyright file="ClickToMoveKeyStates.cs" company="Raquellcesar">
+//      Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//   Use of this source code is governed by an MIT-style license that can be found in the LICENSE file
-//   or at https://opensource.org/licenses/MIT.
+//      Use of this source code is governed by an MIT-style license that can be
+//      found in the LICENSE file in the project root or at
+//      https://opensource.org/licenses/MIT.
 // </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using Raquellcesar.Stardew.Common;
 
+    /// <summary>
+    ///     This class keeps the simulated state (relative to the previous game tick) of the keys
+    ///     relevate to the implementation of the path finding functionality.
+    ///     These states simulate inputs that will be used to produce the desired outcomes (move the
+    ///     farmer, use a tool, act upon an object, etc.).
+    /// </summary>
     public class ClickToMoveKeyStates
     {
-        public bool ActionButtonPressed;
+        /// <summary>
+        ///     Gets or sets the <see cref="WalkDirection"/> of the last movement.
+        /// </summary>
+        public WalkDirection LastWalkDirection { get; set; }
 
-        public WalkDirection LastWalkDirection;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move down key is being held.
+        /// </summary>
+        public bool MoveDownHeld { get; set; }
 
-        public bool MoveDownHeld;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move down key was just pressed.
+        /// </summary>
+        public bool MoveDownPressed { get; set; }
 
-        public bool MoveDownPressed;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move down key was just released.
+        /// </summary>
+        public bool MoveDownReleased { get; set; }
 
-        public bool MoveDownReleased;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move left key is being held.
+        /// </summary>
+        public bool MoveLeftHeld { get; set; }
 
-        public bool MoveLeftHeld;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move left key was just pressed.
+        /// </summary>
+        public bool MoveLeftPressed { get; set; }
 
-        public bool MoveLeftPressed;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move left key was just released.
+        /// </summary>
+        public bool MoveLeftReleased { get; set; }
 
-        public bool MoveLeftReleased;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move right key is being held.
+        /// </summary>
+        public bool MoveRightHeld { get; set; }
 
-        public bool MoveRightHeld;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move right key was just pressed.
+        /// </summary>
+        public bool MoveRightPressed { get; set; }
 
-        public bool MoveRightPressed;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move right key was just released.
+        /// </summary>
+        public bool MoveRightReleased { get; set; }
 
-        public bool MoveRightReleased;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move up key is being held.
+        /// </summary>
+        public bool MoveUpHeld { get; set; }
 
-        public bool MoveUpHeld;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move up key was just pressed.
+        /// </summary>
+        public bool MoveUpPressed { get; set; }
 
-        public bool MoveUpPressed;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the move up key was just released.
+        /// </summary>
+        public bool MoveUpReleased { get; set; }
 
-        public bool MoveUpReleased;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the left mouse button was really (physically) held.
+        /// </summary>
+        public bool RealClickHeld { get; set; }
 
-        public bool RealClickHeld;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the action button was just pressed.
+        /// </summary>
+        public bool ActionButtonPressed { get; set; }
 
-        public bool UseToolButtonHeld;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the use tool button is being held.
+        /// </summary>
+        public bool UseToolButtonHeld { get; set; }
 
-        public bool UseToolButtonPressed;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the use tool button was just pressed.
+        /// </summary>
+        public bool UseToolButtonPressed { get; set; }
 
-        public bool UseToolButtonReleased;
+        /// <summary>
+        ///     Gets or sets a value indicating whether the use tool button was just released.
+        /// </summary>
+        public bool UseToolButtonReleased { get; set; }
 
+        /// <summary>
+        ///  Releases all keys.
+        /// </summary>
         public void Reset()
         {
             this.StopMoving();
@@ -59,6 +123,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.RealClickHeld = false;
         }
 
+        /// <summary>
+        /// Sets all click buttons (left and right) states to false.
+        /// </summary>
         public void ResetLeftOrRightClickButtons()
         {
             this.ActionButtonPressed = false;
@@ -68,6 +135,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.RealClickHeld = false;
         }
 
+        /// <summary>
+        /// Sets the state of the move down key.
+        /// </summary>
+        /// <param name="down">Whether the key is down.</param>
         public void SetDown(bool down)
         {
             this.MoveDownPressed = down && !this.MoveDownHeld;
@@ -75,6 +146,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.MoveDownHeld = down;
         }
 
+        /// <summary>
+        /// Sets the state of the move left key.
+        /// </summary>
+        /// <param name="left">Whether the key is down.</param>
         public void SetLeft(bool left)
         {
             this.MoveLeftPressed = left && !this.MoveLeftHeld;
@@ -82,35 +157,58 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.MoveLeftHeld = left;
         }
 
-        public void SetMovePressed(WalkDirection walkDirection)
+        /// <summary>
+        /// Sets the state of the movement keys according to a given <see cref="WalkDirection"/>.
+        /// </summary>
+        /// <param name="walkDirection">The walk direction to follow.</param>
+        public void SetMovement(WalkDirection walkDirection)
         {
-            this.SetPressed(walkDirection.Y < 0, walkDirection.Y > 0, walkDirection.X < 0, walkDirection.X > 0);
+            this.SetMovement(walkDirection.Y < 0, walkDirection.Y > 0, walkDirection.X < 0, walkDirection.X > 0);
 
             this.LastWalkDirection = walkDirection;
         }
 
-        public void SetPressed(bool up, bool down, bool left, bool right)
+        /// <summary>
+        /// Sets the state of the movement keys.
+        /// </summary>
+        /// <param name="up">Whether the up key is down.</param>
+        /// <param name="down">Whether the down key is down.</param>
+        /// <param name="left">Whether the left key is down.</param>
+        /// <param name="right">Whether the right key is down.</param>
+        public void SetMovement(bool up, bool down, bool left, bool right)
         {
-            this.SetUp(up);
+            this.SetMovementUp(up);
             this.SetDown(down);
             this.SetLeft(left);
-            this.SetRight(right);
+            this.SetMovementRight(right);
         }
 
-        public void SetRight(bool right)
+        /// <summary>
+        /// Sets the state of the move right key.
+        /// </summary>
+        /// <param name="right">Whether the key is down.</param>
+        public void SetMovementRight(bool right)
         {
             this.MoveRightPressed = right && !this.MoveRightHeld;
             this.MoveRightReleased = !right && this.MoveRightHeld;
             this.MoveRightHeld = right;
         }
 
-        public void SetUp(bool up)
+        /// <summary>
+        /// Sets the state of the move up key.
+        /// </summary>
+        /// <param name="up">Whether the key is down.</param>
+        public void SetMovementUp(bool up)
         {
             this.MoveUpPressed = up && !this.MoveUpHeld;
             this.MoveUpReleased = !up && this.MoveUpHeld;
             this.MoveUpHeld = up;
         }
 
+        /// <summary>
+        ///  Sets the current state of the use tool button.
+        /// </summary>
+        /// <param name="useTool">Whether the button is down during this tick.</param>
         public void SetUseTool(bool useTool)
         {
             this.UseToolButtonPressed = useTool && !this.UseToolButtonHeld;
@@ -118,6 +216,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.UseToolButtonHeld = useTool;
         }
 
+        /// <summary>
+        ///     Releases all movement keys.
+        /// </summary>
         public void StopMoving()
         {
             this.MoveUpReleased = this.MoveUpHeld;
@@ -134,7 +235,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.MoveLeftPressed = false;
         }
 
-        public void UpdateReleasedStates()
+        /// <summary>
+        ///     Sets all released states to false.
+        /// </summary>
+        public void ClearReleasedStates()
         {
             this.MoveUpReleased = false;
             this.MoveRightReleased = false;
