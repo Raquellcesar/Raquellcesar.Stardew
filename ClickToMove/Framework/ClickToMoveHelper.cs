@@ -155,11 +155,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return chest.items.Count(item => item is not null);
         }
 
+        /// <summary>
+        ///     Gets the Euclidean distance between two points.
+        /// </summary>
+        /// <param name="point1">The first point.</param>
+        /// <param name="point2">The second point.</param>
+        /// <returns>
+        ///     Returns the Euclidean distance between the two given points.
+        /// </returns>
         public static float Distance(Point point1, Point point2)
         {
-            float num1 = point1.X - point2.X;
-            float num2 = point1.Y - point2.Y;
-            return (float)Math.Sqrt((num1 * (double)num1) + (num2 * (double)num2));
+            double num1 = point1.X - point2.X;
+            double num2 = point1.Y - point2.Y;
+            return (float)Math.Sqrt((num1 * num1) + (num2 * num2));
         }
 
         /// <summary>

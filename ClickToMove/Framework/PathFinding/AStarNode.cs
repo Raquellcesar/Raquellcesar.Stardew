@@ -370,6 +370,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                                                                || text.Contains("WarpWomensLocker"));
         }
 
+        /// <summary>
+        ///     Checks for the existence of a stump at the world location represented by this node.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is a stump at the location represented by this node.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         public bool ContainsStump()
         {
             return this.graph.GameLocation.IsStumpAt(this.X, this.Y);
@@ -379,7 +386,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         ///     Checks for the existence of a stump or boulder at the world location represented by this node.
         /// </summary>
         /// <returns>
-        ///     Returns <see langword="true"/> if there is a stump or boulder ate the location represented by this node.
+        ///     Returns <see langword="true"/> if there is a stump or boulder at the location represented by this node.
         ///     Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool ContainsStumpOrBoulder()

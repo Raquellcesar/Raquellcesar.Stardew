@@ -2992,20 +2992,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private void OnClickToMoveComplete()
         {
-            if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
-                                                                               && this.clickedOnHorse is null
-                                                                               && !this.warping && !this.IgnoreWarps
-                                                                               && this.gameLocation.WarpIfInRange(
-                                                                                   this.ClickVector))
+            if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival)
+                && !Game1.player.UsingTool
+                && this.clickedOnHorse is null
+                && !this.warping
+                && !this.IgnoreWarps
+                && this.gameLocation.WarpIfInRange(this.ClickVector))
             {
-                this.Reset();
-
                 this.warping = true;
             }
-            else
-            {
-                this.Reset();
-            }
+
+            this.Reset();
 
             this.CheckForQueuedReadyToHarvestClicks();
         }
