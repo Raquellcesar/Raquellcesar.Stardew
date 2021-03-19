@@ -196,7 +196,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private bool waitingToFinishWatering;
 
-        private WalkDirection walkDirectionFarmerToMouse = WalkDirection.None;
+        private WalkDirection walkDirectionToMouse = WalkDirection.None;
 
         private bool warping;
 
@@ -1013,25 +1013,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 float distanceToMouse = Vector2.Distance(Game1.player.OffsetPositionOnMap(), mousePosition);
-                float num3 = Game1.tileSize / 4f / Game1.options.zoomLevel;
-                if (distanceToMouse > num3 || flag)
+                float smallestTileSize = Game1.smallestTileSize / Game1.options.zoomLevel;
+                if (distanceToMouse > smallestTileSize || flag)
                 {
-                    if (distanceToMouse > Game1.tileSize / 2f || flag)
+                    if (distanceToMouse > Game1.tileSize / 2 || flag)
                     {
                         float angleDegrees = (float)Math.Atan2(
                                                  mousePosition.Y - playerOffsetPosition.Y,
-                                                 mousePosition.X - playerOffsetPosition.X) / ((float)Math.PI * 2f)
-                                             * 360f;
+                                                 mousePosition.X - playerOffsetPosition.X) / ((float)Math.PI * 2)
+                                             * 360;
 
-                        this.walkDirectionFarmerToMouse = WalkDirection.GetWalkDirectionForAngle(angleDegrees);
+                        this.walkDirectionToMouse = WalkDirection.GetWalkDirectionForAngle(angleDegrees);
                     }
                 }
                 else
                 {
-                    this.walkDirectionFarmerToMouse = WalkDirection.None;
+                    this.walkDirectionToMouse = WalkDirection.None;
                 }
 
-                this.ClickKeyStates.SetMovement(this.walkDirectionFarmerToMouse);
+                this.ClickKeyStates.SetMovement(this.walkDirectionToMouse);
 
                 if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
                     && !this.warping && !this.IgnoreWarps && this.gameLocation.WarpIfInRange(
@@ -1485,8 +1485,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     Point nearestMonsterPosition = this.monsterTarget.GetBoundingBox().Center;
                     WalkDirection walkDirection = WalkDirection.GetFacingWalkDirection(
-                        nearestMonsterPosition,
-                        playerPosition);
+                        playerPosition,
+                        nearestMonsterPosition);
 
                     if (Game1.player.FacingDirection != walkDirection.Value)
                     {
@@ -1679,14 +1679,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (faceClickPoint)
             {
                 facingDirection = WalkDirection.GetFacingDirection(
-                    Utility.PointToVector2(this.clickPoint),
-                    Game1.player.position.Value);
+                    Game1.player.position.Value,
+                    Utility.PointToVector2(this.clickPoint));
             }
             else
             {
                 facingDirection = WalkDirection.GetFacingDirection(
-                    Utility.PointToVector2(this.clickedTile),
-                    new Vector2(Game1.player.position.X / Game1.tileSize, Game1.player.position.Y / Game1.tileSize));
+                    new Vector2(Game1.player.position.X / Game1.tileSize, Game1.player.position.Y / Game1.tileSize),
+                    Utility.PointToVector2(this.clickedTile));
             }
 
             if (facingDirection != Game1.player.facingDirection.Value)
@@ -3049,8 +3049,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     if (Game1.currentMinigame is FishingGame)
                     {
                         walkDirection = WalkDirection.GetFacingWalkDirection(
-                            new Vector2(this.clickPoint.X, this.ClickPoint.Y),
-                            Game1.player.OffsetPositionOnMap());
+                            Game1.player.OffsetPositionOnMap(),
+                            new Vector2(this.clickPoint.X, this.ClickPoint.Y));
                         this.FaceTileClicked();
                     }
                     else

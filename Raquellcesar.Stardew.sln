@@ -18,6 +18,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5D7506C0-02DA-413D-9BF8-225E0CB53B14}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		README.md = README.md
 		Stardew.ruleset = Stardew.ruleset
 		stylecop.json = stylecop.json
 	EndProjectSection

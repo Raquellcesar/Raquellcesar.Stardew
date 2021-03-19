@@ -68,7 +68,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClearAutoSelectTool();
 
-                if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool is MeleeWeapon weapon)
+                if (Game1.player.CurrentTool is MeleeWeapon weapon)
                 {
                     ClickToMove.LastMeleeWeapon = weapon;
                 }

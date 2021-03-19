@@ -42,7 +42,7 @@ namespace Raquellcesar.Stardew.Common
         public static readonly WalkDirection Right = new WalkDirection("Right", 1, 1, 0);
 
         /// <summary>
-        ///     The diagonal up left direction.
+        ///     The diagonal down right direction.
         /// </summary>
         public static readonly WalkDirection DownRight = new WalkDirection("DownRight", 6, 1, 1);
 
@@ -52,7 +52,7 @@ namespace Raquellcesar.Stardew.Common
         public static readonly WalkDirection Down = new WalkDirection("Down", 2, 0, 1);
 
         /// <summary>
-        ///     The diagonal up left direction.
+        ///     The diagonal down left direction.
         /// </summary>
         public static readonly WalkDirection DownLeft = new WalkDirection("DownLeft", 7, -1, 1);
 
@@ -65,6 +65,19 @@ namespace Raquellcesar.Stardew.Common
         ///     The diagonal up left direction.
         /// </summary>
         public static readonly WalkDirection UpLeft = new WalkDirection("UpLeft", 5, -1, -1);
+
+        /*
+         * The following array definitions must come after the definition of all the WalkDirection instances,
+         * because they depend on them.
+         */
+
+        /// <summary>
+        ///     The diagonal directions.
+        /// </summary>
+        public static readonly WalkDirection[] DiagonalDirections =
+            {
+                WalkDirection.UpRight, WalkDirection.UpLeft, WalkDirection.DownRight, WalkDirection.DownLeft,
+            };
 
         /// <summary>
         ///     The known directions.
@@ -81,14 +94,6 @@ namespace Raquellcesar.Stardew.Common
         public static readonly WalkDirection[] SimpleDirections =
             {
                 WalkDirection.Up, WalkDirection.Right, WalkDirection.Down, WalkDirection.Left,
-            };
-
-        /// <summary>
-        ///     The diagonal directions.
-        /// </summary>
-        public static readonly WalkDirection[] DiagonalDirections =
-            {
-                WalkDirection.UpRight, WalkDirection.UpLeft, WalkDirection.DownRight, WalkDirection.DownLeft,
             };
 
         /// <summary>
@@ -133,68 +138,40 @@ namespace Raquellcesar.Stardew.Common
         ///     This only works correctly if the int values used for the walk directions are in sync
         ///     with the values used for facing directions in game.
         /// </remarks>
-        /// <param name="targetPosition">The target position.</param>
         /// <param name="startPosition">The start position.</param>
+        /// <param name="targetPosition">The target position.</param>
         /// <returns>The <see langword="int"/> representing the facing direction when going from start to target.</returns>
-        public static int GetFacingDirection(Vector2 targetPosition, Vector2 startPosition)
+        public static int GetFacingDirection(Vector2 startPosition, Vector2 targetPosition)
         {
-            return WalkDirection.GetFacingWalkDirection(targetPosition, startPosition).Value;
+            return WalkDirection.GetFacingWalkDirection(startPosition, targetPosition).Value;
         }
 
         /// <summary>
         ///     Finds the <see cref="WalkDirection"/> when getting from a start point to a target point.
+        ///     It doesn't consider diagonal directions.
         /// </summary>
-        /// <param name="targetPosition">The target position.</param>
         /// <param name="startPosition">The start position.</param>
-        /// <returns>The <see cref="WalkDirection"/> when going from start to target.</returns>
-        public static WalkDirection GetFacingWalkDirection(Vector2 targetPosition, Vector2 startPosition)
+        /// <param name="targetPosition">The target position.</param>
+        /// <returns>The <see cref="WalkDirection"/> when going from the start position to the target position.</returns>
+        public static WalkDirection GetFacingWalkDirection(Vector2 startPosition, Vector2 targetPosition)
         {
-            double angle = Math.Atan2(targetPosition.Y - startPosition.Y, targetPosition.X - startPosition.X);
+            float angle = (float)Math.Atan2(targetPosition.Y - startPosition.Y, targetPosition.X - startPosition.X);
 
-            if (angle <= -Math.PI / 4.0 && angle >= -3.0 * Math.PI / 4.0)
-            {
-                return WalkDirection.Up;
-            }
-
-            if (angle >= -Math.PI / 4.0 && angle <= Math.PI / 4.0)
-            {
-                return WalkDirection.Right;
-            }
-
-            if (angle >= Math.PI / 4.0 && angle <= 3.0 * Math.PI / 4.0)
-            {
-                return WalkDirection.Down;
-            }
-
-            return WalkDirection.Left;
+            return WalkDirection.GetFacingWalkDirectionForAngle(angle);
         }
 
         /// <summary>
         ///     Finds the <see cref="WalkDirection"/> when getting from a start point to a target point.
+        ///     It doesn't consider diagonal directions.
         /// </summary>
-        /// <param name="targetPosition">The target position.</param>
         /// <param name="startPosition">The start position.</param>
-        /// <returns>The <see cref="WalkDirection"/> when going from start to target.</returns>
-        public static WalkDirection GetFacingWalkDirection(Point targetPosition, Point startPosition)
+        /// <param name="targetPosition">The target position.</param>
+        /// <returns>The <see cref="WalkDirection"/> when going from the start position to the target position.</returns>
+        public static WalkDirection GetFacingWalkDirection(Point startPosition, Point targetPosition)
         {
-            double angle = Math.Atan2(targetPosition.Y - startPosition.Y, targetPosition.X - startPosition.X);
+            float angle = (float)Math.Atan2(targetPosition.Y - startPosition.Y, targetPosition.X - startPosition.X);
 
-            if (angle <= -Math.PI / 4.0 && angle >= -3.0 * Math.PI / 4.0)
-            {
-                return WalkDirection.Up;
-            }
-
-            if (angle >= -Math.PI / 4.0 && angle <= Math.PI / 4.0)
-            {
-                return WalkDirection.Right;
-            }
-
-            if (angle >= Math.PI / 4.0 && angle <= 3.0 * Math.PI / 4.0)
-            {
-                return WalkDirection.Down;
-            }
-
-            return WalkDirection.Left;
+            return WalkDirection.GetFacingWalkDirectionForAngle(angle);
         }
 
         /// <summary>
@@ -268,6 +245,13 @@ namespace Raquellcesar.Stardew.Common
             return WalkDirection.None;
         }
 
+        /// <summary>
+        ///     Gets the <see cref="WalkDirection"/> corresponding to a given angle.
+        /// </summary>
+        /// <param name="angleDegrees">The angle in degrees.</param>
+        /// <returns>
+        ///     The <see cref="WalkDirection"/> for following the given angle.
+        /// </returns>
         public static WalkDirection GetWalkDirectionForAngle(float angleDegrees)
         {
             if (angleDegrees < -112.5 && angleDegrees >= -157.5)
@@ -309,11 +293,11 @@ namespace Raquellcesar.Stardew.Common
         }
 
         /// <summary>
-        ///     Returns the opposite <see cref="WalkDirection"/> from the given direction.
+        ///     Returns the <see cref="WalkDirection"/> opposite to the given direction.
         /// </summary>
         /// <remarks><see cref="WalkDirection.None"/> is opposite to itself.</remarks>
         /// <param name="walkDirection">The direction to find the opposite of.</param>
-        /// <returns>The opposite direction from the given direction.</returns>
+        /// <returns>The direction opposite to the given direction.</returns>
         public static WalkDirection OppositeWalkDirection(WalkDirection walkDirection)
         {
             if (walkDirection == WalkDirection.Up)
@@ -357,6 +341,32 @@ namespace Raquellcesar.Stardew.Common
             }
 
             return WalkDirection.None;
+        }
+
+        /// <summary>
+        ///     Finds the <see cref="WalkDirection"/> for an angle.
+        ///     It doesn't consider diagonal directions.
+        /// </summary>
+        /// <param name="angle">The angle in radians.</param>
+        /// <returns>The <see cref="WalkDirection"/> when following the given direction.</returns>
+        private static WalkDirection GetFacingWalkDirectionForAngle(float angle)
+        {
+            if (angle <= -Math.PI / 4.0 && angle >= -3.0 * Math.PI / 4.0)
+            {
+                return WalkDirection.Up;
+            }
+
+            if (angle >= -Math.PI / 4.0 && angle <= Math.PI / 4.0)
+            {
+                return WalkDirection.Right;
+            }
+
+            if (angle >= Math.PI / 4.0 && angle <= 3.0 * Math.PI / 4.0)
+            {
+                return WalkDirection.Down;
+            }
+
+            return WalkDirection.Left;
         }
     }
 }
