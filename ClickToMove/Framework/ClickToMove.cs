@@ -965,8 +965,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
             else
             {
-                if (!Game1.player.canMove || this.warping
-                                          || this.gameLocation.IsMatureTreeStumpOrBoulderAt(this.clickedTile) || this.forestLog is not null)
+                if (!Game1.player.canMove
+                    || this.warping
+                    || this.gameLocation.IsMatureTreeStumpOrBoulderAt(this.clickedTile)
+                    || this.forestLog is not null)
                 {
                     return;
                 }
@@ -985,38 +987,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Vector2 mousePosition = new Vector2(mouseX + viewportX, mouseY + viewportY);
                 Vector2 playerOffsetPosition = Game1.player.OffsetPositionOnMap();
 
-                bool flag = false;
-                if (Game1.input.GetMouseState().X < GameRunner.instance.Window.ClientBounds.Width * 0.2f
-                    && Game1.player.OffsetPositionOnScreen().X < 3 * Game1.tileSize)
+                float distanceToMouse = Vector2.Distance(playerOffsetPosition, mousePosition);
+                if (distanceToMouse > Game1.smallestTileSize / Game1.options.zoomLevel)
                 {
-                    playerOffsetPosition.X = Game1.viewport.X + (3 * Game1.tileSize);
-                    flag = true;
-                }
-                else if (Game1.input.GetMouseState().X > GameRunner.instance.Window.ClientBounds.Width * 0.8f
-                         && Game1.player.OffsetPositionOnScreen().X > Game1.viewport.Width - (3 * Game1.tileSize))
-                {
-                    playerOffsetPosition.X = Game1.viewport.X + Game1.viewport.Width - (3 * Game1.tileSize);
-                    flag = true;
-                }
-
-                if (Game1.input.GetMouseState().Y < GameRunner.instance.Window.ClientBounds.Height * 0.2f
-                    && Game1.player.OffsetPositionOnScreen().Y < 3 * Game1.tileSize)
-                {
-                    playerOffsetPosition.Y = Game1.viewport.Y + (3 * Game1.tileSize);
-                    flag = true;
-                }
-                else if (Game1.input.GetMouseState().Y > GameRunner.instance.Window.ClientBounds.Height * 0.8f
-                         && Game1.player.OffsetPositionOnScreen().Y > Game1.viewport.Height - (3 * Game1.tileSize))
-                {
-                    playerOffsetPosition.Y = Game1.viewport.Y + Game1.viewport.Height - (3 * Game1.tileSize);
-                    flag = true;
-                }
-
-                float distanceToMouse = Vector2.Distance(Game1.player.OffsetPositionOnMap(), mousePosition);
-                float smallestTileSize = Game1.smallestTileSize / Game1.options.zoomLevel;
-                if (distanceToMouse > smallestTileSize || flag)
-                {
-                    if (distanceToMouse > Game1.tileSize / 2 || flag)
+                    if (distanceToMouse > Game1.tileSize / 2)
                     {
                         float angleDegrees = (float)Math.Atan2(
                                                  mousePosition.Y - playerOffsetPosition.Y,
@@ -1034,8 +1008,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.ClickKeyStates.SetMovement(this.walkDirectionToMouse);
 
                 if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
-                    && !this.warping && !this.IgnoreWarps && this.gameLocation.WarpIfInRange(
-                        Game1.player.OffsetPositionOnMap()))
+                    && !this.warping && !this.IgnoreWarps && this.gameLocation.WarpIfInRange(playerOffsetPosition))
                 {
                     this.Reset();
 
