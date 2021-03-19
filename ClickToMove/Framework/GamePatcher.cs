@@ -30,14 +30,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley.Menus;
     using StardewValley.Minigames;
     using StardewValley.Objects;
-    using StardewValley.Quests;
     using StardewValley.Tools;
     using StardewValley.Util;
 
-    using xTile.Dimensions;
-
     using Rectangle = Microsoft.Xna.Framework.Rectangle;
-    using SObject = StardewValley.Object;
 
     public static class GamePatcher
     {

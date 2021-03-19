@@ -22,8 +22,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley.Menus;
     using StardewValley.Tools;
 
+    /// <summary>Encapsulates Harmony patches for Menus in the game.</summary>
     internal static class MenusPatcher
     {
+        /// <summary>
+        ///     The index of the tool to be selected on the toolbar update.
+        /// </summary>
         private static int nextToolIndex = int.MinValue;
 
         /// <summary>
@@ -51,9 +55,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 postfix: new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.AfterToolbarUpdate)));
         }
 
-        private static void AfterToolbarUpdate(GameTime time)
+        /// <summary>
+        ///     A method called via Harmony after <see cref="Toolbar.update" />
+        ///     This method equips the farmer with a tool previously chosen, when the farmer was using another tool.
+        /// </summary>
+        private static void AfterToolbarUpdate()
         {
-            if (!Game1.player.usingTool && MenusPatcher.nextToolIndex != int.MinValue)
+            if (!Game1.player.UsingTool && MenusPatcher.nextToolIndex != int.MinValue)
             {
                 Game1.player.CurrentToolIndex = MenusPatcher.nextToolIndex;
                 MenusPatcher.nextToolIndex = int.MinValue;
@@ -62,7 +70,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool is MeleeWeapon weapon)
                 {
-                    ClickToMove.MostRecentlyChosenMeleeWeapon = weapon;
+                    ClickToMove.LastMeleeWeapon = weapon;
                 }
             }
         }
@@ -99,6 +107,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return true;
         }
 
+        /// <summary>
+        ///     A method called via Harmony before <see cref="Toolbar.receiveLeftClick"/>
+        ///     that replaces it.
+        ///     This method allows the user to deselect an equipped object so that the farmer 
+        ///     doesn't have any equipped tool or active object.
+        ///     It also allows deferred selection of items. If the farmer selects an item while
+        ///     using a tool, that item will be later equipped when the toolbar updates.
+        /// </summary>
+        /// <returns>
+        ///     Returns false, terminating prefixes and skipping the execution of the original
+        ///     method, effectively replacing the original method.
+        /// </returns>
         private static bool BeforeToolbarReceiveLeftClick(int x, int y, List<ClickableComponent> ___buttons)
         {
             if (Game1.IsChatting || Game1.currentLocation is MermaidHouse || Game1.player.isEating || !Game1.displayFarmer || ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickHoldActive)
@@ -106,7 +126,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return false;
             }
 
-            if (Game1.player.usingTool.Value)
+            if (Game1.player.UsingTool)
             {
                 foreach (ClickableComponent button in ___buttons)
                 {
@@ -152,7 +172,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                         if (Game1.player.CurrentTool is MeleeWeapon weapon)
                         {
-                            ClickToMove.MostRecentlyChosenMeleeWeapon = weapon;
+                            ClickToMove.LastMeleeWeapon = weapon;
                         }
 
                         if (Game1.player.ActiveObject != null)

@@ -39,7 +39,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using SObject = StardewValley.Object;
 
     /// <summary>
-    ///     This classes encapsulates all the details needed to implement the click to move functionality.
+    ///     This class encapsulates all the details needed to implement the click to move functionality.
     ///     Each instance will be associated to a single <see cref="GameLocation" /> and will maintain data to optimize
     ///     path finding in that location.
     /// </summary>
@@ -47,12 +47,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     {
         private const int MaxReallyStuckCount = 2;
 
+        /// <summary>
+        ///     The maximum number of times we allow the farmer to get stuck in the path.
+        /// </summary>
         private const int MaxStuckCount = 4;
 
+        /// <summary>
+        ///     Maximum number of allowed attempts at computing a path to a clicked destination.
+        /// </summary>
         private const int MaxTries = 2;
 
+        /// <summary>
+        ///     The time the mouse left button must be pressed before we condider it held (350 ms).
+        /// </summary>
         private const int TicksBeforeClickHoldKicksIn = 3500000;
 
+        /// <summary>
+        ///     All actionable objects.
+        /// </summary>
         private static readonly List<int> ActionableObjectIds = new List<int>(
             new[]
                 {
@@ -66,8 +78,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 "eggFestival", "flowerFestival", "luau", "jellies", "fair", "iceFestival",
             };
 
-        private static MeleeWeapon mostRecentlyChosenMeleeWeapon;
-
+        /// <summary>
+        ///     The time of the last click.
+        /// </summary>
         private static long startTime = long.MaxValue;
 
         private readonly Queue<ClickQueueItem> clickQueue = new Queue<ClickQueueItem>();
@@ -79,7 +92,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private readonly IReflectedField<bool> ignoreWarps;
 
-        private readonly List<int> lastToolIndexList = new List<int>();
+        /// <summary>
+        ///     The list of the indexes of the last used tools.
+        /// </summary>
+        private readonly Stack<int> lastToolIndexList = new Stack<int>();
 
         private Building actionableBuilding;
 
@@ -96,6 +112,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private bool clickedOnCrop;
 
+        /// <summary>
+        ///     The <see cref="Horse"/> clicked at the end of the path.
+        /// </summary>
         private Horse clickedOnHorse;
 
         private Point clickedTile = new Point(-1, -1);
@@ -108,6 +127,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private DistanceToTarget distanceToTarget;
 
+        /// <summary>
+        ///     Whether checking for monsters to attack is enabled.
+        /// </summary>
         private bool enableCheckToAttackMonsters = true;
 
         /// <summary>
@@ -189,12 +211,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.Graph = new AStarGraph(this.gameLocation);
         }
 
-        public static MeleeWeapon MostRecentlyChosenMeleeWeapon
-        {
-            get => ClickToMove.mostRecentlyChosenMeleeWeapon;
-
-            set => ClickToMove.mostRecentlyChosenMeleeWeapon = value;
-        }
+        /// <summary>
+        ///     The last <see cref="MeleeWeapon"/> used.
+        /// </summary>
+        public static MeleeWeapon LastMeleeWeapon { get; set; }
 
         public Point ClickedTile => this.clickedTile;
 
@@ -233,6 +253,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         public NPC TargetNpc { get; private set; }
 
+        /// <summary>
+        ///     The time we need to wait before checking gor monsters to attack again (500 ms).
+        /// </summary>
+        private const int MinimumTicksBetweenMonsterChecks = 5000000;
+
+        /// <summary>
+        ///     Clears all data relative to auto selection of tools.
+        /// </summary>
         public void ClearAutoSelectTool()
         {
             this.lastToolIndexList.Clear();
@@ -286,7 +314,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     if (this.ClickedOnAnotherQueueableCrop(clickedNode))
                     {
                         if (this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY)
-                            && Game1.player.CurrentTool is WateringCan && Game1.player.usingTool
+                            && Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool
                             && this.phase == ClickToMovePhase.None)
                         {
                             this.waitingToFinishWatering = true;
@@ -313,8 +341,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (!Game1.player.CanMove && Game1.player.UsingTool && Game1.player.CurrentTool is not null
-                    && Game1.player.CurrentTool.isHeavyHitter())
+                if (!Game1.player.CanMove && Game1.player.UsingTool && Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter())
                 {
                     Game1.player.Halt();
 
@@ -331,8 +358,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                                               && !(Game1.activeClickableMenu is MuseumMenu))
                     || (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
                     || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
-                    || (Game1.player.ActiveObject is not null && Game1.player.ActiveObject is Furniture
-                                                              && this.gameLocation is DecoratableLocation))
+                    || (Game1.player.ActiveObject is Furniture && this.gameLocation is DecoratableLocation))
                 {
                     return;
                 }
@@ -907,7 +933,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                                 && this.phase != ClickToMovePhase.ReachedEndOfPath
                                                 && this.phase != ClickToMovePhase.Complete)
             {
-                if (Game1.player.usingTool.Value)
+                if (Game1.player.UsingTool)
                 {
                     this.phase = ClickToMovePhase.None;
                     this.ClickKeyStates.SetUseTool(false);
@@ -1007,7 +1033,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 this.ClickKeyStates.SetMovement(this.walkDirectionFarmerToMouse);
 
-                if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.usingTool.Value
+                if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
                     && !this.warping && !this.IgnoreWarps && this.gameLocation.WarpIfInRange(
                         Game1.player.OffsetPositionOnMap()))
                 {
@@ -1085,7 +1111,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                                               && Game1.player.CurrentTool is not FishingRod
                                                               && (this.phase == ClickToMovePhase.None
                                                                   || this.phase == ClickToMovePhase.PendingComplete
-                                                                  || Game1.player.usingTool.Value))
+                                                                  || Game1.player.UsingTool))
                 {
                     this.phase = ClickToMovePhase.UseTool;
                 }
@@ -1103,7 +1129,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Called after the player exits the active menu.
+        ///     Called after the player exits a menu. It saves that information internally so we can
+        ///     disregard the mouse left button release.
         /// </summary>
         public void OnCloseActiveMenu()
         {
@@ -1111,7 +1138,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        /// Clears the internal state of this instance.
+        ///     Clears the internal state of this instance.
         /// </summary>
         public void Reset(bool resetKeyStates = true)
         {
@@ -1172,6 +1199,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.rotatingFurniture = null;
         }
 
+        /// <summary>
+        ///     Changes the farmer's equipped tool to the last used tool.
+        ///     This is used to get back to the tool that was equipped before a different tool was autoselected.
+        /// </summary>
         public void SwitchBackToLastTool()
         {
             if (((this.gameLocation.IsMatureTreeStumpOrBoulderAt(this.clickedTile)
@@ -1181,8 +1212,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return;
             }
 
-            int lastToolIndex = this.lastToolIndexList[this.lastToolIndexList.Count - 1];
-            this.lastToolIndexList.RemoveAt(this.lastToolIndexList.Count - 1);
+            int lastToolIndex = this.lastToolIndexList.Pop();
 
             if (this.lastToolIndexList.Count == 0)
             {
@@ -1197,6 +1227,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Executes the action for this tick according to the current phase.
+        /// </summary>
         public void Update()
         {
             this.ClickKeyStates.ClearReleasedStates();
@@ -1276,8 +1309,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private void AttackInNewDirectionUpdate()
         {
-            if (Game1.player.CanMove && !Game1.player.UsingTool && Game1.player.CurrentTool is not null
-                && Game1.player.CurrentTool.isHeavyHitter())
+            if (Game1.player.CanMove && !Game1.player.UsingTool && Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter())
             {
                 this.ClickKeyStates.SetMovement(WalkDirection.None);
 
@@ -1291,11 +1323,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Equips the farmer with the appropriate tool for the interaction at the end of the path.
+        /// </summary>
         private void AutoSelectPendingTool()
         {
             if (this.toolToSelect is not null)
             {
-                this.lastToolIndexList.Add(Game1.player.CurrentToolIndex);
+                this.lastToolIndexList.Push(Game1.player.CurrentToolIndex);
 
                 Game1.player.SelectTool(this.toolToSelect);
 
@@ -1303,6 +1338,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Selects the tool to be used at the end of the path.
+        /// </summary>
+        /// <param name="toolName">The name of the tool to select.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the tool was found in the farmer's inventory;
+        ///     returns <see langword="false"/>, otherwise.
+        /// </returns>
         private bool AutoSelectTool(string toolName)
         {
             if (Game1.player.HasTool(toolName))
@@ -1394,7 +1437,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (!this.enableCheckToAttackMonsters)
             {
-                if (DateTime.Now.Ticks < 5000000)
+                if (DateTime.Now.Ticks < ClickToMove.MinimumTicksBetweenMonsterChecks)
                 {
                     return false;
                 }
@@ -1455,12 +1498,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     {
                         Game1.player.SelectTool("Pickaxe");
                     }
-                    else if (ClickToMove.mostRecentlyChosenMeleeWeapon is not null
-                             && ClickToMove.mostRecentlyChosenMeleeWeapon != Game1.player.CurrentTool)
+                    else if (ClickToMove.LastMeleeWeapon is not null
+                             && ClickToMove.LastMeleeWeapon != Game1.player.CurrentTool)
                     {
                         this.lastToolIndexList.Clear();
 
-                        Game1.player.SelectTool(ClickToMove.mostRecentlyChosenMeleeWeapon.Name);
+                        Game1.player.SelectTool(ClickToMove.LastMeleeWeapon.Name);
                     }
 
                     this.justUsedWeapon = true;
@@ -1476,6 +1519,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Checks whether the farmer can consume whatever they're holding.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the farmer can eat (or consume) the item they're holding.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         private bool CheckToEatFood(int clickPointX, int clickPointY)
         {
             if (Game1.player.ActiveObject is not null
@@ -1508,6 +1558,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     If the targeted <see cref="FarmAnimal"/> is no longer at the clicked position,
+        ///     recompute a new path to it.
+        /// </summary>
         private void CheckToRetargetFarmAnimal()
         {
             if (this.TargetFarmAnimal is not null && this.clickedTile.X != -1
@@ -1522,6 +1576,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     If the targeted <see cref="NPC"/> is no longer at the clicked position,
+        ///     recompute a new path to it.
+        /// </summary>
         private void CheckToRetargetNPC()
         {
             if (this.TargetNpc is not null && (this.clickedTile.X != -1 || this.clickedTile.Y != -1))
@@ -2125,30 +2183,31 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            if (node.ContainsFence() && Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter()
-                && !(Game1.player.CurrentTool is MeleeWeapon))
+            if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter() && !(Game1.player.CurrentTool is MeleeWeapon))
             {
-                this.performActionFromNeighbourTile = true;
-                this.endNodeToBeActioned = true;
-
-                return true;
-            }
-
-            Chest chest = node.GetChest();
-            if (chest is not null && Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter()
-                && !(Game1.player.CurrentTool is MeleeWeapon))
-            {
-                if (chest.CountNonNullItems() == 0)
+                if (node.ContainsFence())
                 {
                     this.performActionFromNeighbourTile = true;
                     this.endNodeToBeActioned = true;
-                }
-                else
-                {
-                    this.performActionFromNeighbourTile = true;
+
+                    return true;
                 }
 
-                return true;
+                Chest chest = node.GetChest();
+                if (chest is not null)
+                {
+                    if (chest.CountNonNullItems() == 0)
+                    {
+                        this.performActionFromNeighbourTile = true;
+                        this.endNodeToBeActioned = true;
+                    }
+                    else
+                    {
+                        this.performActionFromNeighbourTile = true;
+                    }
+
+                    return true;
+                }
             }
 
             if (this.gameLocation.ContainsTravellingCart(this.clickPoint.X, this.clickPoint.Y))
@@ -2445,8 +2504,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         {
                             this.performActionFromNeighbourTile = true;
 
-                            if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter()
-                                                                     && !(Game1.player.CurrentTool is MeleeWeapon))
+                            if (Game1.player.CurrentTool is not null
+                                && Game1.player.CurrentTool.isHeavyHitter()
+                                && !(Game1.player.CurrentTool is MeleeWeapon))
                             {
                                 this.endNodeToBeActioned = true;
                             }
@@ -2959,7 +3019,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private void OnClickToMoveComplete()
         {
-            if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.usingTool.Value
+            if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
                                                                                && this.clickedOnHorse is null
                                                                                && !this.warping && !this.IgnoreWarps
                                                                                && this.gameLocation.WarpIfInRange(
@@ -3124,7 +3184,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.player.mount.SetCheckActionEnabled(false);
             }
 
-            _ = this.Furniture;
             if (this.ClickKeyStates.RealClickHeld && this.Furniture is not null && this.forageItem is null)
             {
                 this.pendingFurnitureAction = true;
@@ -3341,7 +3400,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.OnClickRelease();
                 }
             }
-            else if (Game1.player.usingTool.Value
+            else if (Game1.player.UsingTool
                      && (Game1.player.CurrentTool is WateringCan || Game1.player.CurrentTool is Hoe)
                      && this.ClickKeyStates.RealClickHeld)
             {

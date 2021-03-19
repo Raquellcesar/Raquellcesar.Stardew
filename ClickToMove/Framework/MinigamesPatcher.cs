@@ -22,6 +22,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley.Minigames;
     using StardewValley.Tools;
 
+    /// <summary>Encapsulates Harmony patches for Minigames in the game.</summary>
     internal static class MinigamesPatcher
     {
         private static bool aiming;
@@ -139,7 +140,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.player.setRunning(true);
             }
 
-            if (!Game1.player.usingTool && Game1.options.doesInputListContain(Game1.options.useToolButton, k))
+            if (!Game1.player.UsingTool && Game1.options.doesInputListContain(Game1.options.useToolButton, k))
             {
                 ((Slingshot)Game1.player.CurrentTool).beginUsing(null, 0, 0, Game1.player);
 
