@@ -155,7 +155,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private bool justUsedWeapon;
 
-        private float lastDistance;
+        private float lastDistance = float.MaxValue;
 
         private Monster monsterTarget;
 
@@ -782,7 +782,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     {
                         if (this.path.Count > 0)
                         {
-                            this.path.RemoveLastNode();
+                            this.path.RemoveLast();
                         }
 
                         this.clickedNode.FakeTileClear = false;
@@ -1134,7 +1134,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             this.stuckCount = 0;
             this.reallyStuckCount = 0;
-            this.lastDistance = 0;
+            this.lastDistance = float.MaxValue;
             this.distanceToTarget = DistanceToTarget.InRange;
 
             this.clickedCinemaDoor = false;
@@ -1218,7 +1218,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 switch (this.phase)
                 {
                     case ClickToMovePhase.FollowingPath when Game1.player.CanMove:
-                        this.FollowPathToNextNode();
+                        this.FollowPath();
                         break;
                     case ClickToMovePhase.OnFinalTile when Game1.player.CanMove:
                         this.MoveOnFinalTile();
@@ -1692,7 +1692,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
-        private void FollowPathToNextNode()
+        /// <summary>
+        ///     Follows the path.
+        /// </summary>
+        private void FollowPath()
         {
             if (this.path.Count > 0)
             {
@@ -1701,38 +1704,40 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (farmerNode is null)
                 {
                     this.Reset();
-
                     return;
                 }
 
+                // Next node reached.
                 if (this.path[0] == farmerNode)
                 {
-                    this.path.RemoveAt(0);
+                    this.path.RemoveFirst();
 
-                    this.lastDistance = 0;
+                    this.lastDistance = float.MaxValue;
                     this.stuckCount = 0;
                     this.reallyStuckCount = 0;
                 }
 
                 if (this.path.Count > 0)
                 {
+                    // An animal or an NPC is blocking the way, we need to recompute the path.
                     if (this.path[0].ContainsAnimal()
-                        || (this.path[0].ContainsNpc() && !Game1.player.isRidingHorse()
-                                                       && !(this.path[0].GetNpc() is Horse)))
+                        || (this.path[0].GetNpc() is NPC npc && npc is not Horse && !Game1.player.isRidingHorse()))
                     {
                         this.OnClick(this.mouseX, this.mouseY, this.viewportX, this.viewportY);
 
                         return;
                     }
 
+                    Vector2 playerOffsetPositionOnMap = Game1.player.OffsetPositionOnMap();
                     Vector2 nextNodeCenter = this.path[0].NodeCenterOnMap;
                     WalkDirection walkDirection = WalkDirection.GetWalkDirection(
-                        Game1.player.OffsetPositionOnMap(),
+                        playerOffsetPositionOnMap,
                         nextNodeCenter,
                         Game1.player.getMovementSpeed());
 
-                    float distanceToNextNode = Vector2.Distance(Game1.player.OffsetPositionOnMap(), nextNodeCenter);
+                    float distanceToNextNode = Vector2.Distance(playerOffsetPositionOnMap, nextNodeCenter);
 
+                    // No progress since last attempt.
                     if (distanceToNextNode >= this.lastDistance)
                     {
                         this.stuckCount++;
@@ -1767,6 +1772,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                 }
                                 else
                                 {
+                                    // Try again.
                                     this.OnClick(
                                         this.mouseX,
                                         this.mouseY,
@@ -1790,7 +1796,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             else
                             {
                                 walkDirection2 = WalkDirection.GetWalkDirection(
-                                    Game1.player.OffsetPositionOnMap(),
+                                    playerOffsetPositionOnMap,
                                     nextNodeCenter);
 
                                 if (walkDirection2 != walkDirection)
@@ -1811,7 +1817,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.path.Count == 0)
             {
                 this.path = null;
-                this.stuckCount = 0;
                 this.phase = ClickToMovePhase.OnFinalTile;
             }
         }

@@ -59,6 +59,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             this.Init();
         }
 
+        /// <summary>
+        ///     Gets the node corresponding to the player position.
+        /// </summary>
         public AStarNode FarmerNode =>
             this.GetNode(
                 (int)Math.Floor(Game1.player.position.X / Game1.tileSize),

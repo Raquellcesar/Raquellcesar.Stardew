@@ -43,7 +43,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Returns the number of nodes in the path.
+        ///     Gets the number of nodes in the path.
         /// </summary>
         public int Count => this.nodes.Count;
 
@@ -99,30 +99,69 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return this.nodes.GetEnumerator();
         }
 
-        public void RemoveAt(int i)
+        /// <summary>
+        ///     Returns the first <see cref="AStarNode"/> in the path.
+        /// </summary>
+        /// <returns>The first node in the path. If the path is empty, returns null.</returns>
+        public AStarNode GetFirst()
         {
-            this.nodes.RemoveAt(i);
+            return this.nodes.Count == 0 ? null : this.nodes[0];
         }
 
         /// <summary>
-        /// Removes the last node from the path.
+        ///     Returns the last <see cref="AStarNode"/> in the path.
         /// </summary>
-        public void RemoveLastNode()
+        /// <returns>The last node in the path. If the path is empty, returns null.</returns>
+        public AStarNode GetLast()
         {
-            this.nodes.RemoveAt(this.nodes.Count - 1);
+            return this.nodes.Count != 0 ? this.nodes[this.nodes.Count - 1] : null;
         }
 
+        /// <summary>
+        ///     Removes the first <see cref="AStarNode"/> in the path.
+        ///     If the path is empty, the method does nothing.
+        /// </summary>
+        public void RemoveFirst()
+        {
+            if (this.nodes.Count != 0)
+            {
+                this.nodes.RemoveAt(0);
+            }
+        }
+
+        /// <summary>
+        ///     Removes the last <see cref="AStarNode"/> in the path.
+        ///     If the path is empty, the method does nothing.
+        /// </summary>
+        public void RemoveLast()
+        {
+            if (this.nodes.Count != 0)
+            {
+                this.nodes.RemoveAt(this.nodes.Count - 1);
+            }
+        }
+
+        /// <summary>
+        ///     Removes right angles from the path, if possible.
+        /// </summary>
+        /// <param name="endNodesToLeave">
+        ///     The number of nodes to ignore at the end of the path.
+        ///     It must be greater than 0. Defaults to 1.
+        /// </param>
+        /// <remarks>
+        ///     If the argument is inferior to 1, the default value of 1 is used instead.
+        /// </remarks>
         public void SmoothRightAngles(int endNodesToLeave = 1)
         {
             // Constructs the list of nodes to remove, i.e. nodes that connect the previous node
             // to a node in a diagonal direction.
             List<int> indexList = new List<int>();
-            for (int i = 0; i < this.nodes.Count - 1 - endNodesToLeave; i++)
+            for (int i = 1; i < this.nodes.Count - 1 - Math.Max(endNodesToLeave, 1); i++)
             {
-                if (this.DiagonalWalkDirection(i) != WalkDirection.None)
+                if (this.CanRemoveNode(i))
                 {
-                    i++;
                     indexList.Add(i);
+                    i++;
                 }
             }
 
@@ -142,50 +181,41 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return this.nodes.GetEnumerator();
         }
 
-        private WalkDirection DiagonalWalkDirection(int i)
+        /// <summary>
+        ///     Checks if a node can be removed from the path when smothing the path.
+        ///     A node can be safely removed from the path if it connects the previous node to a
+        ///     diagonal neighbour and the nodes leading that diagonal neighbour are both clear.
+        /// </summary>
+        /// <param name="i">The index of the node.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the node next can be removed from the path
+        ///     safely. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool CanRemoveNode(int i)
         {
+            AStarNode previousNode = this.nodes[i - 1];
             AStarNode currentNode = this.nodes[i];
             AStarNode nextNode = this.nodes[i + 1];
-            AStarNode nextToNextNode = this.nodes[i + 2];
 
-            if ((nextNode.IsLeftTo(currentNode) || nextNode.IsDownTo(currentNode))
-                && nextToNextNode.IsDownLeft(currentNode))
+            foreach (WalkDirection walkDirection in WalkDirection.DiagonalDirections)
             {
-                if (currentNode.GetNeighbour(WalkDirection.Left) is not null
-                    && currentNode.GetNeighbour(WalkDirection.Down) is not null)
+                if (previousNode.X + walkDirection.X == nextNode.X && previousNode.Y + walkDirection.Y == nextNode.Y)
                 {
-                    return WalkDirection.DownLeft;
-                }
-            }
-            else if ((nextNode.IsRightTo(currentNode) || nextNode.IsDownTo(currentNode))
-                     && nextToNextNode.IsDownRightTo(currentNode))
-            {
-                if (currentNode.GetNeighbour(WalkDirection.Right) is not null
-                    && currentNode.GetNeighbour(WalkDirection.Down) is not null)
-                {
-                    return WalkDirection.DownRight;
-                }
-            }
-            else if ((nextNode.IsLeftTo(currentNode) || nextNode.IsUpTo(currentNode))
-                     && nextToNextNode.IsUpLeft(currentNode))
-            {
-                if (currentNode.GetNeighbour(WalkDirection.Left) is not null
-                    && currentNode.GetNeighbour(WalkDirection.Up) is not null)
-                {
-                    return WalkDirection.UpLeft;
-                }
-            }
-            else if ((nextNode.IsRightTo(currentNode) || nextNode.IsUpTo(currentNode))
-                     && nextToNextNode.IsUpRightTo(currentNode))
-            {
-                if (currentNode.GetNeighbour(WalkDirection.Right) is not null
-                    && currentNode.GetNeighbour(WalkDirection.Up) is not null)
-                {
-                    return WalkDirection.UpRight;
+                    AStarNode neighbour = null;
+                    if (previousNode.X == currentNode.X)
+                    {
+                        neighbour = previousNode.Graph.GetNode(previousNode.X + walkDirection.X, previousNode.Y);
+                    }
+                    else if (previousNode.Y == currentNode.Y)
+                    {
+                        neighbour = previousNode.Graph.GetNode(previousNode.X, previousNode.Y + walkDirection.Y);
+                    }
+
+                    return neighbour is not null && neighbour.TileClear;
                 }
             }
 
-            return WalkDirection.None;
+            return false;
         }
     }
 }
