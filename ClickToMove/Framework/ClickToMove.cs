@@ -915,8 +915,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 || ClickToMoveManager.OnScreenButtonClicked
                 || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
                 || Game1.currentMinigame is FishingGame
-                                          || DateTime.Now.Ticks - ClickToMove.startTime
-                                          < ClickToMove.TicksBeforeClickHoldKicksIn)
+                || DateTime.Now.Ticks - ClickToMove.startTime < ClickToMove.TicksBeforeClickHoldKicksIn)
             {
                 return;
             }
@@ -972,7 +971,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (this.phase != ClickToMovePhase.None && this.phase != ClickToMovePhase.UsingJoyStick)
+                if (this.phase is not ClickToMovePhase.None and not ClickToMovePhase.UsingJoyStick)
                 {
                     this.Reset();
                 }
@@ -1646,6 +1645,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Sets the farmer's facing direction.
+        /// </summary>
+        /// <param name="faceClickPoint"></param>
         private void FaceTileClicked(bool faceClickPoint = false)
         {
             int facingDirection;
@@ -1663,7 +1666,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     Utility.PointToVector2(this.clickedTile));
             }
 
-            if (facingDirection != Game1.player.facingDirection.Value)
+            if (facingDirection != Game1.player.FacingDirection)
             {
                 Game1.player.Halt();
                 Game1.player.faceDirection(facingDirection);
@@ -3260,6 +3263,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Selects a new end node for the current path computation, at the given tile coordinates.
+        /// </summary>
+        /// <param name="x">The tile x coordinate.</param>
+        /// <param name="y">The tile y coordinate.</param>
         private void SelectDifferentEndNode(int x, int y)
         {
             AStarNode node = this.Graph.GetNode(x, y);

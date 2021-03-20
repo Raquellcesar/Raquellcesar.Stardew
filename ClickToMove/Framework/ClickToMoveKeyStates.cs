@@ -14,7 +14,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     /// <summary>
     ///     This class keeps the simulated state (relative to the previous game tick) of the keys
-    ///     relevate to the implementation of the path finding functionality.
+    ///     relevante to the implementation of the path finding functionality.
     ///     These states simulate inputs that will be used to produce the desired outcomes (move the
     ///     farmer, use a tool, act upon an object, etc.).
     /// </summary>
