@@ -118,7 +118,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static IEnumerable<CodeInstruction> Transpile_performTouchAction(
             IEnumerable<CodeInstruction> instructions)
         {
-            // Reset the ClickToMove object associated with the current game location at specific points.
+            /* Reset the ClickToMove object associated with the current game location at specific points. */
 
             MethodInfo getCurrentLocation =
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();

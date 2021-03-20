@@ -35,6 +35,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
+    /// <summary>Encapsulates Harmony patches for the <see cref="Game1"/> class.</summary>
     public static class GamePatcher
     {
         /// <summary>
@@ -216,7 +217,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.currentLocation is not null)
             {
-                ClickToMoveManager.GetOrCreate(Game1.currentLocation).OnCloseActiveMenu();
+                ClickToMoveManager.JustClosedActiveMenu = true;
 
                 if (Game1.input is not null)
                 {
@@ -909,8 +910,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         Game1.getMouseY(),
                         Game1.viewport.X,
                         Game1.viewport.Y);
-
-                    ClickToMoveManager.OnScreenButtonClicked = false;
                     break;
             }
 

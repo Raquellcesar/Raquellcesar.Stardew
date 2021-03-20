@@ -20,18 +20,34 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using StardewValley;
 
+    /// <summary>
+    ///     The manager of all the <see cref="ClickToMove"/> objects created by the mod.
+    /// </summary>
     public class ClickToMoveManager
     {
         /// <summary>
-        ///     Enables attachment of a <see cref="ClickToMove" /> object to a <see cref="GameLocation" /> at run time.
+        ///     Where all the <see cref="ClickToMove"/> objects created are kept. There's a <see
+        ///     cref="ClickToMove"/> object per <see cref="GameLocation"/> and this structure
+        ///     frees us from having to track the creation and destruction of each of them. Each
+        ///     <see cref="ClickToMove"/> is created on demand and destroyed once there are
+        ///     no reference to its <see cref="GameLocation"/> outside the table.
         /// </summary>
         private static readonly ConditionalWeakTable<GameLocation, ClickToMove> GameLocations =
             new ConditionalWeakTable<GameLocation, ClickToMove>();
 
+        /// <summary>
+        ///     The current frame for the click to move target animation.
+        /// </summary>
         private static int greenSquareAnimIndex;
 
+        /// <summary>
+        ///     The last time the click to move target frame animation was updated.
+        /// </summary>
         private static long greenSquareLastUpdateTicks = DateTime.Now.Ticks;
 
+        /// <summary>
+        ///     The texture to use for signaling path destinations.
+        /// </summary>
         private static Texture2D targetTexture;
 
         /// <summary>Gets the mod configuration.</summary>
@@ -40,12 +56,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>Gets the helper for writing mods.</summary>
         public static IModHelper Helper { get; private set; }
 
+        /// <summary>
+        ///     Gets or sets a value indicating whether an active menu was closed in this tick.
+        ///     Used to prevent processing of the left mouse click in this tick
+        ///     and also the release of the left mouse button on the next tick.
+        /// </summary>
+        public static bool JustClosedActiveMenu { get; set; }
+
         /// <summary>Gets the monitor for monitoring and logging.</summary>
         public static IMonitor Monitor { get; private set; }
 
+        /// <summary>
+        ///     Gets or sets a value indicating whether an onscreen menu was clicked in this tick.
+        ///     Used to prevent processing of the left mouse click in this tick
+        ///     and also the release of the left mouse button on the next tick.
+        /// </summary>
         public static bool OnScreenButtonClicked { get; set; }
 
-        /// <summary>Gets the reflection helper, which Simplifies access to private game code.</summary>
+        /// <summary>Gets the reflection helper, which simplifies access to private game code.</summary>
         public static IReflectionHelper Reflection { get; private set; }
 
         /// <summary>
@@ -138,27 +166,54 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        public static ClickToMove GetOrCreate(GameLocation location)
+        /// <summary>
+        ///     Gets the <see cref="ClickToMove"/> object associated to a given <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="gameLocation">
+        ///     The <see cref="GameLocation"/> for which to get the <see cref="PathFindingController"/>.
+        /// </param>
+        /// <returns>
+        ///     The <see cref="ClickToMove"/> associated to the given <see cref="GameLocation"/>.
+        ///     Returns null if the game location is null.
+        /// </returns>
+        public static ClickToMove GetOrCreate(GameLocation gameLocation)
         {
-            return location is not null
-                       ? ClickToMoveManager.GameLocations.GetValue(location, ClickToMoveManager.CreateClickToMove)
+            return gameLocation is not null
+                       ? ClickToMoveManager.GameLocations.GetValue(gameLocation, ClickToMoveManager.CreateClickToMove)
                        : null;
         }
 
-        public static void Init(ModConfig config, IMonitor monitor, IModHelper helper, IReflectionHelper reflection)
+        /// <summary>
+        ///     Initializes the class helpers.
+        /// </summary>
+        /// <param name="config">The mod configuration.</param>
+        /// <param name="monitor">The monitor for monitoring and logging.</param>
+        /// <param name="helper">The helper for writing mods.</param>
+        public static void Init(ModConfig config, IMonitor monitor, IModHelper helper)
         {
             ClickToMoveManager.Config = config;
-            ClickToMoveManager.Helper = helper;
             ClickToMoveManager.Monitor = monitor;
-            ClickToMoveManager.Reflection = reflection;
+            ClickToMoveManager.Helper = helper;
+            ClickToMoveManager.Reflection = helper.Reflection;
 
             ClickToMoveManager.targetTexture =
                 ClickToMoveManager.Helper.Content.Load<Texture2D>("assets/clickTarget.png");
         }
 
-        private static ClickToMove CreateClickToMove(GameLocation location)
+        /// <summary>
+        ///     Creates a new <see cref="ClickToMove"/> object. This method is to be used as a <see
+        ///     cref="ConditionalWeakTable{GameLocation, ClickToMove}.CreateValueCallback"/>
+        ///     delegate in the <see cref="GetOrCreate"/> method.
+        /// </summary>
+        /// <param name="gameLocation">
+        ///     The <see cref="GameLocation"/> for which to create the <see cref="PathFindingController"/> object.
+        /// </param>
+        /// <returns>
+        ///     A new <see cref="ClickToMove"/> object associated to the given <see cref="GameLocation"/>.
+        /// </returns>
+        private static ClickToMove CreateClickToMove(GameLocation gameLocation)
         {
-            return new ClickToMove(location);
+            return new ClickToMove(gameLocation);
         }
     }
 }

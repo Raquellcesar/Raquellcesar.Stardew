@@ -15,6 +15,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley;
     using StardewValley.Buildings;
 
+    /// <summary>Encapsulates Harmony patches for Buildings.</summary>
     internal class BuildingsPatcher
     {
         /// <summary>
@@ -35,6 +36,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     It reinitializes the <see cref="ClickToMove" /> object associated to animal houses.
         /// </summary>
         /// <param name="__instance">The <see cref="Building" /> instance.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
         private static void AfterDayUpdate(Building __instance)
         {
             if (__instance.indoors.Value is AnimalHouse animalHouse)

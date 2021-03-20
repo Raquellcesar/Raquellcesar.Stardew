@@ -151,8 +151,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private AStarNode gateNode;
 
-        private bool justClosedActiveMenu;
-
         private bool justUsedWeapon;
 
         private float lastDistance = float.MaxValue;
@@ -293,7 +291,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (this.justClosedActiveMenu || ClickToMoveManager.OnScreenButtonClicked || Game1.locationRequest is not null)
+                if (ClickToMoveManager.JustClosedActiveMenu || ClickToMoveManager.OnScreenButtonClicked || Game1.locationRequest is not null)
                 {
                     return;
                 }
@@ -913,7 +911,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="viewportY">The viewport y coordinate.</param>
         public void OnClickHeld(int mouseX, int mouseY, int viewportX, int viewportY)
         {
-            if (this.justClosedActiveMenu || ClickToMoveManager.OnScreenButtonClicked
+            if (ClickToMoveManager.JustClosedActiveMenu
+                || ClickToMoveManager.OnScreenButtonClicked
                 || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
                 || Game1.currentMinigame is FishingGame
                                           || DateTime.Now.Ticks - ClickToMove.startTime
@@ -1017,16 +1016,27 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Called if the mouse left button was just released by the player.
+        /// </summary>
+        /// <param name="mouseX">The mouse x coordinate.</param>
+        /// <param name="mouseY">The mouse y coordinate.</param>
+        /// <param name="viewportX">The viewport x coordinate.</param>
+        /// <param name="viewportY">The viewport y coordinate.</param>
         public void OnClickRelease(int mouseX = 0, int mouseY = 0, int viewportX = 0, int viewportY = 0)
         {
             this.clickPressed = false;
             this.ClickHoldActive = false;
 
-            if (this.justClosedActiveMenu)
+            if (ClickToMoveManager.JustClosedActiveMenu)
             {
-                this.justClosedActiveMenu = false;
+                ClickToMoveManager.JustClosedActiveMenu = false;
             }
-            else if (!ClickToMoveManager.OnScreenButtonClicked)
+            else if (ClickToMoveManager.OnScreenButtonClicked)
+            {
+                ClickToMoveManager.OnScreenButtonClicked = false;
+            }
+            else
             {
                 if (ClickToMoveHelper.InMiniGameWhereWeDontWantClicks())
                 {
@@ -1099,15 +1109,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.CheckForQueuedReadyToHarvestClicks();
                 }
             }
-        }
-
-        /// <summary>
-        ///     Called after the player exits a menu. It saves that information internally so we can
-        ///     disregard the mouse left button release.
-        /// </summary>
-        public void OnCloseActiveMenu()
-        {
-            this.justClosedActiveMenu = true;
         }
 
         /// <summary>

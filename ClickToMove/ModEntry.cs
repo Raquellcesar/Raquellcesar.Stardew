@@ -37,7 +37,7 @@ namespace Raquellcesar.Stardew.ClickToMove
             ModEntry.config = helper.ReadConfig<ModConfig>();
 
             // Initialization.
-            ClickToMoveManager.Init(ModEntry.config, this.Monitor, helper, this.Helper.Reflection);
+            ClickToMoveManager.Init(ModEntry.config, this.Monitor, helper);
 
             HarmonyInstance.DEBUG = true;
 

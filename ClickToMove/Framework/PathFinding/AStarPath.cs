@@ -184,7 +184,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks if a node can be removed from the path when smothing the path.
         ///     A node can be safely removed from the path if it connects the previous node to a
-        ///     diagonal neighbour and the nodes leading that diagonal neighbour are both clear.
+        ///     diagonal neighbour and the nodes leading to that diagonal neighbour are both clear.
         /// </summary>
         /// <param name="i">The index of the node.</param>
         /// <returns>

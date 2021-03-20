@@ -339,7 +339,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="gameLocation">The <see cref="GameLocation"/> where the bush is.</param>
         /// <param name="tile">The tile to check.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the bush can be destroyed by the player, 
+        ///     Returns <see langword="true"/> if the bush can be destroyed by the player,
         ///     <see langword="false"/> otherwise.
         /// </returns>
         public static bool IsDestroyable(this Bush bush, GameLocation gameLocation, Point tile)
