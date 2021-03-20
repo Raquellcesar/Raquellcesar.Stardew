@@ -1008,7 +1008,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.ClickKeyStates.SetMovement(this.walkDirectionToMouse);
 
                 if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
-                    && !this.warping && !this.IgnoreWarps && this.gameLocation.WarpIfInRange(playerOffsetPosition))
+                    && !this.warping && !this.IgnoreWarps && this.gameLocation.WarpIfInRange(mousePosition))
                 {
                     this.Reset();
 
@@ -1873,33 +1873,39 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return this.Graph.GetNode(tileX, tileY)?.ContainsStumpOrBoulder() ?? false;
         }
 
+        /// <summary>
+        ///     Called while the farmer is at the final tile on the path.
+        /// </summary>
         private void MoveOnFinalTile()
         {
+            Vector2 playerOffsetPositionOnMap = Game1.player.OffsetPositionOnMap();
+            Vector2 clickedNodeCenterOnMap = this.clickedNode.NodeCenterOnMap;
+
+            float distanceToGoal = Vector2.Distance(
+                    playerOffsetPositionOnMap,
+                    clickedNodeCenterOnMap);
+
+            if (distanceToGoal == this.lastDistance)
+            {
+                this.stuckCount++;
+            }
+
+            this.lastDistance = distanceToGoal;
+
             if (this.performActionFromNeighbourTile)
             {
-                float distanceToGoal = Vector2.Distance(
-                    Game1.player.OffsetPositionOnMap(),
-                    this.clickedNode.NodeCenterOnMap);
-                float deltaX = Math.Abs(this.clickedNode.NodeCenterOnMap.X - Game1.player.OffsetPositionOnMap().X)
+                float deltaX = Math.Abs(clickedNodeCenterOnMap.X - playerOffsetPositionOnMap.X)
                                - Game1.player.speed;
-                float deltaY = Math.Abs(this.clickedNode.NodeCenterOnMap.Y - Game1.player.OffsetPositionOnMap().Y)
+                float deltaY = Math.Abs(clickedNodeCenterOnMap.Y - playerOffsetPositionOnMap.Y)
                                - Game1.player.speed;
 
-                if (distanceToGoal == this.lastDistance)
-                {
-                    this.stuckCount++;
-                }
-
-                this.lastDistance = distanceToGoal;
-
-                if (Game1.player.GetBoundingBox().Intersects(this.clickedNode.BoundingBox)
-                    && this.distanceToTarget != DistanceToTarget.TooFar && this.crabPot is null)
+                if (this.distanceToTarget != DistanceToTarget.TooFar && this.crabPot is null && Game1.player.GetBoundingBox().Intersects(this.clickedNode.BoundingBox))
                 {
                     this.distanceToTarget = DistanceToTarget.TooClose;
 
                     WalkDirection walkDirection = WalkDirection.GetWalkDirection(
-                        this.ClickVector,
-                        Game1.player.OffsetPositionOnMap());
+                        clickedNodeCenterOnMap,
+                        playerOffsetPositionOnMap);
 
                     this.ClickKeyStates.SetMovement(walkDirection);
                 }
@@ -1910,8 +1916,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     WalkDirection walkDirection = WalkDirection.GetWalkDirectionForAngle(
                         (float)(Math.Atan2(
-                                    this.clickedNode.NodeCenterOnMap.Y - Game1.player.OffsetPositionOnMap().Y,
-                                    this.clickedNode.NodeCenterOnMap.X - Game1.player.OffsetPositionOnMap().X)
+                                    clickedNodeCenterOnMap.Y - playerOffsetPositionOnMap.Y,
+                                    clickedNodeCenterOnMap.X - playerOffsetPositionOnMap.X)
                                 / Math.PI / 2 * 360));
 
                     this.ClickKeyStates.SetMovement(walkDirection);
@@ -1924,27 +1930,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
             else
             {
-                float distance = Vector2.Distance(
-                    Game1.player.OffsetPositionOnMap(),
-                    this.clickedNode.NodeCenterOnMap);
-
-                if (distance >= this.lastDistance)
-                {
-                    this.stuckCount++;
-                }
-
-                this.lastDistance = distance;
-
-                if (distance < Game1.player.getMovementSpeed() || this.stuckCount >= ClickToMove.MaxStuckCount
-                                                               || (this.endNodeToBeActioned && distance < Game1.tileSize)
-                                                               || (this.endNodeOccupied && distance < 66f))
+                if (distanceToGoal < Game1.player.getMovementSpeed()
+                    || this.stuckCount >= ClickToMove.MaxStuckCount
+                    || (this.endNodeToBeActioned && distanceToGoal < Game1.tileSize)
+                    || (this.endNodeOccupied && distanceToGoal < 66f))
                 {
                     this.OnReachEndOfPath();
                     return;
                 }
 
                 WalkDirection walkDirection = WalkDirection.GetWalkDirection(
-                    Game1.player.OffsetPositionOnMap(),
+                    playerOffsetPositionOnMap,
                     this.finalNode.NodeCenterOnMap,
                     Game1.player.getMovementSpeed());
 

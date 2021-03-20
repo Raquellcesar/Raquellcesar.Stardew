@@ -705,6 +705,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return Math.Pow(x1 - x2, 2.0) + Math.Pow(y1 - y2, 2.0);
         }
 
+        /// <summary>
+        ///     Warps the player through the given <see cref="Warp"/> if it's in range.
+        /// </summary>
+        /// <param name="gameLocation">The current game location.</param>
+        /// <param name="warp">The warp to use.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the player is successfully warped.
+        ///     return <see langword="false"/> otherwise.
+        /// </returns>
         public static bool WarpIfInRange(this GameLocation gameLocation, Warp warp)
         {
             Vector2 warpVector = new Vector2(warp.X * Game1.tileSize, warp.Y * Game1.tileSize);
@@ -718,6 +727,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Warps the player through a <see cref="Warp"/> that's in range of both the player
+        ///     and the clicked point, if such a warp exists.
+        /// </summary>
+        /// <param name="gameLocation">The current game location.</param>
+        /// <param name="clickPoint">The point clicked.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the player is successfully warped.
+        ///     return <see langword="false"/> otherwise.
+        /// </returns>
         public static bool WarpIfInRange(this GameLocation gameLocation, Vector2 clickPoint)
         {
             float warpRange = gameLocation.WarpRange();
@@ -740,7 +759,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         public static float WarpRange(this GameLocation gameLocation)
         {
-            if (gameLocation is not null && (gameLocation.isOutdoors.Value || gameLocation is BathHousePool))
+            if (gameLocation is not null && (gameLocation.IsOutdoors || gameLocation is BathHousePool))
             {
                 return Game1.tileSize * 2;
             }

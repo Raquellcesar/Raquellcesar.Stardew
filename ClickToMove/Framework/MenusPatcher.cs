@@ -15,8 +15,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Harmony;
 
-    using Microsoft.Xna.Framework;
-
     using StardewValley;
     using StardewValley.Locations;
     using StardewValley.Menus;
@@ -97,20 +95,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return true;
         }
 
-        private static bool BeforeShopMenuReceiveLeftClick(ShopMenu __instance, int x, int y)
+        private static void BeforeShopMenuReceiveLeftClick(ShopMenu __instance, int x, int y)
         {
             if (__instance.upperRightCloseButton.containsPoint(x, y))
             {
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).ResetRotatingFurniture();
             }
-
-            return true;
         }
 
         /// <summary>
         ///     A method called via Harmony before <see cref="Toolbar.receiveLeftClick"/>
         ///     that replaces it.
-        ///     This method allows the user to deselect an equipped object so that the farmer 
+        ///     This method allows the user to deselect an equipped object so that the farmer
         ///     doesn't have any equipped tool or active object.
         ///     It also allows deferred selection of items. If the farmer selects an item while
         ///     using a tool, that item will be later equipped when the toolbar updates.

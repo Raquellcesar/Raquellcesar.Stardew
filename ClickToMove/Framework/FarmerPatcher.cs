@@ -229,6 +229,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         /// <summary>
         ///     Delegate to be called after the sick animation ends. <see cref="BeforePerformSickAnimation" />
+        ///     Used to detect when the farmer stops being sick.
         /// </summary>
         /// <param name="farmer">The <see cref="Farmer" /> that was animated.</param>
         private static void OnFinishSickAnim(Farmer farmer)

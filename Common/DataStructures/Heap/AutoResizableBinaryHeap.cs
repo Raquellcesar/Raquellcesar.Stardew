@@ -13,7 +13,6 @@ namespace Raquellcesar.Stardew.Common.DataStructures
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using System.Diagnostics.CodeAnalysis;
 
     using Raquellcesar.Stardew.Common.Utilities;
 

@@ -365,9 +365,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 Game1.viewport.Size);
 
             return tile is not null && tile.Properties.Select(property => (string)property.Value).Any(
-                       text => text.Contains("LockedDoorWarp") || text.Contains("Warp")
-                                                               || text.Contains("WarpMensLocker")
-                                                               || text.Contains("WarpWomensLocker"));
+                       text => text.Contains("Warp"));
         }
 
         /// <summary>

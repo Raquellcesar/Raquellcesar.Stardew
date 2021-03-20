@@ -204,8 +204,7 @@ namespace Raquellcesar.Stardew.Common
                         return WalkDirection.UpLeft;
                     }
                 }
-
-                if (start.Y < end.Y)
+                else if (start.Y < end.Y)
                 {
                     if (start.X > end.X)
                     {

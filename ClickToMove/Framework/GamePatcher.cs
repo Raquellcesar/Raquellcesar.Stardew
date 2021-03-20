@@ -1611,11 +1611,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
-        private static bool BeforeWarpFarmer()
+        /// <summary>
+        ///     A method called via Harmony before <see cref="Game1.warpFarmer(LocationRequest, int, int, int)" />.
+        ///     It resets the <see cref="ClickToMove"/> object associated to the current game location.
+        /// </summary>
+        private static void BeforeWarpFarmer()
         {
             ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
-
-            return true;
         }
 
         private static void FishingGameReceiveClickToMoveKeyStates(FishingGame fishingGame, GameLocation location)
