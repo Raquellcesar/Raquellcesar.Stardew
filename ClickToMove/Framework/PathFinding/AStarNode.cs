@@ -341,15 +341,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             if (this.Graph.GameLocation.objects.TryGetValue(key, out SObject @object))
             {
-                if (@object.parentSheetIndex.Value == 8 || @object.parentSheetIndex.Value == 167
-                                                        || @object.parentSheetIndex.Value == 110
-                                                        || @object.parentSheetIndex.Value == 113
-                                                        || @object.parentSheetIndex.Value == 126
-                                                        || @object.parentSheetIndex.Value == 136
-                                                        || @object.parentSheetIndex.Value == 137
-                                                        || @object.parentSheetIndex.Value == 138
-                                                        || @object.parentSheetIndex.Value == 139
-                                                        || @object.parentSheetIndex.Value == 140)
+                if (@object.ParentSheetIndex == BigCraftableId.Scarecrow 
+                    || @object.ParentSheetIndex == BigCraftableId.DeluxeScarecrow
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow1
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow2
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow3
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow4
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow5
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow6
+                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow7)
                 {
                     return true;
                 }
@@ -490,7 +491,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             foreach (AStarNode neighbour in neighbours)
             {
                 SObject @object = neighbour.GetObject();
-                if (@object is not null && @object.parentSheetIndex.Value == ObjectId.CrabPot)
+                if (@object is not null && @object.ParentSheetIndex == ObjectId.CrabPot)
                 {
                     return neighbour;
                 }
@@ -551,7 +552,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         {
             SObject @object = this.GetObject();
 
-            if (@object is not null && @object.parentSheetIndex.Value == ObjectId.CrabPot)
+            if (@object is not null && @object.ParentSheetIndex == ObjectId.CrabPot)
             {
                 return @object as CrabPot;
             }
@@ -560,7 +561,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             if (node is not null)
             {
                 @object = node.GetObject();
-                if (@object?.parentSheetIndex.Value == ObjectId.CrabPot)
+                if (@object?.ParentSheetIndex == ObjectId.CrabPot)
                 {
                     CrabPot crabPot = (CrabPot)@object;
                     if (crabPot.readyForHarvest.Value)
@@ -574,7 +575,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             if (node is not null)
             {
                 @object = node.GetObject();
-                if (@object?.parentSheetIndex.Value == ObjectId.CrabPot)
+                if (@object?.ParentSheetIndex == ObjectId.CrabPot)
                 {
                     CrabPot crabPot = (CrabPot)@object;
                     if (crabPot.readyForHarvest.Value)
@@ -722,7 +723,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         {
             this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
 
-            return @object?.parentSheetIndex.Value ?? -1;
+            return @object?.ParentSheetIndex ?? -1;
         }
 
         public TerrainFeature GetTree()

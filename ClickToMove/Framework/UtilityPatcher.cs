@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="UtilityPatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -24,14 +23,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley;
     using StardewValley.Characters;
 
+    /// <summary>
+    ///     Encapsulates Harmony patches for the <see cref="Utility"/> class.
+    /// </summary>
     internal class UtilityPatcher
     {
         /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -40,20 +40,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Utility.tryToPlaceItem" />.
-        ///     It introduces a call to <see cref="TryToPlaceItemTranspiler" /> after the player places an item.
+        ///     A method called via Harmony to modify <see cref="Utility.tryToPlaceItem"/>. It
+        ///     introduces a call to <see cref="TryToPlaceItemTranspiler"/> after the player places
+        ///     an item.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileTryToPlaceItem(IEnumerable<CodeInstruction> instructions)
         {
             /*
-            // Relevant CIL code:
-            //     Game1.player.reduceActiveItemByOne();
-            //         IL_0058: call class StardewValley.Farmer StardewValley.Game1::get_player()
-            //         IL_005d: callvirt instance void StardewValley.Farmer::reduceActiveItemByOne()
+            // Relevant CIL code: Game1.player.reduceActiveItemByOne();
+            // IL_0058: call class StardewValley.Farmer StardewValley.Game1::get_player()
+            // IL_005d: callvirt instance void StardewValley.Farmer::reduceActiveItemByOne()
             //
-            // Insert code after:
-            //     UtilityPatcher.TryToPlaceItemTranspiler();
+            // Insert code after: UtilityPatcher.TryToPlaceItemTranspiler();
             */
 
             MethodInfo reduceActiveItemByOne = AccessTools.Method(typeof(Farmer), nameof(Farmer.reduceActiveItemByOne));
@@ -89,6 +88,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Deselects the farmer's active object after they place a bomb. To avoid placing the
+        ///     bomb again by accident.
+        /// </summary>
         private static void TryToPlaceItemTranspiler()
         {
             if (Game1.player.ActiveObject != null && (Game1.player.ActiveObject.ParentSheetIndex == ObjectId.CherryBomb

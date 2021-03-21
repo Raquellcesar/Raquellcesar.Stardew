@@ -15,6 +15,7 @@ namespace Raquellcesar.Stardew.Common
     /// <summary>
     /// The ids of BigCraftable objects in the game.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1600:Elements should be documented", Justification = "In-game object names.")]
     [StructLayout(LayoutKind.Sequential, Size = 1)]
     public struct BigCraftableId
     {

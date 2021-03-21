@@ -211,13 +211,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
         }
 
+        /// <summary>
+        ///     A method called via Harmony after <see cref="Game1.exitActiveMenu" />.
+        ///     It sets <see cref="ClickToMoveManager.JustClosedActiveMenu"/> so the current click and
+        ///     subsequent click release can be ignored.
+        /// </summary>
         private static void AfterExitActiveMenu()
         {
-            ClickToMoveManager.OnScreenButtonClicked = false;
-
             if (Game1.currentLocation is not null)
             {
-                ClickToMoveManager.JustClosedActiveMenu = true;
+                // Only set ClickToMoveManager.JustClosedActiveMenu if the menu was closed using the mouse.
+                if (GamePatcher.lastMouseLeftButtonDown)
+                {
+                    ClickToMoveManager.JustClosedActiveMenu = true;
+                }
 
                 if (Game1.input is not null)
                 {
@@ -667,6 +674,23 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             Game1.ResetFreeCursorDrag();
 
+            // The field lastMouseLeftButtonDown needs to be set before sending clicks to the menus,
+            // so we can check its state when setting the state of ClickToMoveManager.JustClosedActiveMenu.
+            SButtonState clickState = SButtonState.None;
+
+            bool mouseLeftButtonDown = ClickToMoveManager.Helper.Input.IsDown(SButton.MouseLeft) || ClickToMoveManager.Helper.Input.IsSuppressed(SButton.MouseLeft);
+
+            if (mouseLeftButtonDown)
+            {
+                clickState = GamePatcher.lastMouseLeftButtonDown ? SButtonState.Held : SButtonState.Pressed;
+            }
+            else if (GamePatcher.lastMouseLeftButtonDown)
+            {
+                clickState = SButtonState.Released;
+            }
+
+            GamePatcher.lastMouseLeftButtonDown = mouseLeftButtonDown;
+
             ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(Game1.currentLocation);
 
             clickToMove.Update();
@@ -873,21 +897,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.PopUIMode();
             }
 
-            SButtonState clickState = SButtonState.None;
-
-            bool mouseLeftButtonDown = ClickToMoveManager.Helper.Input.IsDown(SButton.MouseLeft) || ClickToMoveManager.Helper.Input.IsSuppressed(SButton.MouseLeft);
-
-            if (mouseLeftButtonDown)
-            {
-                clickState = GamePatcher.lastMouseLeftButtonDown ? SButtonState.Held : SButtonState.Pressed;
-            }
-            else if (GamePatcher.lastMouseLeftButtonDown)
-            {
-                clickState = SButtonState.Released;
-            }
-
-            GamePatcher.lastMouseLeftButtonDown = mouseLeftButtonDown;
-
             switch (clickState)
             {
                 case SButtonState.Pressed:
@@ -1065,19 +1074,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 && !Game1.dialogueUp && !Game1.menuUp && Game1.player.Stamina >= 1
                 && Game1.player.CurrentTool is not FishingRod)
             {
-                int reachingToolEnchantment = Game1.player.CurrentTool.hasEnchantmentOfType<ReachingToolEnchantment>() ? 1 : 0;
+                int toolPower = Game1.player.CurrentTool.UpgradeLevel
+                                + (Game1.player.CurrentTool.hasEnchantmentOfType<ReachingToolEnchantment>() ? 1 : 0);
 
-                if (Game1.player.toolHold <= 0 && Game1.player.CurrentTool.upgradeLevel.Value + reachingToolEnchantment
-                    > Game1.player.toolPower)
+                if (toolPower > Game1.player.toolPower)
                 {
-                    Game1.player.toolHold = (int)(Game1.toolHoldPerPowerupLevel * Game1.player.CurrentTool.AnimationSpeedModifier);
-                }
-                else if (Game1.player.CurrentTool.upgradeLevel.Value + reachingToolEnchantment > Game1.player.toolPower)
-                {
-                    Game1.player.toolHold -= time.ElapsedGameTime.Milliseconds;
                     if (Game1.player.toolHold <= 0)
                     {
-                        Game1.player.toolPowerIncrease();
+                        Game1.player.toolHold = (int)(Game1.toolHoldPerPowerupLevel * Game1.player.CurrentTool.AnimationSpeedModifier);
+                    }
+                    else
+                    {
+                        Game1.player.toolHold -= time.ElapsedGameTime.Milliseconds;
+                        if (Game1.player.toolHold <= 0)
+                        {
+                            Game1.player.toolPowerIncrease();
+                        }
                     }
                 }
             }

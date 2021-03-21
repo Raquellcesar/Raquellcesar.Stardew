@@ -13,6 +13,7 @@ namespace Raquellcesar.Stardew.Common
     /// <summary>
     ///     The furniture types in game.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1602:Enumeration items should be documented", Justification = "In-game names.")]
     internal enum FurnitureType
     {
         Chair = 0,

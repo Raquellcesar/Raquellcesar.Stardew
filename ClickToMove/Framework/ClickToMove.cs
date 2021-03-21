@@ -971,7 +971,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (this.phase is not ClickToMovePhase.None and not ClickToMovePhase.UsingJoyStick)
+                if (this.phase != ClickToMovePhase.None && this.phase != ClickToMovePhase.UsingJoyStick)
                 {
                     this.Reset();
                 }
@@ -1073,10 +1073,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.pendingFurnitureAction = false;
 
-                    if (this.Furniture is not null && (this.Furniture.parentSheetIndex.Value == FurnitureId.Catalogue
-                                                       || this.Furniture.parentSheetIndex.Value
+                    if (this.Furniture is not null && (this.Furniture.ParentSheetIndex == FurnitureId.Catalogue
+                                                       || this.Furniture.ParentSheetIndex
                                                        == FurnitureId.FurnitureCatalogue
-                                                       || this.Furniture.parentSheetIndex.Value == FurnitureId.Calendar
+                                                       || this.Furniture.ParentSheetIndex == FurnitureId.Calendar
                                                        || this.Furniture.furniture_type.Value
                                                        == (int)FurnitureType.Fireplace
                                                        || this.Furniture is StorageFurniture || this.Furniture is TV))
@@ -1088,7 +1088,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.ClickKeyStates.ActionButtonPressed = true;
                     this.phase = ClickToMovePhase.Complete;
                 }
-                else if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool.upgradeLevel.Value > 0
+                else if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool.UpgradeLevel > 0
                                                               && Game1.player.canReleaseTool
                                                               && Game1.player.CurrentTool is not FishingRod
                                                               && (this.phase == ClickToMovePhase.None
@@ -1648,7 +1648,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Sets the farmer's facing direction.
         /// </summary>
-        /// <param name="faceClickPoint"></param>
+        /// <param name="faceClickPoint">
+        ///     Indicates whether the farmer should face the <see cref="clickPoint"/>
+        ///     or instead the <see cref="ClickedTile"/>.
+        /// </param>
         private void FaceTileClicked(bool faceClickPoint = false)
         {
             int facingDirection;
@@ -1872,14 +1875,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 tileY = tileY <= monster.getTileY() ? tileY + 1 : tileY - 1;
             }
 
-            this.gameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject value);
-            if (value is not null && ((value.parentSheetIndex.Value >= 118 && value.parentSheetIndex.Value <= 125)
-                                      || value.Name == "Stone" || value.Name == "Boulder"))
-            {
-                return true;
-            }
+            this.gameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object);
 
-            return this.Graph.GetNode(tileX, tileY)?.ContainsStumpOrBoulder() ?? false;
+            return (@object is not null
+                    && ((@object.ParentSheetIndex >= ObjectId.GlassShards && @object.ParentSheetIndex <= ObjectId.GoldenRelic)
+                        || @object.Name == "Stone" || @object.Name == "Boulder"))
+                   || (this.Graph.GetNode(tileX, tileY)?.ContainsStumpOrBoulder() ?? false);
         }
 
         /// <summary>
@@ -2140,15 +2141,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return true;
                 }
 
-                if (furniture.parentSheetIndex.Value == FurnitureId.FurnitureCatalogue
-                    || furniture.parentSheetIndex.Value == FurnitureId.Catalogue)
+                if (furniture.ParentSheetIndex == FurnitureId.FurnitureCatalogue
+                    || furniture.ParentSheetIndex == FurnitureId.Catalogue)
                 {
                     this.performActionFromNeighbourTile = true;
 
                     return true;
                 }
 
-                if (furniture.parentSheetIndex.Value == FurnitureId.SingingStone)
+                if (furniture.ParentSheetIndex == FurnitureId.SingingStone)
                 {
                     this.performActionFromNeighbourTile = true;
                     this.endNodeToBeActioned = false;
@@ -2403,9 +2404,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (Game1.player.ActiveObject is not null
                 && (!(Game1.player.ActiveObject is Wallpaper) || this.gameLocation is DecoratableLocation)
                 && (Game1.player.ActiveObject.bigCraftable.Value
-                    || ClickToMove.ActionableObjectIds.Contains(Game1.player.ActiveObject.parentSheetIndex.Value)
+                    || ClickToMove.ActionableObjectIds.Contains(Game1.player.ActiveObject.ParentSheetIndex)
                     || (Game1.player.ActiveObject is Wallpaper
-                        && Game1.player.ActiveObject.parentSheetIndex.Value <= 40)))
+                        && Game1.player.ActiveObject.ParentSheetIndex <= 40)))
             {
                 if (Game1.player.ActiveObject.ParentSheetIndex == ObjectId.MegaBomb)
                 {
@@ -2462,9 +2463,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     if (nodeObject.Category == SObject.BigCraftableCategory)
                     {
-                        if (nodeObject.parentSheetIndex.Value == BigCraftableId.FeedHopper
-                            || nodeObject.parentSheetIndex.Value == BigCraftableId.Incubator
-                            || nodeObject.parentSheetIndex.Value == BigCraftableId.Cask)
+                        if (nodeObject.ParentSheetIndex == BigCraftableId.FeedHopper
+                            || nodeObject.ParentSheetIndex == BigCraftableId.Incubator
+                            || nodeObject.ParentSheetIndex == BigCraftableId.Cask)
                         {
                             if (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
                             {
@@ -2476,9 +2477,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             return true;
                         }
 
-                        if (nodeObject.parentSheetIndex.Value == BigCraftableId.Cask
-                            || nodeObject.parentSheetIndex.Value == BigCraftableId.MiniFridge
-                            || nodeObject.parentSheetIndex.Value == BigCraftableId.Workbench)
+                        if (nodeObject.ParentSheetIndex == BigCraftableId.Cask
+                            || nodeObject.ParentSheetIndex == BigCraftableId.MiniFridge
+                            || nodeObject.ParentSheetIndex == BigCraftableId.Workbench)
                         {
                             this.performActionFromNeighbourTile = true;
 
@@ -2492,8 +2493,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             return true;
                         }
 
-                        if (nodeObject.parentSheetIndex.Value >= BigCraftableId.Barrel
-                            && nodeObject.parentSheetIndex.Value <= BigCraftableId.Crate3)
+                        if (nodeObject.ParentSheetIndex >= BigCraftableId.Barrel
+                            && nodeObject.ParentSheetIndex <= BigCraftableId.Crate3)
                         {
                             if (Game1.player.CurrentTool is null || !Game1.player.CurrentTool.isHeavyHitter())
                             {
@@ -2550,8 +2551,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         return true;
                     }
 
-                    if (nodeObject.parentSheetIndex.Value == ObjectId.DrumBlock
-                        || nodeObject.parentSheetIndex.Value == ObjectId.FluteBlock)
+                    if (nodeObject.ParentSheetIndex == ObjectId.DrumBlock
+                        || nodeObject.ParentSheetIndex == ObjectId.FluteBlock)
                     {
                         if (Game1.player.CurrentTool is not null
                             && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe
@@ -2614,7 +2615,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     {
                         if (Game1.player.ActiveObject is not null
                             && (Game1.player.ActiveObject.parentSheetIndex == ObjectId.Beet
-                                || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.Wheat))
+                                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.Wheat))
                         {
                             this.performActionFromNeighbourTile = true;
                             this.endNodeToBeActioned = true;
@@ -2660,7 +2661,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
 
                     AStarNode upNode = this.Graph.GetNode(this.clickedNode.X, this.clickedNode.Y - 1);
-                    if (upNode?.GetFurnitureIgnoreRugs()?.parentSheetIndex.Value == FurnitureId.Calendar)
+                    if (upNode?.GetFurnitureIgnoreRugs()?.ParentSheetIndex == FurnitureId.Calendar)
                     {
                         this.SelectDifferentEndNode(this.clickedNode.X, this.clickedNode.Y + 1);
 
@@ -2854,8 +2855,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.gameLocation.objects.TryGetValue(new Vector2(node.X, node.Y), out SObject @object);
 
             if (@object is not null
-                && (@object.parentSheetIndex.Value == ObjectId.Torch
-                    || @object.parentSheetIndex.Value == ObjectId.SpiritTorch) && Game1.player.CurrentTool is not null
+                && (@object.ParentSheetIndex == ObjectId.Torch
+                    || @object.ParentSheetIndex == ObjectId.SpiritTorch) && Game1.player.CurrentTool is not null
                 && (Game1.player.CurrentTool is Pickaxe || Game1.player.CurrentTool is Axe))
             {
                 this.endNodeToBeActioned = true;
@@ -2880,15 +2881,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 && Game1.player.ActiveObject.canBePlacedHere(
                     this.gameLocation,
                     new Vector2(this.clickedTile.X, this.clickedTile.Y))
-                && (Game1.player.ActiveObject.bigCraftable || Game1.player.ActiveObject.parentSheetIndex.Value == 104
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemFarm
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemMountains
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemBeach
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.RainTotem
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.WarpTotemDesert
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == 161
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == 155
-                                                           || Game1.player.ActiveObject.parentSheetIndex.Value == 162
+                && (Game1.player.ActiveObject.bigCraftable || Game1.player.ActiveObject.ParentSheetIndex == 104
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.WarpTotemFarm
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.WarpTotemMountains
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.WarpTotemBeach
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.RainTotem
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.WarpTotemDesert
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == 161
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == 155
+                                                           || Game1.player.ActiveObject.ParentSheetIndex == 162
                                                            || Game1.player.ActiveObject.name.Contains("Sapling")))
             {
                 this.performActionFromNeighbourTile = true;
@@ -2918,9 +2919,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                                this.gameLocation,
                                                new Vector2(this.clickedTile.X, this.clickedTile.Y));
 
-                Crop crop = new Crop(Game1.player.ActiveObject.parentSheetIndex.Value, node.X, node.Y);
+                Crop crop = new Crop(Game1.player.ActiveObject.ParentSheetIndex, node.X, node.Y);
                 if (crop is not null && (Game1.player.ActiveObject.parentSheetIndex == ObjectId.BasicFertilizer
-                                         || Game1.player.ActiveObject.parentSheetIndex.Value == ObjectId.QualityFertilizer))
+                                         || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.QualityFertilizer))
                 {
                     this.endNodeToBeActioned = true;
                 }
