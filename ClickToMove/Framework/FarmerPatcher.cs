@@ -202,8 +202,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         /// <summary>
         ///     A method called via Harmony before <see cref="Farmer.performSickAnimation" />.
-        ///     It replaces the original method, so we can invoke a callback when the animation ends
-        ///     (see <see cref="OnFinishSickAnim" />).
+        ///     It replaces the original method, so we can register the beginning of the animation
+        ///     and invoke a callback when the animation ends (see <see cref="OnFinishSickAnim" />).
         /// </summary>
         /// <param name="__instance">The farmer instance.</param>
         /// <returns>
@@ -218,10 +218,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             __instance.isEating = false;
 
-            FarmerData farmerData = FarmerPatcher.FarmersData.GetOrCreateValue(__instance);
-            farmerData.IsBeingSick = true;
+            FarmerPatcher.FarmersData.GetOrCreateValue(__instance).IsBeingSick = true;
 
-            __instance.FarmerSprite.animateOnce(224, 350f, 4, FarmerPatcher.OnFinishSickAnim);
+            __instance.FarmerSprite.animateOnce(224, 350, 4, FarmerPatcher.OnFinishSickAnim);
             __instance.doEmote(12);
 
             return false;

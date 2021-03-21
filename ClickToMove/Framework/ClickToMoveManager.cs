@@ -127,8 +127,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return;
             }
 
-            // Draw click to move target.
-            if (clickToMove.TargetNpc is null && (Game1.displayHUD || Game1.eventUp) && Game1.currentBillboard == 0
+            if ((Game1.displayHUD || Game1.eventUp) && Game1.currentBillboard == 0
                 && Game1.gameMode == Game1.playingGameMode && !Game1.freezeControls && !Game1.panMode
                 && !Game1.HostPaused)
             {
@@ -180,9 +179,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             position,
                             new Rectangle(210, 388, 16, 16),
                             Color.White,
-                            0f,
+                            0,
                             Vector2.Zero,
-                            4f,
+                            4,
                             SpriteEffects.None,
                             0.01f);
                     }

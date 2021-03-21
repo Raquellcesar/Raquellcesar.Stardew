@@ -26,7 +26,5 @@ namespace Raquellcesar.Stardew.Common
         MagnifyingGlass = 5,
 
         ReadyForHarvest = 6,
-
-        UsingSlingshot = -1,
     }
 }

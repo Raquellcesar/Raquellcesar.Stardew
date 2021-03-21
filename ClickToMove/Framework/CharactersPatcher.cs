@@ -171,7 +171,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             {
                                 __instance.rider = who;
                                 __instance.rider.freezePause = 5000;
-                                __instance.rider.synchronizedJump(6f);
+                                __instance.rider.synchronizedJump(6);
                                 __instance.rider.Halt();
 
                                 if (__instance.rider.Position.X < __instance.Position.X)
@@ -207,8 +207,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 8);
 
             __instance.Position = new Vector2(
-                (position.X * Game1.tileSize) + (Game1.tileSize / 2f) - (__instance.GetBoundingBox().Width / 2f),
-                (position.Y * Game1.tileSize) + 4f);
+                (position.X * Game1.tileSize) + (Game1.tileSize / 2) - (__instance.GetBoundingBox().Width / 2),
+                (position.Y * Game1.tileSize) + 4);
 
             ___roomForHorseAtDismountTile = !__instance.currentLocation.isCollidingPosition(
                                                 __instance.GetBoundingBox(),
@@ -223,13 +223,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             __instance.rider.isAnimatingMount = false;
             __instance.Halt();
 
-            if (!position.Equals(Vector2.Zero) && Vector2.Distance(position, __instance.rider.getTileLocation()) < 2f)
+            if (!position.Equals(Vector2.Zero) && Vector2.Distance(position, __instance.rider.getTileLocation()) < 2)
             {
-                __instance.rider.synchronizedJump(6f);
+                __instance.rider.synchronizedJump(6);
                 l.playSound("dwop");
                 __instance.rider.freezePause = 5000;
                 __instance.rider.Halt();
-                __instance.rider.xOffset = 0f;
+                __instance.rider.xOffset = 0;
                 __instance.dismounting.Value = true;
                 __instance.rider.isAnimatingMount = true;
 

@@ -688,7 +688,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     foreach (NPC npc in this.gameLocation.characters)
                     {
                         if (npc is Horse horse
-                            && ClickToMoveHelper.Distance(this.ClickPoint, horse.GetBoundingBox().Center) < 48f
+                            && ClickToMoveHelper.Distance(this.ClickPoint, horse.GetBoundingBox().Center) < 48
                             && (this.clickedTile.X != (int)horse.getTileLocation().X
                                 || this.clickedTile.Y != (int)horse.getTileLocation().Y))
                         {
@@ -1390,7 +1390,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private bool CheckToAttackMonsters()
         {
-            if (Game1.player.stamina <= 0f)
+            if (Game1.player.stamina <= 0)
             {
                 return false;
             }
@@ -1510,7 +1510,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Fence fence = this.gateNode.GetGate();
 
                 // Is the gate closed?
-                if (fence is not null && fence.gatePosition.Value != 88)
+                if (fence is not null && fence.gatePosition.Value != Fence.gateOpenedPosition)
                 {
                     fence.checkForAction(Game1.player);
                     this.gateNode = null;
@@ -1930,7 +1930,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (distanceToGoal < Game1.player.getMovementSpeed()
                     || this.stuckCount >= ClickToMove.MaxStuckCount
                     || (this.endNodeToBeActioned && distanceToGoal < Game1.tileSize)
-                    || (this.endNodeOccupied && distanceToGoal < 66f))
+                    || (this.endNodeOccupied && distanceToGoal < 66))
                 {
                     this.OnReachEndOfPath();
                     return;
@@ -2323,7 +2323,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            npc = this.gameLocation.isCharacterAtTile(new Vector2(this.clickedTile.X, this.clickedTile.Y + 1f));
+            npc = this.gameLocation.isCharacterAtTile(new Vector2(this.clickedTile.X, this.clickedTile.Y + 1));
 
             if (npc is not null && !(npc is Duggy) && !(npc is Grub) && !(npc is LavaCrab) && !(npc is MetalHead)
                 && !(npc is RockCrab) && !(npc is GreenSlime))
@@ -3340,11 +3340,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.mouseCursor = MouseCursor.ReadyForHarvest;
                 }
-            }
-
-            if (Game1.player.usingSlingshot)
-            {
-                this.mouseCursor = MouseCursor.UsingSlingshot;
             }
         }
 
