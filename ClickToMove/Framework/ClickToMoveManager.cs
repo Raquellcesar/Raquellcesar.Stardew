@@ -105,6 +105,28 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(Game1.currentLocation);
 
+            if (clickToMove.TargetNpc is not null)
+            {
+                Vector2 offset = new Vector2(
+                    (clickToMove.TargetNpc.Sprite.SpriteWidth * 4 / 2) - 32,
+                    clickToMove.TargetNpc.GetBoundingBox().Height + (clickToMove.TargetNpc.IsMonster ? 0 : 12) - 32);
+
+                spriteBatch.Draw(
+                    Game1.mouseCursors,
+                    Game1.GlobalToLocal(
+                        Game1.viewport,
+                        clickToMove.TargetNpc.Position + offset),
+                    new Rectangle(194, 388, 16, 16),
+                    Color.White,
+                    0,
+                    Vector2.Zero,
+                    4,
+                    SpriteEffects.None,
+                    0.58f);
+
+                return;
+            }
+
             // Draw click to move target.
             if (clickToMove.TargetNpc is null && (Game1.displayHUD || Game1.eventUp) && Game1.currentBillboard == 0
                 && Game1.gameMode == Game1.playingGameMode && !Game1.freezeControls && !Game1.panMode
@@ -114,54 +136,56 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     clickToMove.Reset();
                 }
-                else if (Game1.player.canMove && clickToMove.ClickedTile.X != -1 && clickToMove.TargetNpc is null
-                         && clickToMove.TargetFarmAnimal is null)
+                else if (Game1.player.canMove)
                 {
-                    Vector2 vector = new Vector2(
-                        (clickToMove.ClickedTile.X * Game1.tileSize) - Game1.viewport.X,
-                        (clickToMove.ClickedTile.Y * Game1.tileSize) - Game1.viewport.Y);
-
-                    long ticks = DateTime.Now.Ticks;
-
-                    // Update frame every 125 ms.
-                    if (ticks - ClickToMoveManager.greenSquareLastUpdateTicks > 1250000)
+                    if (clickToMove.ClickedTile.X != -1 && clickToMove.TargetFarmAnimal is null)
                     {
-                        ClickToMoveManager.greenSquareLastUpdateTicks = ticks;
+                        Vector2 vector = new Vector2(
+                            (clickToMove.ClickedTile.X * Game1.tileSize) - Game1.viewport.X,
+                            (clickToMove.ClickedTile.Y * Game1.tileSize) - Game1.viewport.Y);
 
-                        ClickToMoveManager.greenSquareAnimIndex++;
-                        if (ClickToMoveManager.greenSquareAnimIndex > 7)
+                        long ticks = DateTime.Now.Ticks;
+
+                        // Update frame every 125 ms.
+                        if (ticks - ClickToMoveManager.greenSquareLastUpdateTicks > 1250000)
                         {
-                            ClickToMoveManager.greenSquareAnimIndex = 0;
+                            ClickToMoveManager.greenSquareLastUpdateTicks = ticks;
+
+                            ClickToMoveManager.greenSquareAnimIndex++;
+                            if (ClickToMoveManager.greenSquareAnimIndex > 7)
+                            {
+                                ClickToMoveManager.greenSquareAnimIndex = 0;
+                            }
                         }
+
+                        spriteBatch.Draw(
+                            ClickToMoveManager.targetTexture,
+                            vector + new Vector2(0, -12),
+                            new Rectangle(ClickToMoveManager.greenSquareAnimIndex * 16, 0, 16, 20),
+                            Color.White * Game1.mouseCursorTransparency,
+                            0,
+                            Vector2.Zero,
+                            4,
+                            SpriteEffects.None,
+                            0.58f);
                     }
+                    else if (clickToMove.NoPathHere.X != -1)
+                    {
+                        Vector2 position = new Vector2(
+                            (clickToMove.NoPathHere.X * Game1.tileSize) - Game1.viewport.X,
+                            (clickToMove.NoPathHere.Y * Game1.tileSize) - Game1.viewport.Y);
 
-                    spriteBatch.Draw(
-                        ClickToMoveManager.targetTexture,
-                        vector + new Vector2(0f, -12f),
-                        new Rectangle(ClickToMoveManager.greenSquareAnimIndex * 16, 0, 16, 20),
-                        Color.White * Game1.mouseCursorTransparency,
-                        0f,
-                        Vector2.Zero,
-                        4f,
-                        SpriteEffects.None,
-                        0.58f);
-                }
-                else if (Game1.player.canMove && clickToMove.NoPathHere.X != -1)
-                {
-                    Vector2 position = new Vector2(
-                        (clickToMove.NoPathHere.X * Game1.tileSize) - Game1.viewport.X,
-                        (clickToMove.NoPathHere.Y * Game1.tileSize) - Game1.viewport.Y);
-
-                    spriteBatch.Draw(
-                        Game1.mouseCursors,
-                        position,
-                        new Rectangle(210, 388, 16, 16),
-                        Color.White,
-                        0f,
-                        Vector2.Zero,
-                        4f,
-                        SpriteEffects.None,
-                        0.01f);
+                        spriteBatch.Draw(
+                            Game1.mouseCursors,
+                            position,
+                            new Rectangle(210, 388, 16, 16),
+                            Color.White,
+                            0f,
+                            Vector2.Zero,
+                            4f,
+                            SpriteEffects.None,
+                            0.01f);
+                    }
                 }
             }
         }

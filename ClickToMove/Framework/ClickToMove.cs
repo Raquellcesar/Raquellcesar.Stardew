@@ -117,6 +117,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private Horse clickedOnHorse;
 
+        /// <summary>
+        ///     The backing field for <see cref="ClickedTile"/>.
+        /// </summary>
         private Point clickedTile = new Point(-1, -1);
 
         private Point clickPoint = new Point(-1, -1);
@@ -214,6 +217,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         public static MeleeWeapon LastMeleeWeapon { get; set; }
 
+        /// <summary>
+        /// Gets the tile clicked by the player.
+        /// </summary>
         public Point ClickedTile => this.clickedTile;
 
         public bool ClickHoldActive { get; private set; }
@@ -971,14 +977,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (this.phase != ClickToMovePhase.None && this.phase != ClickToMovePhase.UsingJoyStick)
+                if (this.phase != ClickToMovePhase.None && this.phase != ClickToMovePhase.KeepMoving)
                 {
                     this.Reset();
                 }
 
-                if (this.phase != ClickToMovePhase.UsingJoyStick)
+                if (this.phase != ClickToMovePhase.KeepMoving)
                 {
-                    this.phase = ClickToMovePhase.UsingJoyStick;
+                    this.phase = ClickToMovePhase.KeepMoving;
                     this.noPathHere.X = this.noPathHere.Y = -1;
                 }
 
@@ -1101,7 +1107,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.phase = ClickToMovePhase.ReleaseTool;
                 }
-                else if (this.phase == ClickToMovePhase.PendingComplete || this.phase == ClickToMovePhase.UsingJoyStick)
+                else if (this.phase == ClickToMovePhase.PendingComplete || this.phase == ClickToMovePhase.KeepMoving)
                 {
                     this.Reset();
 
@@ -1249,9 +1255,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         this.ClickKeyStates.ActionButtonPressed = false;
                         this.phase = ClickToMovePhase.None;
                         break;
-                    case ClickToMovePhase.AttackInNewDirection:
-                        this.AttackInNewDirectionUpdate();
-                        break;
                 }
             }
 
@@ -1278,22 +1281,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             this.clickQueue.Enqueue(new ClickQueueItem(mouseX, mouseY, viewportX, viewportY, tileX, tileY));
             return true;
-        }
-
-        private void AttackInNewDirectionUpdate()
-        {
-            if (Game1.player.CanMove && !Game1.player.UsingTool && Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter())
-            {
-                this.ClickKeyStates.SetMovement(WalkDirection.None);
-
-                Game1.player.faceDirection(0);
-
-                this.justUsedWeapon = true;
-
-                this.ClickKeyStates.SetUseTool(true);
-
-                this.phase = ClickToMovePhase.None;
-            }
         }
 
         /// <summary>

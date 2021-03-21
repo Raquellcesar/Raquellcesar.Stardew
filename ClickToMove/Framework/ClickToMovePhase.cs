@@ -30,8 +30,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         OnFinalTile,
 
+        /// <summary>
+        ///     The farmer reached the end of the path.
+        /// </summary>
         ReachedEndOfPath,
 
+        /// <summary>
+        ///     The farmer completed the path (and executed the eventual action at the end).
+        /// </summary>
         Complete,
 
         /// <summary>
@@ -57,8 +63,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         FinishAction,
 
-        UsingJoyStick,
-
-        AttackInNewDirection,
+        /// <summary>
+        ///     The farmer is moving while the mouse left button is being held.
+        /// </summary>
+        KeepMoving,
     }
 }

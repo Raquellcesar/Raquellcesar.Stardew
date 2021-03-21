@@ -36,6 +36,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
     /// <summary>Encapsulates Harmony patches for the <see cref="Game1"/> class.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     public static class GamePatcher
     {
         /// <summary>
@@ -221,7 +222,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (Game1.currentLocation is not null)
             {
                 // Only set ClickToMoveManager.JustClosedActiveMenu if the menu was closed using the mouse.
-                if (GamePatcher.lastMouseLeftButtonDown)
+                if (Game1.input.GetMouseState().LeftButton == ButtonState.Pressed)
                 {
                     ClickToMoveManager.JustClosedActiveMenu = true;
                 }
@@ -243,6 +244,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
         }
+
 
         /// <summary>
         ///     A method called via Harmony before <see cref="Game1.UpdateControlInput" />.
@@ -675,7 +677,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             Game1.ResetFreeCursorDrag();
 
             // The field lastMouseLeftButtonDown needs to be set before sending clicks to the menus,
-            // so we can check its state when setting the state of ClickToMoveManager.JustClosedActiveMenu.
+            // so we can check its state when ClickToMoveManager.JustClosedActiveMenu is true.
             SButtonState clickState = SButtonState.None;
 
             bool mouseLeftButtonDown = ClickToMoveManager.Helper.Input.IsDown(SButton.MouseLeft) || ClickToMoveManager.Helper.Input.IsSuppressed(SButton.MouseLeft);

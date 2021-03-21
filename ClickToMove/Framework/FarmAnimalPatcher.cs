@@ -17,8 +17,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using StardewValley;
 
+    /// <summary>Encapsulates Harmony patches for the <see cref="FarmAnimal"/> class.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class FarmAnimalPatcher
     {
+        /// <summary>
+        ///     Initialize the Harmony patches.
+        /// </summary>
+        /// <param name="harmony">
+        ///     The Harmony patching API.
+        /// </param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -26,7 +34,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 new HarmonyMethod(typeof(FarmAnimalPatcher), nameof(FarmAnimalPatcher.BeforeDraw)));
         }
 
-        private static bool BeforeDraw(FarmAnimal __instance, SpriteBatch b)
+        /// <summary>
+        ///     A method called via Harmony before <see cref="FarmAnimal.draw" />.
+        ///     Signals the current path's animal target, if any.
+        /// </summary>
+        /// <param name="__instance">The <see cref="FarmAnimal"/> instance.</param>
+        /// <param name="b">The <see cref="SpriteBatch"/> to draw to.</param>
+        private static void BeforeDraw(FarmAnimal __instance, SpriteBatch b)
         {
             if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).TargetFarmAnimal == __instance)
             {
@@ -39,14 +53,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             (int)__instance.Position.Y + (__instance.Sprite.getHeight() * 4 / 2) - 24)),
                     new Rectangle(194, 388, 16, 16),
                     Color.White,
-                    0f,
+                    0,
                     Vector2.Zero,
-                    4f,
+                    4,
                     SpriteEffects.None,
                     0.01f);
             }
-
-            return true;
         }
     }
 }
