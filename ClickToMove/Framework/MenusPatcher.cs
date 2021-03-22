@@ -12,8 +12,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using System.Reflection.Emit;
 
     using Harmony;
+
+    using StardewModdingAPI;
 
     using StardewValley;
     using StardewValley.Locations;
@@ -21,6 +26,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley.Tools;
 
     /// <summary>Encapsulates Harmony patches for Menus in the game.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class MenusPatcher
     {
         /// <summary>
@@ -41,6 +47,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.BeforeDayTimeMoneyBoxReceiveLeftClick)));
 
             harmony.Patch(
+                AccessTools.Method(typeof(NumberSelectionMenu), nameof(NumberSelectionMenu.receiveLeftClick)),
+                transpiler: new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.TranspileNumberSelectionMenuReceiveLeftClick)));
+
+            harmony.Patch(
                 AccessTools.Method(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
                 new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.BeforeShopMenuReceiveLeftClick)));
 
@@ -51,6 +61,57 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             harmony.Patch(
                 AccessTools.Method(typeof(Toolbar), nameof(Toolbar.update)),
                 postfix: new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.AfterToolbarUpdate)));
+        }
+
+        /// <summary>A method called via Harmony to modify <see cref="NumberSelectionMenu.receiveLeftClick" />.</summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileNumberSelectionMenuReceiveLeftClick(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            // Set Game1.player.canMove to true when exiting the menu by clicking the ok button.
+
+            /*
+             * Relevant CIL code:
+             *      if (this.cancelButton.containsPoint(x, y))
+	         *          IL_0176: ldarg.0
+	         *          IL_0177: ldfld class StardewValley.Menus.ClickableTextureComponent StardewValley.Menus.NumberSelectionMenu::cancelButton
+             *
+             * Code to insert before:
+             *      Game1.player.canMove = true;
+             */
+
+            FieldInfo canMove = AccessTools.Field(typeof(Farmer), nameof(Farmer.canMove));
+
+            MethodInfo getPlayer =
+                AccessTools.Property(typeof(Game1), nameof(Game1.player)).GetGetMethod();
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                if (!found && codeInstructions[i].opcode == OpCodes.Ldarg_0
+                           && i + 1 < codeInstructions.Count
+                           && codeInstructions[i + 1].opcode == OpCodes.Ldfld 
+                           && codeInstructions[i + 1].operand is FieldInfo { Name: "cancelButton" })
+                {
+                    yield return new CodeInstruction(OpCodes.Call, getPlayer);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_1);
+                    yield return new CodeInstruction(OpCodes.Stfld, canMove);
+
+                    found = true;
+                }
+
+                yield return codeInstructions[i];
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(NumberSelectionMenu)}.{nameof(NumberSelectionMenu.receiveLeftClick)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
         }
 
         /// <summary>

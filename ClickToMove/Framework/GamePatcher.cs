@@ -130,6 +130,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         public static void UpdateClickToMove(MouseState currentMouseState)
         {
+            if (Game1.currentMinigame is TargetGame)
+            {
+                return;
+            }
+
             GameLocation location = Game1.currentLocation;
 
             if (location is not null)
@@ -179,7 +184,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
                 else if (Game1.currentMinigame is TargetGame targetGame)
                 {
-                    GamePatcher.TargetGameReceiveMobileKeyStates(targetGame, location);
+                    targetGame.ReceiveClickToMoveKeyStates(location);
                 }
             }
         }
@@ -1771,7 +1776,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        private static void TargetGameReceiveMobileKeyStates(TargetGame targetGame, GameLocation location)
+        private static void ReceiveClickToMoveKeyStates(this TargetGame targetGame, GameLocation location)
         {
             ClickToMoveKeyStates clickKeyStates = ClickToMoveManager.GetOrCreate(location).ClickKeyStates;
 
@@ -1789,43 +1794,43 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if ((clickKeyStates.MoveUpPressed && !clickKeyStates.MoveUpReleased) || clickKeyStates.MoveUpHeld)
                 {
-                    Game1.player.setMoving(1);
+                    Game1.player.setMoving(Farmer.up);
                 }
                 else if ((clickKeyStates.MoveDownPressed && !clickKeyStates.MoveDownReleased)
                          || clickKeyStates.MoveDownHeld)
                 {
-                    Game1.player.setMoving(4);
+                    Game1.player.setMoving(Farmer.down);
                 }
 
-                if ((clickKeyStates.MoveLeftPressed && !clickKeyStates.MoveLeftReleased) || clickKeyStates.MoveLeftHeld)
-                {
-                    Game1.player.setMoving(8);
-                }
-                else if ((clickKeyStates.MoveRightPressed && !clickKeyStates.MoveRightReleased)
+                if ((clickKeyStates.MoveRightPressed && !clickKeyStates.MoveRightReleased)
                          || clickKeyStates.MoveRightHeld)
                 {
-                    Game1.player.setMoving(2);
+                    Game1.player.setMoving(Farmer.right);
+                }
+                else if ((clickKeyStates.MoveLeftPressed && !clickKeyStates.MoveLeftReleased) || clickKeyStates.MoveLeftHeld)
+                {
+                    Game1.player.setMoving(Farmer.left);
                 }
             }
 
             if (clickKeyStates.MoveUpReleased)
             {
-                Game1.player.setMoving(33);
-            }
-
-            if (clickKeyStates.MoveDownReleased)
-            {
-                Game1.player.setMoving(36);
-            }
-
-            if (clickKeyStates.MoveLeftReleased)
-            {
-                Game1.player.setMoving(40);
+                Game1.player.setMoving(Farmer.release + Farmer.up);
             }
 
             if (clickKeyStates.MoveRightReleased)
             {
-                Game1.player.setMoving(34);
+                Game1.player.setMoving(Farmer.release + Farmer.right);
+            }
+
+            if (clickKeyStates.MoveDownReleased)
+            {
+                Game1.player.setMoving(Farmer.release + Farmer.down);
+            }
+
+            if (clickKeyStates.MoveLeftReleased)
+            {
+                Game1.player.setMoving(Farmer.release + Farmer.left);
             }
         }
 

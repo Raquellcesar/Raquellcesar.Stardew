@@ -28,6 +28,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using SObject = StardewValley.Object;
 
     /// <summary>Applies Harmony patches to the <see cref="Farmer" /> class.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class FarmerPatcher
     {
         /// <summary>

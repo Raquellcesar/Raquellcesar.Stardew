@@ -21,6 +21,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using StardewValley;
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class GameLocationPatcher
     {
         /// <summary>

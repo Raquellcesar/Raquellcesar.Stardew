@@ -21,6 +21,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Rectangle = xTile.Dimensions.Rectangle;
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class LocationsPatcher
     {
         /// <summary>

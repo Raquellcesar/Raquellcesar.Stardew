@@ -28,6 +28,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley.Menus;
     using StardewValley.Objects;
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class CharactersPatcher
     {
         /// <summary>
@@ -78,6 +79,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 CharactersPatcher.HorsesData.GetOrCreateValue(horse).CheckActionEnabled = value;
             }
         }
+
 
         /// <summary>A method called via Harmony before <see cref="Horse.checkAction" />.</summary>
         /// <returns>
