@@ -25,9 +25,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     /// <summary>Encapsulates Harmony patches for Minigames in the game.</summary>
     internal static class MinigamesPatcher
     {
-        private static bool aiming;
+        //private static bool aiming;
 
-        private static bool usingSlingshot;
+        //private static bool usingSlingshot;
 
         public static bool LeftClickNextUpdateFishingGame { get; set; }
 
@@ -46,33 +46,33 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             // Can't access the constructor using AccessTools, as was done with FishingGame,
             // because it will originate an AmbiguousMatchException, since there's a static
             // constructor with the same signature being implemented by the compiler under the hood.
-            harmony.Patch(
+            /*harmony.Patch(
                 typeof(TargetGame).GetConstructor(
                     BindingFlags.Instance | BindingFlags.Public,
                     null,
                     new Type[0],
                     new ParameterModifier[0]),
-                postfix: new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.AfterTargetGameConstructor)));
+                postfix: new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.AfterTargetGameConstructor)));*/
 
-            harmony.Patch(
+            /*harmony.Patch(
                 AccessTools.Method(typeof(TargetGame), nameof(TargetGame.receiveKeyPress)),
-                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeReceiveKeyPress)));
+                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeReceiveKeyPress)));*/
 
-            harmony.Patch(
+            /*harmony.Patch(
                 AccessTools.Method(typeof(TargetGame), nameof(TargetGame.receiveLeftClick)),
-                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeReceiveLeftClick)));
+                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeReceiveLeftClick)));*/
 
-            harmony.Patch(
+            /*harmony.Patch(
                 AccessTools.Method(typeof(TargetGame), nameof(TargetGame.releaseLeftClick)),
-                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforereleaseLeftClick)));
+                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeReleaseLeftClick)));*/
 
             harmony.Patch(
                 AccessTools.Method(typeof(TargetGame), nameof(TargetGame.releaseLeftClick)),
                 postfix: new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.AfterReleaseLeftClick)));
 
-            harmony.Patch(
+            /*harmony.Patch(
                 AccessTools.Method(typeof(TargetGame), nameof(TargetGame.tick)),
-                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeTick)));
+                new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeTick)));*/
         }
 
         private static void AfterFishingGameConstructor()
@@ -80,18 +80,23 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             MinigamesPatcher.LeftClickNextUpdateFishingGame = false;
         }
 
+        /// <summary>
+        ///     A method called via Harmony after <see cref="TargetGame.releaseLeftClick" />.
+        ///     It resets the state of the <see cref="ClickToMove" /> object associated with the target game's location.
+        /// </summary>
+        /// <param name="___location">A reference to the private field <see cref="TargetGame.location"/>.</param>
         private static void AfterReleaseLeftClick(GameLocation ___location)
         {
             ClickToMoveManager.GetOrCreate(___location).Reset();
         }
 
-        private static void AfterTargetGameConstructor()
+        /*private static void AfterTargetGameConstructor()
         {
             MinigamesPatcher.aiming = false;
             MinigamesPatcher.usingSlingshot = false;
-        }
+        }*/
 
-        private static bool BeforeReceiveKeyPress(
+        /*private static bool BeforeReceiveKeyPress(
             ref int ___showResultsTimer,
             int ___gameEndTimer,
             int ___timerToStart,
@@ -148,9 +153,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return false;
-        }
+        }*/
 
-        private static bool BeforeReceiveLeftClick(int x, int y, ref int ___showResultsTimer)
+        /*private static bool BeforeReceiveLeftClick(int x, int y, ref int ___showResultsTimer)
         {
             if (___showResultsTimer < 0)
             {
@@ -190,9 +195,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return false;
-        }
+        }*/
 
-        private static bool BeforereleaseLeftClick()
+        /*private static bool BeforeReleaseLeftClick()
         {
             if (!MinigamesPatcher.usingSlingshot)
             {
@@ -202,9 +207,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             MinigamesPatcher.usingSlingshot = false;
 
             return true;
-        }
+        }*/
 
-        private static bool BeforeTick()
+        /*private static bool BeforeTick()
         {
             if (MinigamesPatcher.aiming)
             {
@@ -223,6 +228,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return true;
-        }
+        }*/
     }
 }

@@ -54,7 +54,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         PendingComplete,
 
-        ClickHeld,
+        /// <summary>
+        ///     The farmer is using the slingshot.
+        /// </summary>
+        UsingSlingshot,
 
         /// <summary>
         ///     The farmer will perform an action on this tick.

@@ -401,7 +401,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     this.ClickKeyStates.RealClickHeld = true;
 
-                    this.phase = ClickToMovePhase.ClickHeld;
+                    this.phase = ClickToMovePhase.UsingSlingshot;
 
                     return;
                 }
