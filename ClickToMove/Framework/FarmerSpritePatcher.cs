@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="FarmerSpritePatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -23,15 +22,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using StardewValley;
 
-    /// <summary>Encapsulates Harmony patches for the <see cref="FarmerSprite"/> class.</summary>
+    /// <summary>
+    ///     Encapsulates Harmony patches for the <see cref="FarmerSprite"/> class.
+    /// </summary>
     internal static class FarmerSpritePatcher
     {
         /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -42,8 +41,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Changes the farmer's equipped tool to the last used tool.
-        ///     This is used to get back to the tool used before auto selection of a different tool.
+        ///     Changes the farmer's equipped tool to the last used tool. This is used to get back
+        ///     to the tool used before auto selection of a different tool.
         /// </summary>
         /// <param name="who">The <see cref="Farmer"/> instance.</param>
         private static void SwitchBackToLastTool(Farmer who)
@@ -54,7 +53,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="FarmerSprite.animateOnce" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="FarmerSprite.animateOnce"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileAnimateOnce(IEnumerable<CodeInstruction> instructions)
         {

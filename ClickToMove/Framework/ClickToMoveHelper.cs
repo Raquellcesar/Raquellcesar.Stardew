@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ClickToMoveHelper.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -179,7 +178,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             return new Rectangle(2112, 1280, 836, 280);
         }
-
 
         /// <summary>
         ///     Gets the farm animal at the tile associated with this node, if there's one.

@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="MenusPatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -25,7 +24,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley.Menus;
     using StardewValley.Tools;
 
-    /// <summary>Encapsulates Harmony patches for Menus in the game.</summary>
+    /// <summary>
+    ///     Encapsulates Harmony patches for Menus in the game.
+    /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class MenusPatcher
     {
@@ -37,9 +38,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -63,60 +62,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 postfix: new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.AfterToolbarUpdate)));
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="NumberSelectionMenu.receiveLeftClick" />.</summary>
-        /// <param name="instructions">The method instructions to transpile.</param>
-        private static IEnumerable<CodeInstruction> TranspileNumberSelectionMenuReceiveLeftClick(
-            IEnumerable<CodeInstruction> instructions)
-        {
-            // Set Game1.player.canMove to true when exiting the menu by clicking the ok button.
-
-            /*
-             * Relevant CIL code:
-             *      if (this.cancelButton.containsPoint(x, y))
-	         *          IL_0176: ldarg.0
-	         *          IL_0177: ldfld class StardewValley.Menus.ClickableTextureComponent StardewValley.Menus.NumberSelectionMenu::cancelButton
-             *
-             * Code to insert before:
-             *      Game1.player.canMove = true;
-             */
-
-            FieldInfo canMove = AccessTools.Field(typeof(Farmer), nameof(Farmer.canMove));
-
-            MethodInfo getPlayer =
-                AccessTools.Property(typeof(Game1), nameof(Game1.player)).GetGetMethod();
-
-            List<CodeInstruction> codeInstructions = instructions.ToList();
-
-            bool found = false;
-
-            for (int i = 0; i < codeInstructions.Count; i++)
-            {
-                if (!found && codeInstructions[i].opcode == OpCodes.Ldarg_0
-                           && i + 1 < codeInstructions.Count
-                           && codeInstructions[i + 1].opcode == OpCodes.Ldfld 
-                           && codeInstructions[i + 1].operand is FieldInfo { Name: "cancelButton" })
-                {
-                    yield return new CodeInstruction(OpCodes.Call, getPlayer);
-                    yield return new CodeInstruction(OpCodes.Ldc_I4_1);
-                    yield return new CodeInstruction(OpCodes.Stfld, canMove);
-
-                    found = true;
-                }
-
-                yield return codeInstructions[i];
-            }
-
-            if (!found)
-            {
-                ClickToMoveManager.Monitor.Log(
-                    $"Failed to patch {nameof(NumberSelectionMenu)}.{nameof(NumberSelectionMenu.receiveLeftClick)}.\nThe point of injection was not found.",
-                    LogLevel.Error);
-            }
-        }
-
         /// <summary>
-        ///     A method called via Harmony after <see cref="Toolbar.update" />
-        ///     This method equips the farmer with a tool previously chosen, when the farmer was using another tool.
+        ///     A method called via Harmony after <see cref="Toolbar.update"/> This method equips
+        ///     the farmer with a tool previously chosen, when the farmer was using another tool.
         /// </summary>
         private static void AfterToolbarUpdate()
         {
@@ -165,12 +113,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Toolbar.receiveLeftClick"/>
-        ///     that replaces it.
-        ///     This method allows the user to deselect an equipped object so that the farmer
-        ///     doesn't have any equipped tool or active object.
-        ///     It also allows deferred selection of items. If the farmer selects an item while
-        ///     using a tool, that item will be later equipped when the toolbar updates.
+        ///     A method called via Harmony before <see cref="Toolbar.receiveLeftClick"/> that
+        ///     replaces it. This method allows the user to deselect an equipped object so that the
+        ///     farmer doesn't have any equipped tool or active object. It also allows deferred
+        ///     selection of items. If the farmer selects an item while using a tool, that item will
+        ///     be later equipped when the toolbar updates.
         /// </summary>
         /// <returns>
         ///     Returns false, terminating prefixes and skipping the execution of the original
@@ -249,6 +196,59 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return false;
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="NumberSelectionMenu.receiveLeftClick"/>.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileNumberSelectionMenuReceiveLeftClick(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            // Set Game1.player.canMove to true when exiting the menu by clicking the ok button.
+
+            /*
+             * Relevant CIL code:
+             *      if (this.cancelButton.containsPoint(x, y))
+             *          IL_0176: ldarg.0
+             *          IL_0177: ldfld class StardewValley.Menus.ClickableTextureComponent StardewValley.Menus.NumberSelectionMenu::cancelButton
+             *
+             * Code to insert before:
+             *      Game1.player.canMove = true;
+             */
+
+            FieldInfo canMove = AccessTools.Field(typeof(Farmer), nameof(Farmer.canMove));
+
+            MethodInfo getPlayer =
+                AccessTools.Property(typeof(Game1), nameof(Game1.player)).GetGetMethod();
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                if (!found && codeInstructions[i].opcode == OpCodes.Ldarg_0
+                           && i + 1 < codeInstructions.Count
+                           && codeInstructions[i + 1].opcode == OpCodes.Ldfld
+                           && codeInstructions[i + 1].operand is FieldInfo { Name: "cancelButton" })
+                {
+                    yield return new CodeInstruction(OpCodes.Call, getPlayer);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_1);
+                    yield return new CodeInstruction(OpCodes.Stfld, canMove);
+
+                    found = true;
+                }
+
+                yield return codeInstructions[i];
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(NumberSelectionMenu)}.{nameof(NumberSelectionMenu.receiveLeftClick)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
         }
     }
 }

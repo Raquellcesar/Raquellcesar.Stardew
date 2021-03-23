@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ToolsPatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -22,16 +21,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley;
     using StardewValley.Tools;
 
-    using SObject = StardewValley.Object;
-
+    /// <summary>
+    ///     Encapsulates Harmony patches for the <see cref="Tool"/> classes.
+    /// </summary>
     internal static class ToolsPatcher
     {
         /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -44,15 +42,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="FishingRod.doDoneFishing" />.
-        ///     It resets the state of the <see cref="ClickToMove" /> object associated with the current game location.
+        ///     A method called via Harmony after <see cref="FishingRod.doDoneFishing"/>. It resets
+        ///     the state of the <see cref="ClickToMove"/> object associated with the current game location.
         /// </summary>
         private static void AfterDoDoneFishing()
         {
             ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="Wand.DoFunction" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Wand.DoFunction"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileWandDoFunction(IEnumerable<CodeInstruction> instructions)
         {

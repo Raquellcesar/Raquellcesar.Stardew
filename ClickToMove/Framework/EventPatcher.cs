@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="EventPatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -21,8 +20,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using StardewValley;
 
+    /// <summary>
+    ///     Applies Harmony patches to the <see cref="Event"/> class.
+    /// </summary>
     internal static class EventPatcher
     {
+        /// <summary>
+        ///     Initialize the Harmony patches.
+        /// </summary>
+        /// <param name="harmony">
+        ///     The Harmony patching API.
+        /// </param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -40,8 +48,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 transpiler: new HarmonyMethod(typeof(EventPatcher), nameof(EventPatcher.TranspileCheckForCollision)));
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="Event.addSpecificTemporarySprite" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Event.addSpecificTemporarySprite"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
+        /// <param name="ilGenerator">Generates MSIL instructions.</param>
         private static IEnumerable<CodeInstruction> TranspileAddSpecificTemporarySprite(
             IEnumerable<CodeInstruction> instructions,
             ILGenerator ilGenerator)
@@ -112,7 +123,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="Event.checkAction" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Event.checkAction"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileCheckAction(IEnumerable<CodeInstruction> instructions)
         {
@@ -171,13 +184,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="Event.checkForCollision" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Event.checkForCollision"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileCheckForCollision(
             IEnumerable<CodeInstruction> instructions)
         {
-            // Reset the ClickToMove object associated with the current game location
-            // after the test for isFestival.
+            // Reset the ClickToMove object associated with the current game location after the test
+            // for isFestival.
 
             /*
             * Relevant CIL code:

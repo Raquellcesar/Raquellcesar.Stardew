@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="GamePatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -28,14 +27,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley;
     using StardewValley.Locations;
     using StardewValley.Menus;
-    using StardewValley.Minigames;
     using StardewValley.Objects;
     using StardewValley.Tools;
     using StardewValley.Util;
 
-    using Rectangle = Microsoft.Xna.Framework.Rectangle;
-
-    /// <summary>Encapsulates Harmony patches for the <see cref="Game1"/> class.</summary>
+    /// <summary>
+    ///     Encapsulates Harmony patches for the <see cref="Game1"/> class.
+    /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     public static class GamePatcher
     {
@@ -51,12 +49,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private static IReflectedMethod addMinute;
 
-        private static IReflectedMethod checkIfDialogueIsQuestion;
-
+        /// <summary>
+        ///     The mouse left button state on the last tick. This is the real state of the button,
+        ///     regardless of it being suppressed by any mod.
+        /// </summary>
         private static bool lastMouseLeftButtonDown;
-
-        private static IReflectedProperty<Dictionary<Game1.MusicContext, KeyValuePair<string, bool>>>
-                                            requestedMusicTracks;
 
         /// <summary>
         ///     A reference to the private property <see cref="Game1.thumbstickToMouseModifier"/>.
@@ -67,22 +64,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
-            GamePatcher.requestedMusicTracks =
-                ClickToMoveManager.Reflection.GetProperty<Dictionary<Game1.MusicContext, KeyValuePair<string, bool>>>(
-                    typeof(Game1),
-                    "_requestedMusicTracks");
             GamePatcher.thumbstickToMouseModifier =
                 ClickToMoveManager.Reflection.GetProperty<float>(typeof(Game1), "thumbstickToMouseModifier");
 
             GamePatcher.addHour = ClickToMoveManager.Reflection.GetMethod(typeof(Game1), "addHour");
             GamePatcher.addMinute = ClickToMoveManager.Reflection.GetMethod(typeof(Game1), "addMinute");
-            GamePatcher.checkIfDialogueIsQuestion =
-                ClickToMoveManager.Reflection.GetMethod(typeof(Game1), "checkIfDialogueIsQuestion");
 
             harmony.Patch(
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentMinigame)).GetSetMethod(),
@@ -124,6 +113,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforeWarpFarmer)));
         }
 
+        /// <summary>
+        ///     Method called via Harmony after <see cref="Game1.didPlayerJustLeftClick"/>. It
+        ///     checks the state of the simulated input <see cref="ClickToMoveKeyStates.UseToolButtonPressed"/>.
+        /// </summary>
+        /// <param name="__result">A reference to the result of the original method.</param>
         private static void AfterDidPlayerJustLeftClick(ref bool __result)
         {
             if (!__result)
@@ -136,6 +130,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Method called via Harmony after <see cref="Game1.didPlayerJustRightClick"/>. It
+        ///     checks the state of the simulated input <see cref="ClickToMoveKeyStates.ActionButtonPressed"/>.
+        /// </summary>
+        /// <param name="__result">A reference to the result of the original method.</param>
         private static void AfterDidPlayerJustRightClick(ref bool __result)
         {
             if (!__result)
@@ -147,15 +146,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Method called via Harmony after <see cref="Game1.drawObjectDialogue"/>. It resets
+        ///     the state of the <see cref="ClickToMove"/> object for the current location.
+        /// </summary>
         private static void AfterDrawObjectDialogue()
         {
             ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="Game1.exitActiveMenu" />.
-        ///     It sets <see cref="ClickToMoveManager.JustClosedActiveMenu"/> so the current click and
-        ///     subsequent click release can be ignored.
+        ///     A method called via Harmony after <see cref="Game1.exitActiveMenu"/>. It sets <see
+        ///     cref="ClickToMoveManager.JustClosedActiveMenu"/> so the current click and subsequent
+        ///     click release can be ignored.
         /// </summary>
         private static void AfterExitActiveMenu()
         {
@@ -185,17 +188,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-
         /// <summary>
-        ///     A method called via Harmony before <see cref="Game1.UpdateControlInput" />.
-        ///     It replicates the game's control input processing with some changes so we can
-        ///     implement the path finding functionality.
+        ///     A method called via Harmony before <see cref="Game1.UpdateControlInput"/>. It
+        ///     replicates the game's control input processing with some changes so we can implement
+        ///     the path finding functionality.
         /// </summary>
-        /// <param name="__instance">The <see cref="Game1" /> instance.</param>
-        /// <param name="time">The time passed since the last call to <see cref="Game1.Update" />.</param>
+        /// <param name="__instance">The <see cref="Game1"/> instance.</param>
+        /// <param name="time">The time passed since the last call to <see cref="Game1.Update"/>.</param>
         /// <returns>
-        ///     Returns <see langword="false"/>, which terminates prefixes and skips the execution of the original method,
-        ///     effectively replacing the original method.
+        ///     Returns <see langword="false"/>, which terminates prefixes and skips the execution
+        ///     of the original method, effectively replacing the original method.
         /// </returns>
         private static bool BeforeUpdateControlInput(
             Game1 __instance,
@@ -1565,8 +1567,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Game1.warpFarmer(LocationRequest, int, int, int)" />.
-        ///     It resets the <see cref="ClickToMove"/> object associated to the current game location.
+        ///     A method called via Harmony before <see cref="Game1.warpFarmer"/>. It resets the
+        ///     <see cref="ClickToMove"/> object associated to the current game location.
         /// </summary>
         private static void BeforeWarpFarmer()
         {
@@ -1577,6 +1579,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     A method called via Harmony to modify <see cref="Game1.pressActionButton"/>.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
+        /// <param name="ilGenerator">Generates MSIL instructions.</param>
         private static IEnumerable<CodeInstruction> TranspilePressActionButton(
             IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
         {
@@ -1645,7 +1648,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         Label jumpElseBlock = ilGenerator.DefineLabel();
                         Label jumpUnconditional = ilGenerator.DefineLabel();
 
-                        // if ((ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X == -1 && ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y == -1) || Game1.controlpadActionButtonPressed)
+                        // if ((ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X
+                        // == -1 &&
+                        // ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y ==
+                        // -1) || Game1.controlpadActionButtonPressed)
                         yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
                         yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                         yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
@@ -1678,8 +1684,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             }
                         }
 
-                        // Else block.
-                        // grabTile = Utility.PointToVector2(ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile);
+                        // Else block. grabTile = Utility.PointToVector2(ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile);
                         yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpElseBlock } };
                         yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                         yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
@@ -1718,14 +1723,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1.pressUseToolButton"/>.
+        ///     A method called via Harmony to modify <see cref="Game1.pressUseToolButton"/>. It
+        ///     makes use of the information stored by the <see cref="ClickToMove"/> object
+        ///     associated to the current location relative to the clicked tile.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
+        /// <param name="ilGenerator">Generates MSIL instructions.</param>
         private static IEnumerable<CodeInstruction> TranspilePressUseToolButton(
             IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
         {
-            // Get clicked information from the path finding controller.
-
             FieldInfo pointX = AccessTools.Field(typeof(Point), nameof(Point.X));
             FieldInfo pointY = AccessTools.Field(typeof(Point), nameof(Point.Y));
             FieldInfo wasMouseVisibleThisFrame = AccessTools.Field(typeof(Game1), nameof(Game1.wasMouseVisibleThisFrame));
@@ -1784,7 +1790,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     Label jumpFalse = ilGenerator.DefineLabel();
                     Label jumpEndIf = ilGenerator.DefineLabel();
 
-                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1
+                    // && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                     yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
@@ -1799,8 +1806,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
                     yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
 
-                    // If block.
-                    // Replicate the original code.
+                    // If block. Replicate the original code.
                     codeInstructions[i].labels = new List<Label>();
                     yield return codeInstructions[i];
                     i++;
@@ -1815,8 +1821,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         }
                     }
 
-                    // Else block.
-                    // position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
+                    // Else block. position = (!Game1.wasMouseVisibleThisFrame) ?
+                    // Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
                     yield return new CodeInstruction(OpCodes.Ldsfld, wasMouseVisibleThisFrame) { labels = new List<Label>() { jumpFalse } };
 
                     jumpFalse = ilGenerator.DefineLabel();
@@ -1867,7 +1873,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         {
                             jumpFalse = ilGenerator.DefineLabel();
 
-                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X
+                            // == -1 &&
+                            // ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
                             yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
                             yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                             yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
@@ -1882,8 +1890,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
                             yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
 
-                            // If block.
-                            // Replicate original code.
+                            // If block. Replicate original code.
                             codeInstructions[i].labels = new List<Label>();
                             yield return codeInstructions[i];
                             i++;
@@ -1899,8 +1906,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                 }
                             }
 
-                            // Else block.
-                            // tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
+                            // Else block. tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
                             yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpFalse } };
                             yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                             yield return new CodeInstruction(OpCodes.Callvirt, getClickedTile);
@@ -1942,7 +1948,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                 {
                                     jumpFalse = ilGenerator.DefineLabel();
 
-                                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Point.Zero)
+                                    // if
+                                    // (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile
+                                    // != Point.Zero)
                                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
                                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                                     yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
@@ -1950,15 +1958,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                     yield return new CodeInstruction(OpCodes.Call, pointInequality);
                                     yield return new CodeInstruction(OpCodes.Brfalse_S, jumpFalse);
 
-                                    // If block.
-                                    // grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
+                                    // If block. grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
                                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                                     yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
                                     yield return new CodeInstruction(OpCodes.Call, pointToVector2);
                                     yield return new CodeInstruction(OpCodes.Stloc_S, 8);
 
-                                    // ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Point.Zero;
+                                    // ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile
+                                    // = Point.Zero;
                                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                                     yield return new CodeInstruction(OpCodes.Call, getPointZero);
@@ -1967,8 +1975,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                     jumpEndIf = ilGenerator.DefineLabel();
                                     yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
 
-                                    // Else block.
-                                    // Return original code.
+                                    // Else block. Return original code.
                                     codeInstructions[i].labels = new List<Label>() { jumpFalse };
                                     yield return codeInstructions[i];
                                     i++;
@@ -2005,13 +2012,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        /// <summary>A method called via Harmony to modify the setter for <see cref="Game1.currentMinigame" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify the setter for <see cref="Game1.currentMinigame"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileSetCurrentMinigame(
             IEnumerable<CodeInstruction> instructions)
         {
-            // Reset the ClickToMove object associated with the current game location
-            // after the game checks that the current location is not null.
+            // Reset the ClickToMove object associated with the current game location after the game
+            // checks that the current location is not null.
 
             /*
             * Relevant CIL code:

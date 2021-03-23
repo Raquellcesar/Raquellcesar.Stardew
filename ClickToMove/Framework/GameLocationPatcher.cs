@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="GameLocationPatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -21,6 +20,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using StardewValley;
 
+    /// <summary>Applies Harmony patches to the <see cref="GameLocation" /> class.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class GameLocationPatcher
     {
@@ -36,19 +36,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 AccessTools.Method(typeof(GameLocation), nameof(GameLocation.answerDialogueAction)),
                 new HarmonyMethod(
                     typeof(GameLocationPatcher),
-                    nameof(GameLocationPatcher.BeforeanswerDialogueAction)));
+                    nameof(GameLocationPatcher.BeforeAnswerDialogueAction)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(GameLocation), nameof(GameLocation.answerDialogueAction)),
                 postfix: new HarmonyMethod(
                     typeof(GameLocationPatcher),
-                    nameof(GameLocationPatcher.AfteranswerDialogueAction)));
+                    nameof(GameLocationPatcher.AfterAnswerDialogueAction)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(GameLocation), nameof(GameLocation.cleanupBeforePlayerExit)),
                 postfix: new HarmonyMethod(
                     typeof(GameLocationPatcher),
-                    nameof(GameLocationPatcher.AftercleanupBeforePlayerExit)));
+                    nameof(GameLocationPatcher.AfterCleanupBeforePlayerExit)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(GameLocation), nameof(GameLocation.LowPriorityLeftClick)),
@@ -66,10 +66,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 AccessTools.Method(typeof(GameLocation), "resetLocalState"),
                 postfix: new HarmonyMethod(
                     typeof(GameLocationPatcher),
-                    nameof(GameLocationPatcher.AfterresetLocalState)));
+                    nameof(GameLocationPatcher.AfterResetLocalState)));
         }
 
-        private static void AfteranswerDialogueAction(string questionAndAnswer)
+        /// <summary>
+        ///     A method called via Harmony after <see cref="GameLocation.answerDialogueAction"/>. It resets the
+        ///     <see cref="ClickToMove"/> object associated to the current game location.
+        /// </summary>
+        /// <param name="questionAndAnswer">The string identifying a dialogue answer.</param>
+        private static void AfterAnswerDialogueAction(string questionAndAnswer)
         {
             if (questionAndAnswer == "Eat_Yes" || questionAndAnswer == "Eat_No")
             {
@@ -77,12 +82,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        private static void AftercleanupBeforePlayerExit(GameLocation __instance)
+        /// <summary>
+        ///     A method called via Harmony after <see cref="GameLocation.cleanupBeforePlayerExit"/>. It resets the
+        ///     <see cref="ClickToMove"/> object associated to this <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
+        private static void AfterCleanupBeforePlayerExit(GameLocation __instance)
         {
             ClickToMoveManager.GetOrCreate(__instance).Reset();
         }
 
-        private static void AfterresetLocalState(GameLocation __instance)
+        /// <summary>
+        ///     A method called via Harmony after <see cref="GameLocation.resetLocalState"/>. It resets the
+        ///     stored map information in the search graph associated to this <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
+        private static void AfterResetLocalState(GameLocation __instance)
         {
             if (ClickToMoveManager.GetOrCreate(__instance) is not null
                 && ClickToMoveManager.GetOrCreate(__instance).Graph is not null)
@@ -91,17 +106,31 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        private static bool BeforeanswerDialogueAction(string questionAndAnswer, string[] questionParams)
+        /// <summary>
+        ///     A method called via Harmony before <see cref="GameLocation.answerDialogueAction"/>. It sets
+        ///     <see cref="ClickToMove.PreventMountingHorse"/> to false.
+        /// </summary>
+        /// <param name="questionAndAnswer">The string identifying a dialogue answer.</param>
+        /// <param name="questionParams">The question parameters.</param>
+        private static void BeforeAnswerDialogueAction(string questionAndAnswer, string[] questionParams)
         {
             if (questionAndAnswer is not null && questionParams is not null && questionParams.Length != 0
                 && questionParams[0] == "Minecart")
             {
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).PreventMountingHorse = false;
             }
-
-            return true;
         }
 
+        /// <summary>
+        ///     A method called via Harmony before <see cref="GameLocation.LowPriorityLeftClick"/>.
+        ///     It ignores the original method if the mouse being held and
+        /// </summary>
+        /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="__result">A reference to the result of the original method.</param>
+        /// <returns>
+        ///     Returns <see langword="false"/> to terminate prefixes and skip the execution of the
+        ///     original method; returns <see langword="true"/> otherwise.
+        /// </returns>
         private static bool BeforeLowPriorityLeftClick(GameLocation __instance, ref bool __result)
         {
             if (ClickToMoveManager.GetOrCreate(__instance).ClickHoldActive

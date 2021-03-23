@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="CharactersPatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -18,33 +17,36 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Harmony;
 
-    using Microsoft.Xna.Framework;
-
     using StardewModdingAPI;
 
     using StardewValley;
-    using StardewValley.Buildings;
     using StardewValley.Characters;
-    using StardewValley.Menus;
-    using StardewValley.Objects;
 
+    /// <summary>
+    ///     Encapsulates Harmony patches for the <see cref="Character"/> classes.
+    /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class CharactersPatcher
     {
         /// <summary>
-        ///     Associates new properties to <see cref="Horse" /> objects at runtime.
+        ///     Associates new properties to <see cref="Horse"/> objects at runtime.
         /// </summary>
         private static readonly ConditionalWeakTable<Horse, HorseData> HorsesData =
             new ConditionalWeakTable<Horse, HorseData>();
 
         /// <summary>
+        ///     The Harmony patching API.
+        /// </summary>
+        private static HarmonyInstance harmony;
+
+        /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
+            CharactersPatcher.harmony = harmony;
+
             harmony.Patch(
                 AccessTools.Method(typeof(Child), nameof(Child.checkAction)),
                 transpiler: new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.TranspileChildCheckAction)));
@@ -52,15 +54,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             harmony.Patch(
                 AccessTools.Method(typeof(Horse), nameof(Horse.checkAction)),
                 new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.BeforeHorseCheckAction)));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(Horse), nameof(Horse.checkAction)),
+                transpiler: new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.TranspileHorseCheckAction)));
         }
 
         /// <summary>
         ///     Gets if an horse should allow action checking.
         /// </summary>
-        /// <param name="horse">The <see cref="Horse" /> instance.</param>
+        /// <param name="horse">The <see cref="Horse"/> instance.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if this horse can check for action.
-        ///     Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if this horse can check for action. Returns <see
+        ///     langword="false"/> otherwise.
         /// </returns>
         public static bool IsCheckActionEnabled(this Horse horse)
         {
@@ -70,7 +76,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Sets whether an horse allows action checking.
         /// </summary>
-        /// <param name="horse">The <see cref="Horse" /> instance.</param>
+        /// <param name="horse">The <see cref="Horse"/> instance.</param>
         /// <param name="value">Determines whether the horse can check action.</param>
         public static void SetCheckActionEnabled(this Horse horse, bool value)
         {
@@ -80,18 +86,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-
-        /// <summary>A method called via Harmony before <see cref="Horse.checkAction" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony before <see cref="Horse.checkAction"/>. It checks if the
+        ///     horse has check action enabled.
+        /// </summary>
+        /// <param name="__instance">The <see cref="Horse"/> instance.</param>
+        /// <param name="__result">A reference to the result of the original method.</param>
         /// <returns>
-        ///     Returns <see langword="false"/>, terminating prefixes and skipping the execution of the original method,
-        ///     effectively replacing the original method.
+        ///     Returns <see langword="false"/> to terminate prefixes and skip the execution of the
+        ///     original method, <see langword="true"/> otherwise.
         /// </returns>
         private static bool BeforeHorseCheckAction(
             Horse __instance,
-            Farmer who,
-            GameLocation l,
-            ref bool ___roomForHorseAtDismountTile,
-            ref Vector2 ___dismountTile,
             ref bool __result)
         {
             HorseData horseData = CharactersPatcher.HorsesData.GetOrCreateValue(__instance);
@@ -103,152 +109,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return false;
             }
 
-            if (who is not null && !who.canMove)
-            {
-                __result = false;
-                return false;
-            }
-
-            if (__instance.rider is null)
-            {
-                __instance.mutex.RequestLock(
-                    delegate
-                        {
-                            if (who.mount is not null || __instance.rider is not null
-                                                  || who.FarmerSprite.PauseForSingleAnimation)
-                            {
-                                __instance.mutex.ReleaseLock();
-                            }
-                            else if ((__instance.getOwner() == Game1.player
-                                      || (__instance.getOwner() is null
-                                          && (string.IsNullOrEmpty(Game1.player.horseName.Value)
-                                              || Utility.findHorseForPlayer(Game1.player.UniqueMultiplayerID) is null)))
-                                     && __instance.Name.Length <= 0)
-                            {
-                                foreach (Building building in (Game1.getLocationFromName("Farm") as Farm).buildings)
-                                {
-                                    if (building.daysOfConstructionLeft.Value <= 0 && building is Stable stable)
-                                    {
-                                        if (stable.getStableHorse() == __instance)
-                                        {
-                                            stable.owner.Value = who.UniqueMultiplayerID;
-                                            stable.updateHorseOwnership();
-                                        }
-                                        else if (stable.owner.Value == who.UniqueMultiplayerID)
-                                        {
-                                            stable.owner.Value = 0;
-                                            stable.updateHorseOwnership();
-                                        }
-                                    }
-                                }
-
-                                if (string.IsNullOrEmpty(Game1.player.horseName.Value))
-                                {
-                                    Game1.activeClickableMenu = new NamingMenu(
-                                        __instance.nameHorse,
-                                        Game1.content.LoadString("Strings\\Characters:NameYourHorse"),
-                                        Game1.content.LoadString("Strings\\Characters:DefaultHorseName"));
-                                }
-                            }
-                            else if (who.CurrentToolIndex >= 0 && who.items.Count > who.CurrentToolIndex && who.Items[who.CurrentToolIndex] is Hat hat)
-                            {
-                                if (__instance.hat.Value is not null)
-                                {
-                                    Game1.createItemDebris(
-                                        __instance.hat.Value,
-                                        __instance.position.Value,
-                                        __instance.facingDirection.Value);
-                                    __instance.hat.Value = null;
-                                }
-                                else
-                                {
-                                    who.Items[who.CurrentToolIndex] = null;
-                                    __instance.hat.Value = hat;
-                                    Game1.playSound("dirtyHit");
-                                }
-
-                                __instance.mutex.ReleaseLock();
-                            }
-                            else if (!ClickToMoveManager.GetOrCreate(Game1.currentLocation).PreventMountingHorse)
-                            {
-                                __instance.rider = who;
-                                __instance.rider.freezePause = 5000;
-                                __instance.rider.synchronizedJump(6);
-                                __instance.rider.Halt();
-
-                                if (__instance.rider.Position.X < __instance.Position.X)
-                                {
-                                    __instance.rider.faceDirection(1);
-                                }
-
-                                l.playSound("dwop");
-                                __instance.mounting.Value = true;
-                                __instance.rider.isAnimatingMount = true;
-                                __instance.rider.completelyStopAnimatingOrDoingAction();
-                                __instance.rider.faceGeneralDirection(
-                                    Utility.PointToVector2(__instance.GetBoundingBox().Center),
-                                    0,
-                                    false,
-                                    false);
-                            }
-                        });
-
-                __result = true;
-                return false;
-            }
-
-            __instance.dismounting.Value = true;
-            __instance.rider.isAnimatingMount = true;
-            __instance.farmerPassesThrough = false;
-            __instance.rider.TemporaryPassableTiles.Clear();
-
-            Vector2 position = Utility.recursiveFindOpenTileForCharacter(
-                __instance.rider,
-                __instance.rider.currentLocation,
-                __instance.rider.getTileLocation(),
-                8);
-
-            __instance.Position = new Vector2(
-                (position.X * Game1.tileSize) + (Game1.tileSize / 2) - (__instance.GetBoundingBox().Width / 2),
-                (position.Y * Game1.tileSize) + 4);
-
-            ___roomForHorseAtDismountTile = !__instance.currentLocation.isCollidingPosition(
-                                                __instance.GetBoundingBox(),
-                                                Game1.viewport,
-                                                true,
-                                                0,
-                                                false,
-                                                __instance);
-
-            __instance.Position = __instance.rider.Position;
-            __instance.dismounting.Value = false;
-            __instance.rider.isAnimatingMount = false;
-            __instance.Halt();
-
-            if (!position.Equals(Vector2.Zero) && Vector2.Distance(position, __instance.rider.getTileLocation()) < 2)
-            {
-                __instance.rider.synchronizedJump(6);
-                l.playSound("dwop");
-                __instance.rider.freezePause = 5000;
-                __instance.rider.Halt();
-                __instance.rider.xOffset = 0;
-                __instance.dismounting.Value = true;
-                __instance.rider.isAnimatingMount = true;
-
-                ___dismountTile = position;
-
-                Game1.debugOutput = "dismount tile: " + position;
-            }
-            else
-            {
-                __instance.dismount();
-            }
-
-            __result = true;
-            return false;
+            return true;
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="Child.checkAction" />.</summary>
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Child.checkAction"/>.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileChildCheckAction(
             IEnumerable<CodeInstruction> instructions)
@@ -306,11 +172,143 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Keeps data about an <see cref="Horse" /> object.
+        ///     A method called via Harmony to modify <see cref="Horse.checkAction"/>.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileHorseCheckAction(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            // Find the delegate method to transpile.
+            int index = codeInstructions.FindIndex(
+                    0,
+                    ins => ins.opcode == OpCodes.Ldftn && ins.operand is MethodInfo);
+
+            if (index < 0)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(Horse)}.{nameof(Horse.checkAction)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
+            else
+            {
+                // Patch the delegate.
+                CharactersPatcher.harmony.Patch(
+                    (MethodInfo)codeInstructions[index].operand,
+                    transpiler: new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.TranspileHorseDelegateCheckAction)));
+            }
+
+            // Return the original method untouched.
+            foreach (CodeInstruction instruction in instructions)
+            {
+                yield return instruction;
+            }
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify the delegate in <see cref="Horse.checkAction"/>.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileHorseDelegateCheckAction(
+            IEnumerable<CodeInstruction> instructions,
+            ILGenerator ilGenerator)
+        {
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found1 = false;
+            bool found2 = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                /* Check if CurrentToolIndex is greater than zero before accessing items. */
+
+                /*
+                 * Relevant CIL code:
+                 *      else if (this.who.items.Count > this.who.CurrentToolIndex && this.who.items[this.who.CurrentToolIndex] != null && this.who.Items[this.who.CurrentToolIndex] is Hat)
+                 *          IL_01c8: ldarg.0
+                 *          IL_01c9: ldfld class StardewValley.Farmer StardewValley.Characters.Horse/'<>c__DisplayClass31_0'::who
+                 *          IL_01ce: ldfld class [Netcode]Netcode.NetObjectList`1<class StardewValley.Item> StardewValley.Farmer::items
+                 *          IL_01d3: callvirt instance int32 class [Netcode]Netcode.NetList`2<class StardewValley.Item, class [Netcode]Netcode.NetRef`1<class StardewValley.Item>>::get_Count()
+                 *          IL_01d8: ldarg.0
+                 *          IL_01d9: ldfld class StardewValley.Farmer StardewValley.Characters.Horse/'<>c__DisplayClass31_0'::who
+                 *          IL_01de: callvirt instance int32 StardewValley.Farmer::get_CurrentToolIndex()
+                 *          IL_01e3: ble IL_02f3
+                 *          ...
+                 *
+                 * Condition to add at the beginning of the test:
+                 *      this.who.CurrentToolIndex >= 0
+                 */
+
+                if (!found1 && codeInstructions[i].opcode == OpCodes.Ldarg_0
+                            && i + 7 < codeInstructions.Count
+                            && codeInstructions[i + 2].opcode == OpCodes.Ldfld && codeInstructions[i + 2].operand is FieldInfo { Name: "items" }
+                            && codeInstructions[i + 7].opcode == OpCodes.Ble)
+                {
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, codeInstructions[i + 1].operand);
+                    yield return new CodeInstruction(OpCodes.Callvirt, AccessTools.Property(typeof(Farmer), nameof(Farmer.CurrentToolIndex)).GetGetMethod());
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_0);
+                    yield return new CodeInstruction(OpCodes.Blt, codeInstructions[i + 7].operand);
+
+                    found1 = true;
+                }
+
+                // Check if farmer can mount horse on the last else.
+
+                /*
+                 * Relevant CIL code:
+                 *      else
+                 *      {
+                 *          this.<>4__this.rider = this.who;
+                 *              IL_02f3: ldarg.0
+                 *              IL_02f4: ldfld class StardewValley.Characters.Horse StardewValley.Characters.Horse/'<>c__DisplayClass31_0'::'<>4__this'
+                 *              IL_02f9: ldarg.0
+                 *              IL_02fa: ldfld class StardewValley.Farmer StardewValley.Characters.Horse/'<>c__DisplayClass31_0'::who
+                 *              IL_02ff: call instance void StardewValley.Characters.Horse::set_rider(class StardewValley.Farmer)
+                 *          ...
+                 *
+                 * Add test:
+                 *      else if (!ClickToMoveManager.GetOrCreate(Game1.currentLocation).PreventMountingHorse)
+                 */
+
+                if (found1 && !found2 && codeInstructions[i].opcode == OpCodes.Ldarg_0
+                           && i + 4 < codeInstructions.Count
+                           && codeInstructions[i + 4].opcode == OpCodes.Call && codeInstructions[i + 4].operand is MethodInfo { Name: "set_rider" })
+                {
+                    Label jump = ilGenerator.DefineLabel();
+
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod());
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ClickToMoveManager), nameof(ClickToMoveManager.GetOrCreate)));
+                    yield return new CodeInstruction(OpCodes.Callvirt, AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.PreventMountingHorse)).GetGetMethod());
+                    yield return new CodeInstruction(OpCodes.Brfalse_S, jump);
+                    yield return new CodeInstruction(OpCodes.Ret);
+
+                    codeInstructions[i].labels.Add(jump);
+
+                    found2 = true;
+                }
+
+                yield return codeInstructions[i];
+            }
+
+            if (!found1 || !found2)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch the delegate for {nameof(Horse)}.{nameof(Horse.checkAction)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        ///     Keeps data about an <see cref="Horse"/> object.
         /// </summary>
         internal class HorseData
         {
-            public bool CheckActionEnabled = true;
+            /// <summary>
+            ///     Gets or sets a value indicating whether check action is enabled.
+            /// </summary>
+            public bool CheckActionEnabled { get; set; } = true;
         }
     }
 }

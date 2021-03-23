@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="BuildingsPatcher.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -15,15 +14,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley;
     using StardewValley.Buildings;
 
-    /// <summary>Encapsulates Harmony patches for Buildings.</summary>
+    /// <summary>
+    ///     Encapsulates Harmony patches for Buildings in the game.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal class BuildingsPatcher
     {
         /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -32,11 +32,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="Building.dayUpdate" />.
-        ///     It reinitializes the <see cref="ClickToMove" /> object associated to animal houses.
+        ///     A method called via Harmony after <see cref="Building.dayUpdate"/>. It reinitializes
+        ///     the <see cref="ClickToMove"/> object associated to animal houses.
         /// </summary>
-        /// <param name="__instance">The <see cref="Building" /> instance.</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
+        /// <param name="__instance">The <see cref="Building"/> instance.</param>
         private static void AfterDayUpdate(Building __instance)
         {
             if (__instance.indoors.Value is AnimalHouse animalHouse)

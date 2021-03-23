@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ClickToMoveManager.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -32,7 +31,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     <see cref="ClickToMove"/> is created on demand and destroyed once there are
         ///     no reference to its <see cref="GameLocation"/> outside the table.
         /// </summary>
-        private static readonly ConditionalWeakTable<GameLocation, ClickToMove> GameLocations =
+        private static readonly ConditionalWeakTable<GameLocation, ClickToMove> PathFindingControllers =
             new ConditionalWeakTable<GameLocation, ClickToMove>();
 
         /// <summary>
@@ -87,14 +86,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (location is not null)
             {
                 // If we found the key we should just update, if no we should create a new entry.
-                if (ClickToMoveManager.GameLocations.TryGetValue(location, out ClickToMove _))
+                if (ClickToMoveManager.PathFindingControllers.TryGetValue(location, out ClickToMove _))
                 {
-                    ClickToMoveManager.GameLocations.Remove(location);
-                    ClickToMoveManager.GameLocations.Add(location, clickToMove);
+                    ClickToMoveManager.PathFindingControllers.Remove(location);
+                    ClickToMoveManager.PathFindingControllers.Add(location, clickToMove);
                 }
                 else
                 {
-                    ClickToMoveManager.GameLocations.Add(location, clickToMove);
+                    ClickToMoveManager.PathFindingControllers.Add(location, clickToMove);
                 }
             }
         }
@@ -180,7 +179,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public static ClickToMove GetOrCreate(GameLocation gameLocation)
         {
             return gameLocation is not null
-                       ? ClickToMoveManager.GameLocations.GetValue(gameLocation, ClickToMoveManager.CreateClickToMove)
+                       ? ClickToMoveManager.PathFindingControllers.GetValue(gameLocation, ClickToMoveManager.CreateClickToMove)
                        : null;
         }
 
