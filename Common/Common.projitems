@@ -21,7 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)DataStructures\PriorityQueue\PriorityQueueWithSortedDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)FurnitureId.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)FurnitureType.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)MouseCursor.cs" />
+    <Compile Include="..\Common\InteractionType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ObjectId.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\ObjectReferenceComparer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WalkDirection.cs" />

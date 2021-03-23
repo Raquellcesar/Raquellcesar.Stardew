@@ -17,14 +17,12 @@ namespace Raquellcesar.Stardew.Common
     {
         None = 0,
 
-        Hand = 2,
+        Hand = 1,
 
-        Gift = 3,
+        SpeechBubble = 2,
 
-        SpeechBubble = 4,
+        MagnifyingGlass = 3,
 
-        MagnifyingGlass = 5,
-
-        ReadyForHarvest = 6,
+        ReadyForHarvest = 4,
     }
 }

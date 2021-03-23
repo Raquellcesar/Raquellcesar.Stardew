@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="FarmAnimalPatcher.cs" company="Raquellcesar">
+// <copyright file="NpcPatcher.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be
@@ -18,10 +18,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using StardewValley;
 
     /// <summary>
-    ///     Encapsulates Harmony patches for the <see cref="FarmAnimal"/> class.
+    ///     Encapsulates Harmony patches for the <see cref="NPC"/> class.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
-    internal static class FarmAnimalPatcher
+    internal static class NpcPatcher
     {
         /// <summary>
         ///     Initialize the Harmony patches.
@@ -30,34 +30,34 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
-                AccessTools.Method(typeof(FarmAnimal), nameof(FarmAnimal.draw), new[] { typeof(SpriteBatch) }),
-                new HarmonyMethod(typeof(FarmAnimalPatcher), nameof(FarmAnimalPatcher.BeforeDraw)));
+                AccessTools.Method(typeof(NPC), nameof(NPC.draw), new[] { typeof(SpriteBatch) }),
+                new HarmonyMethod(typeof(NpcPatcher), nameof(NpcPatcher.BeforeDraw)));
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="FarmAnimal.draw"/>. Signals the
-        ///     current path's animal target, if any.
+        ///     A method called via Harmony before <see cref="NPC.draw"/>. Signals the
+        ///     current path's NPC target, if any.
         /// </summary>
-        /// <param name="__instance">The <see cref="FarmAnimal"/> instance.</param>
+        /// <param name="__instance">The <see cref="NPC"/> instance.</param>
         /// <param name="b">The <see cref="SpriteBatch"/> to draw to.</param>
-        private static void BeforeDraw(FarmAnimal __instance, SpriteBatch b)
+        private static void BeforeDraw(NPC __instance, SpriteBatch b)
         {
-            if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).TargetFarmAnimal == __instance)
+            if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).TargetNpc == __instance)
             {
                 b.Draw(
                     Game1.mouseCursors,
                     Game1.GlobalToLocal(
                         Game1.viewport,
                         new Vector2(
-                            (int)__instance.Position.X + (__instance.Sprite.getWidth() * 4 / 2) - 32,
-                            (int)__instance.Position.Y + (__instance.Sprite.getHeight() * 4 / 2) - 24)),
+                            (int)__instance.Position.X + (__instance.Sprite.SpriteWidth * 4 / 2) - 32,
+                            (int)__instance.Position.Y + __instance.GetBoundingBox().Height + (__instance.IsMonster ? 0 : 12) - 32)),
                     new Rectangle(194, 388, 16, 16),
                     Color.White,
                     0,
                     Vector2.Zero,
                     4,
                     SpriteEffects.None,
-                    0.01f);
+                    0.58f);
             }
         }
     }

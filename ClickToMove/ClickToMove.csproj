@@ -70,7 +70,7 @@
     <Compile Include="Framework\GamePatcher.cs" />
     <Compile Include="Framework\CharactersPatcher.cs" />
     <Compile Include="Framework\MenusPatcher.cs" />
-    <Compile Include="Framework\MinigamesPatcher.cs" />
+    <Compile Include="Framework\NpcPatcher.cs" />
     <Compile Include="Framework\ObjectsPatcher.cs" />
     <Compile Include="Framework\PathFinding\AStarNode.cs" />
     <Compile Include="Framework\PathFinding\AStarPath.cs" />

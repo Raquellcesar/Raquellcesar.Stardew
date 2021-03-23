@@ -2,9 +2,8 @@
 // <copyright file="ClickToMove.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//     Use of this source code is governed by an MIT-style license that can be
-//     found in the LICENSE file in the project root or at
-//     https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -39,9 +38,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using SObject = StardewValley.Object;
 
     /// <summary>
-    ///     This class encapsulates all the details needed to implement the click to move functionality.
-    ///     Each instance will be associated to a single <see cref="GameLocation" /> and will maintain data to optimize
-    ///     path finding in that location.
+    ///     This class encapsulates all the details needed to implement the click to move
+    ///     functionality. Each instance will be associated to a single <see cref="GameLocation"/>
+    ///     and will maintain data to optimize path finding in that location.
     /// </summary>
     public class ClickToMove
     {
@@ -56,6 +55,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Maximum number of allowed attempts at computing a path to a clicked destination.
         /// </summary>
         private const int MaxTries = 2;
+
+        /// <summary>
+        ///     The time we need to wait before checking gor monsters to attack again (500 ms).
+        /// </summary>
+        private const int MinimumTicksBetweenMonsterChecks = 5000000;
 
         /// <summary>
         ///     The time the mouse left button must be pressed before we condider it held (350 ms).
@@ -86,7 +90,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private readonly Queue<ClickQueueItem> clickQueue = new Queue<ClickQueueItem>();
 
         /// <summary>
-        ///     The <see cref="GameLocation" /> associated to this object.
+        ///     The <see cref="GameLocation"/> associated to this object.
         /// </summary>
         private readonly GameLocation gameLocation;
 
@@ -154,13 +158,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private AStarNode gateNode;
 
+        private InteractionType interactionAtCursor = InteractionType.None;
+
         private bool justUsedWeapon;
 
         private float lastDistance = float.MaxValue;
 
         private Monster monsterTarget;
-
-        private MouseCursor mouseCursor = MouseCursor.None;
 
         private int mouseX;
 
@@ -218,7 +222,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public static MeleeWeapon LastMeleeWeapon { get; set; }
 
         /// <summary>
-        /// Gets the tile clicked by the player.
+        ///     Gets the tile clicked by the player.
         /// </summary>
         public Point ClickedTile => this.clickedTile;
 
@@ -248,19 +252,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool PreventMountingHorse { get; set; }
 
         /// <summary>
-        ///     Gets the <see cref="FarmAnimal" /> that's at the current goal node, if any.
+        ///     Gets the <see cref="FarmAnimal"/> that's at the current goal node, if any.
         /// </summary>
         public FarmAnimal TargetFarmAnimal { get; private set; }
 
         /// <summary>
-        ///     Gets the <see cref="NPC" /> that's at the current goal node, if any.
+        ///     Gets the <see cref="NPC"/> that's at the current goal node, if any.
         /// </summary>
         public NPC TargetNpc { get; private set; }
-
-        /// <summary>
-        ///     The time we need to wait before checking gor monsters to attack again (500 ms).
-        /// </summary>
-        private const int MinimumTicksBetweenMonsterChecks = 5000000;
 
         /// <summary>
         ///     Clears all data relative to auto selection of tools.
@@ -311,7 +310,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 AStarNode clickedNode = this.Graph.GetNode(clickedTile.X, clickedTile.Y);
 
-                this.SetMouseCursor(clickedNode);
+                this.SetInteractionAtCursor(clickedNode);
 
                 if (this.clickedOnCrop)
                 {
@@ -495,7 +494,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     continue;
                 }
 
-                if (this.mouseCursor == MouseCursor.MagnifyingGlass)
+                if (this.interactionAtCursor == InteractionType.Inspection)
                 {
                     if (!ClickToMoveHelper.ClickedEggAtEggFestival(this.ClickPoint))
                     {
@@ -586,8 +585,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (this.gameLocation.IsWater(this.clickedTile) && this.mouseCursor != MouseCursor.Hand
-                                                                && this.mouseCursor != MouseCursor.ReadyForHarvest
+                if (this.gameLocation.IsWater(this.clickedTile) && this.interactionAtCursor != InteractionType.Action
+                                                                && this.interactionAtCursor != InteractionType.Harvest
                                                                 && !(Game1.player.CurrentTool is WateringCan)
                                                                 && !(Game1.player.CurrentTool is FishingRod)
                                                                 && (Game1.player.ActiveObject is null
@@ -1179,8 +1178,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Changes the farmer's equipped tool to the last used tool.
-        ///     This is used to get back to the tool that was equipped before a different tool was autoselected.
+        ///     Changes the farmer's equipped tool to the last used tool. This is used to get back
+        ///     to the tool that was equipped before a different tool was autoselected.
         /// </summary>
         public void SwitchBackToLastTool()
         {
@@ -1483,8 +1482,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks whether the farmer can consume whatever they're holding.
         /// </summary>
         /// <returns>
-        ///     Returns <see langword="true"/> if the farmer can eat (or consume) the item they're holding.
-        ///     Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the farmer can eat (or consume) the item they're
+        ///     holding. Returns <see langword="false"/> otherwise.
         /// </returns>
         private bool CheckToEatFood(int clickPointX, int clickPointY)
         {
@@ -1537,8 +1536,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     If the targeted <see cref="NPC"/> is no longer at the clicked position,
-        ///     recompute a new path to it.
+        ///     If the targeted <see cref="NPC"/> is no longer at the clicked position, recompute a
+        ///     new path to it.
         /// </summary>
         private void CheckToRetargetNPC()
         {
@@ -1603,7 +1602,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if (this.mouseCursor == MouseCursor.ReadyForHarvest
+                if (this.interactionAtCursor == InteractionType.Harvest
                     || Utility.canGrabSomethingFromHere(clickedNode.X, clickedNode.Y, Game1.player)
                     || (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool))
                 {
@@ -1636,8 +1635,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Sets the farmer's facing direction.
         /// </summary>
         /// <param name="faceClickPoint">
-        ///     Indicates whether the farmer should face the <see cref="clickPoint"/>
-        ///     or instead the <see cref="ClickedTile"/>.
+        ///     Indicates whether the farmer should face the <see cref="clickPoint"/> or instead the
+        ///     <see cref="ClickedTile"/>.
         /// </param>
         private void FaceTileClicked(bool faceClickPoint = false)
         {
@@ -1950,8 +1949,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         /// <param name="node">The node to check.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the node is occupied by something.
-        ///     Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the node is occupied by something. Returns <see
+        ///     langword="false"/> otherwise.
         /// </returns>
         private bool NodeBlocked(AStarNode node)
         {
@@ -2268,7 +2267,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            if (this.mouseCursor == MouseCursor.ReadyForHarvest || Utility.canGrabSomethingFromHere(
+            if (this.interactionAtCursor == InteractionType.Harvest || Utility.canGrabSomethingFromHere(
                     this.mouseX + this.viewportX,
                     this.mouseY + this.viewportY,
                     Game1.player))
@@ -2925,8 +2924,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.endNodeToBeActioned = true;
             }
 
-            if (this.mouseCursor == MouseCursor.Hand || this.mouseCursor == MouseCursor.MagnifyingGlass
-                                                     || this.mouseCursor == MouseCursor.SpeechBubble)
+            if (this.interactionAtCursor == InteractionType.Action || this.interactionAtCursor == InteractionType.Inspection
+                                                     || this.interactionAtCursor == InteractionType.Speech)
             {
                 AStarNode gateNode = this.Graph.GetNode(this.clickedNode.X, this.clickedNode.Y + 1);
 
@@ -3153,10 +3152,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            if (this.mouseCursor == MouseCursor.Hand && this.gameLocation.name.Value == "Blacksmith"
+            if (this.interactionAtCursor == InteractionType.Action && this.gameLocation.name.Value == "Blacksmith"
                                                      && this.clickedTile.X == 3
-                                                     && (this.clickedTile.Y == 12 || this.clickedTile.Y == 13
-                                                         || this.clickedTile.Y == 14))
+                                                     && (this.clickedTile.Y == 12 || this.clickedTile.Y == 13 || this.clickedTile.Y == 14))
             {
                 this.gameLocation.performAction("Blacksmith", Game1.player, new Location(3, 14));
 
@@ -3271,9 +3269,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        private void SetMouseCursor(AStarNode node)
+        /// <summary>
+        ///     Determines the interaction available to the farmer at a clicked tile.
+        /// </summary>
+        /// <param name="node">The node associated to the clicked tile.</param>
+        private void SetInteractionAtCursor(AStarNode node)
         {
-            this.mouseCursor = MouseCursor.None;
+            this.interactionAtCursor = InteractionType.None;
 
             if (node is null)
             {
@@ -3283,62 +3285,51 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.gameLocation.isActionableTile(node.X, node.Y, Game1.player)
                 || this.gameLocation.isActionableTile(node.X, node.Y + 1, Game1.player))
             {
-                this.mouseCursor = MouseCursor.Hand;
+                this.interactionAtCursor = InteractionType.Action;
             }
 
-            string action = this.gameLocation.doesTileHaveProperty(node.X, node.Y, "Action", "Buildings");
-            if (action is not null && action.Contains("Message"))
+            if (this.gameLocation.doesTileHaveProperty(node.X, node.Y, "Action", "Buildings") is string action
+                && action.Contains("Message"))
             {
-                this.mouseCursor = MouseCursor.MagnifyingGlass;
+                this.interactionAtCursor = InteractionType.Inspection;
             }
 
             Vector2 nodeTile = new Vector2(node.X, node.Y);
 
-            NPC npc = this.gameLocation.isCharacterAtTile(nodeTile);
-            if (npc is not null && !npc.IsMonster)
+            if (this.gameLocation.isCharacterAtTile(nodeTile) is NPC npc
+                && !npc.IsMonster
+                && (Game1.eventUp || Game1.player.ActiveObject is null
+                                  || !Game1.player.ActiveObject.canBeGivenAsGift()
+                                  || !Game1.player.friendshipData.TryGetValue(npc.Name, out Friendship friendship)
+                                  || friendship.GiftsToday == 1)
+                && npc.canTalk() && npc.CurrentDialogue is not null
+                && (npc.CurrentDialogue.Count > 0 || npc.hasTemporaryMessageAvailable())
+                && !npc.isOnSilentTemporaryMessage())
             {
-                if (!Game1.eventUp && Game1.player.ActiveObject is not null
-                                   && Game1.player.ActiveObject.canBeGivenAsGift()
-                                   && Game1.player.friendshipData.ContainsKey(npc.Name)
-                                   && Game1.player.friendshipData[npc.Name].GiftsToday != 1)
-                {
-                    this.mouseCursor = MouseCursor.Gift;
-                }
-                else if (npc.canTalk() && npc.CurrentDialogue is not null
-                                       && (npc.CurrentDialogue.Count > 0 || npc.hasTemporaryMessageAvailable())
-                                       && !npc.isOnSilentTemporaryMessage())
-                {
-                    this.mouseCursor = MouseCursor.SpeechBubble;
-                }
+                this.interactionAtCursor = InteractionType.Speech;
             }
-
-            if (Game1.CurrentEvent is not null && Game1.CurrentEvent.isFestival)
+            else if (Game1.CurrentEvent is not null && Game1.CurrentEvent.isFestival
+                && this.GetFestivalHost() is NPC festivalHost && festivalHost.getTileLocation().Equals(nodeTile))
             {
-                NPC festivalHost = this.GetFestivalHost();
-                if (festivalHost is not null && festivalHost.getTileLocation().Equals(nodeTile))
-                {
-                    this.mouseCursor = MouseCursor.SpeechBubble;
-                }
+                this.interactionAtCursor = InteractionType.Speech;
             }
 
             if (Game1.player.IsLocalPlayer)
             {
-                if (this.gameLocation.Objects.ContainsKey(nodeTile))
+                if (this.gameLocation.Objects.TryGetValue(nodeTile, out SObject @object))
                 {
-                    if (this.gameLocation.Objects[nodeTile].readyForHarvest.Value
-                        || (this.gameLocation.Objects[nodeTile].Name.Contains("Table")
-                            && this.gameLocation.Objects[nodeTile].heldObject.Value is not null)
-                        || this.gameLocation.Objects[nodeTile].isSpawnedObject.Value
-                        || (this.gameLocation.Objects[nodeTile] is IndoorPot indoorPot
-                            && indoorPot.hoeDirt.Value.readyForHarvest()))
+                    if (@object.readyForHarvest.Value
+                        || (@object.Name.Contains("Table") && @object.heldObject.Value is not null)
+                        || @object.isSpawnedObject.Value
+                        || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
                     {
-                        this.mouseCursor = MouseCursor.ReadyForHarvest;
+                        this.interactionAtCursor = InteractionType.Harvest;
                     }
                 }
-                else if (this.gameLocation.terrainFeatures.ContainsKey(nodeTile)
-                         && this.gameLocation.terrainFeatures[nodeTile] is HoeDirt dirt && dirt.readyForHarvest())
+                else if (this.gameLocation.terrainFeatures.TryGetValue(nodeTile, out TerrainFeature terrainFeature)
+                         && terrainFeature is HoeDirt dirt && dirt.readyForHarvest())
                 {
-                    this.mouseCursor = MouseCursor.ReadyForHarvest;
+                    this.interactionAtCursor = InteractionType.Harvest;
                 }
             }
         }

@@ -318,6 +318,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Checks if there's a boulder at a tile in a game location.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The tile x coordinate.</param>
+        /// <param name="y">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's a boulder at the given tile in this game location.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         public static bool IsBoulderAt(this GameLocation gameLocation, int x, int y)
         {
             if (!(gameLocation is Forest || gameLocation is Woods) && gameLocation.resourceClumps.Any(

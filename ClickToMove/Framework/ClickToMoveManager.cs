@@ -105,29 +105,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(Game1.currentLocation);
 
-            if (clickToMove.TargetNpc is not null)
-            {
-                Vector2 offset = new Vector2(
-                    (clickToMove.TargetNpc.Sprite.SpriteWidth * 4 / 2) - 32,
-                    clickToMove.TargetNpc.GetBoundingBox().Height + (clickToMove.TargetNpc.IsMonster ? 0 : 12) - 32);
-
-                spriteBatch.Draw(
-                    Game1.mouseCursors,
-                    Game1.GlobalToLocal(
-                        Game1.viewport,
-                        clickToMove.TargetNpc.Position + offset),
-                    new Rectangle(194, 388, 16, 16),
-                    Color.White,
-                    0,
-                    Vector2.Zero,
-                    4,
-                    SpriteEffects.None,
-                    0.58f);
-
-                return;
-            }
-
-            if ((Game1.displayHUD || Game1.eventUp) && Game1.currentBillboard == 0
+            if (clickToMove.TargetNpc is null && (Game1.displayHUD || Game1.eventUp) && Game1.currentBillboard == 0
                 && Game1.gameMode == Game1.playingGameMode && !Game1.freezeControls && !Game1.panMode
                 && !Game1.HostPaused)
             {

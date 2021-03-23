@@ -1,10 +1,9 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="AStarNode.cs" company="Raquellcesar">
-//      Copyright (c) 2021 Raquellcesar. All rights reserved.
+//     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
-//      Use of this source code is governed by an MIT-style license that can be
-//      found in the LICENSE file in the project root or at
-//      https://opensource.org/licenses/MIT.
+//     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
+//     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
 // -----------------------------------------------------------------------
 
@@ -32,27 +31,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     using SObject = StardewValley.Object;
 
     /// <summary>
-    ///     The class for nodes used by the <see cref="AStarGraph" /> class.
+    ///     The class for nodes used by the <see cref="AStarGraph"/> class.
     /// </summary>
     public class AStarNode : IComparable<AStarNode>
     {
         /// <summary>
-        ///     Gets the graph to which the node belongs.
+        ///     Initializes a new instance of the <see cref="AStarNode"/> class.
         /// </summary>
-        public AStarGraph Graph { get; private set; }
-
-        /// <summary>
-        ///     Initializes a new instance of the <see cref="AStarNode" /> class.
-        /// </summary>
-        /// <param name="graph">
-        ///     The <see cref="AStarGraph" /> to which this node belongs.
-        /// </param>
-        /// <param name="x">
-        ///     The x tile coordinate.
-        /// </param>
-        /// <param name="y">
-        ///     The y tile coordinate.
-        /// </param>
+        /// <param name="graph">The <see cref="AStarGraph"/> to which this node belongs.</param>
+        /// <param name="x">The x tile coordinate.</param>
+        /// <param name="y">The y tile coordinate.</param>
         public AStarNode(AStarGraph graph, int x, int y)
         {
             this.Graph = graph;
@@ -63,8 +51,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             this.GCost = int.MaxValue;
         }
 
+        /// <summary>
+        ///     Gets the bounding box for the tile associated with this node.
+        /// </summary>
         public Rectangle BoundingBox =>
-            new Rectangle(this.X * Game1.tileSize, this.Y * Game1.tileSize, Game1.tileSize, Game1.tileSize);
+                    new Rectangle(this.X * Game1.tileSize, this.Y * Game1.tileSize, Game1.tileSize, Game1.tileSize);
 
         public bool BubbleChecked { get; set; }
 
@@ -75,7 +66,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         public bool FakeTileClear { get; set; }
 
         /// <summary>
-        ///     Gets the estimated total cost of the cheapest path from the start node to the goal that goes through this node.
+        ///     Gets the estimated total cost of the cheapest path from the start node to the goal
+        ///     that goes through this node.
         /// </summary>
         public int FCost => this.GCost + this.HCost;
 
@@ -83,6 +75,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         ///     Gets or sets the cost of the path from the start node to this node.
         /// </summary>
         public int GCost { get; set; }
+
+        /// <summary>
+        ///     Gets the graph to which the node belongs.
+        /// </summary>
+        public AStarGraph Graph { get; private set; }
 
         /// <summary>
         ///     Gets or sets the estimated cost of the cheapest path from this node to the goal.
@@ -156,8 +153,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return false;
         }
 
-        /// <inheritdoc />
-        /// <remarks>The comparison between AStarNodes is made by comparing their <see cref="FCost" /> values.</remarks>
+        /// <inheritdoc/>
+        /// <remarks>
+        ///     The comparison between AStarNodes is made by comparing their <see cref="FCost"/> values.
+        /// </remarks>
         public int CompareTo(AStarNode other)
         {
             return this.FCost.CompareTo(other.FCost);
@@ -166,19 +165,32 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks whether there's an animal at the tile represented by this node.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if there's an animal here. Returns <see langword="false"/> otherwise.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's an animal here. Returns <see
+        ///     langword="false"/> otherwise.
+        /// </returns>
         public bool ContainsAnimal()
         {
             return this.Graph.GameLocation switch
-                {
-                    AnimalHouse animalHouse => animalHouse.animals.Values.Any(
-                        animal => animal.getTileX() == this.X && animal.getTileY() == this.Y),
-                    Farm farm => farm.animals.Values.Any(
-                        animal => animal.getTileX() == this.X && animal.getTileY() == this.Y),
-                    _ => false
-                };
+            {
+                AnimalHouse animalHouse => animalHouse.animals.Values.Any(
+                    animal => animal.getTileX() == this.X && animal.getTileY() == this.Y),
+                Farm farm => farm.animals.Values.Any(
+                    animal => animal.getTileX() == this.X && animal.getTileY() == this.Y),
+                _ => false
+            };
         }
 
+        /// <summary>
+        ///     Checks if there's a boulder at the tile associated to this node.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The tile x coordinate.</param>
+        /// <param name="y">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's a boulder at the tile associated to this node.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         public bool ContainsBoulder()
         {
             return this.Graph.GameLocation.IsBoulderAt(this.X, this.Y);
@@ -207,7 +219,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks whether this node represents a tile in the Cinema.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if this node's tile is a Cinema's tile. Returns <see langword="false"/> otherwise.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this node's tile is a Cinema's tile. Returns <see
+        ///     langword="false"/> otherwise.
+        /// </returns>
         public bool ContainsCinema()
         {
             if (this.Graph.GameLocation is Town
@@ -248,7 +263,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks whether there's a festival prop here.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if this node's tile contains a a festival prop. Returns <see langword="false"/> otherwise.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this node's tile contains a a festival prop.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         public bool ContainsFestivalProp()
         {
             if (Game1.CurrentEvent is not null)
@@ -266,10 +284,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Checks if there is any piece of furniture occupying the tile that this node represents.
-        ///     Ignores beds.
+        ///     Checks if there is any piece of furniture occupying the tile that this node
+        ///     represents. Ignores beds.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if there is some furniture occupying this node's tile.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is some furniture occupying this node's tile.
+        /// </returns>
         public bool ContainsFurniture()
         {
             return this.Graph.GameLocation is DecoratableLocation decoratableLocation
@@ -279,10 +299,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Checks if there is any piece of furniture occupying the tile that this node represents.
-        ///     Ignores beds and rugs.
+        ///     Checks if there is any piece of furniture occupying the tile that this node
+        ///     represents. Ignores beds and rugs.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if there is some furniture occupying this node's tile.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is some furniture occupying this node's tile.
+        /// </returns>
         public bool ContainsFurnitureIgnoreRugs()
         {
             return this.Graph.GameLocation is DecoratableLocation decoratableLocation
@@ -312,7 +334,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks if there is an NPC occupying the tile that this node represents.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if there is some NPC occupying this node's tile.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is some NPC occupying this node's tile.
+        /// </returns>
         public bool ContainsNpc()
         {
             if (this.Graph.GameLocation is Beach && this.Graph.OldMariner is not null
@@ -341,7 +365,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             if (this.Graph.GameLocation.objects.TryGetValue(key, out SObject @object))
             {
-                if (@object.ParentSheetIndex == BigCraftableId.Scarecrow 
+                if (@object.ParentSheetIndex == BigCraftableId.Scarecrow
                     || @object.ParentSheetIndex == BigCraftableId.DeluxeScarecrow
                     || @object.ParentSheetIndex == BigCraftableId.Rarecrow
                     || @object.ParentSheetIndex == BigCraftableId.Rarecrow1
@@ -373,8 +397,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         ///     Checks for the existence of a stump at the world location represented by this node.
         /// </summary>
         /// <returns>
-        ///     Returns <see langword="true"/> if there is a stump at the location represented by this node.
-        ///     Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if there is a stump at the location represented by
+        ///     this node. Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool ContainsStump()
         {
@@ -382,11 +406,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Checks for the existence of a stump or boulder at the world location represented by this node.
+        ///     Checks for the existence of a stump or boulder at the world location represented by
+        ///     this node.
         /// </summary>
         /// <returns>
-        ///     Returns <see langword="true"/> if there is a stump or boulder at the location represented by this node.
-        ///     Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if there is a stump or boulder at the location
+        ///     represented by this node. Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool ContainsStumpOrBoulder()
         {
@@ -456,7 +481,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks if the travelling cart is occupying the tile that this node represents.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if the travelling cart is occupying this node's tile.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the travelling cart is occupying this node's tile.
+        /// </returns>
         public bool ContainsTravellingCart()
         {
             return this.Graph.GameLocation is Forest { travelingMerchantBounds: { } } forest
@@ -467,7 +494,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks if the travelling desert shop is occupying the tile that this node represents.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if the travelling desert shop is occupying this node's tile.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the travelling desert shop is occupying this
+        ///     node's tile.
+        /// </returns>
         public bool ContainsTravellingDesertShop()
         {
             return this.Graph.GameLocation is Desert desert && desert.IsTravelingMerchantHere()
@@ -677,8 +707,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Gets a list of this node's neighbouring nodes.
         /// </summary>
-        /// <param name="includeDiagonals">If diagonal directions should be considered. false by default.</param>
-        /// <param name="canWalkOnTile">If true, only nodes that can be walked on will be considered. true by default.</param>
+        /// <param name="includeDiagonals">
+        ///     If diagonal directions should be considered. false by default.
+        /// </param>
+        /// <param name="canWalkOnTile">
+        ///     If true, only nodes that can be walked on will be considered. true by default.
+        /// </param>
         /// <returns>Returns a list of nodes.</returns>
         public List<AStarNode> GetNeighbours(bool includeDiagonals = false, bool canWalkOnTile = true)
         {
@@ -803,6 +837,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return false;
         }
 
+        public bool IsDiagonalNeighbour(AStarNode node)
+        {
+            if (node is null)
+            {
+                return false;
+            }
+
+            return (node.X == this.X - 1 || node.X == this.X + 1) && (node.Y == this.Y - 1 || node.Y == this.Y + 1);
+        }
+
         public bool IsDownLeft(AStarNode node)
         {
             return node is not null && this.X == node.X - 1 && this.Y == node.Y + 1;
@@ -846,32 +890,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </summary>
         /// <param name="node">The node to check.</param>
         /// <param name="walkDirection">The direction to check.</param>
-        /// <returns>Returns <see langword="true"/> if the given node is adjacent to this node in the given direction.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the given node is adjacent to this node in the
+        ///     given direction.
+        /// </returns>
         public bool IsNeighbourInDirection(AStarNode node, WalkDirection walkDirection)
         {
             return node is not null && walkDirection != WalkDirection.None && node.X == this.X + walkDirection.X
                    && node.Y == this.Y + walkDirection.Y;
-        }
-
-        public bool IsVerticalOrHorizontalNeighbour(AStarNode node)
-        {
-            if (node is null)
-            {
-                return false;
-            }
-
-            return (node.X == this.X && (node.Y == this.Y + 1 || node.Y == this.Y - 1))
-                   || (node.Y == this.Y && (node.X == this.X + 1 || node.X == this.X - 1));
-        }
-
-        public bool IsDiagonalNeighbour(AStarNode node)
-        {
-            if (node is null)
-            {
-                return false;
-            }
-
-            return (node.X == this.X - 1 || node.X == this.X + 1) && (node.Y == this.Y - 1 || node.Y == this.Y + 1);
         }
 
         public bool IsRightTo(AStarNode node)
@@ -897,7 +923,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks if a tile is passable and not occupied by some obstacle.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if the given tile position is passable and free of obstacles in the given game location.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the given tile position is passable and free of
+        ///     obstacles in the given game location.
+        /// </returns>
         public bool IsTilePassableAndUnoccupied()
         {
             Vector2 tileVector = new Vector2(this.X, this.Y);
@@ -1000,6 +1029,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         public bool IsUpTo(AStarNode node)
         {
             return node is not null && this.X == node.X && this.Y == node.Y - 1;
+        }
+
+        public bool IsVerticalOrHorizontalNeighbour(AStarNode node)
+        {
+            if (node is null)
+            {
+                return false;
+            }
+
+            return (node.X == this.X && (node.Y == this.Y + 1 || node.Y == this.Y - 1))
+                   || (node.Y == this.Y && (node.X == this.X + 1 || node.X == this.X - 1));
         }
 
         public bool IsWater()
@@ -1108,7 +1148,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         ///     Gets a list of the nodes in the neighbourhood of this node.
         /// </summary>
         /// <param name="directions">An array of the directions to consider.</param>
-        /// <param name="canWalkOnTile">If true, only nodes that can be walked on will be considered. true by default.</param>
+        /// <param name="canWalkOnTile">
+        ///     If true, only nodes that can be walked on will be considered. true by default.
+        /// </param>
         /// <returns>Returns a list of nodes.</returns>
         private List<AStarNode> GetNeighboursInternal(WalkDirection[] directions, bool canWalkOnTile = true)
         {
