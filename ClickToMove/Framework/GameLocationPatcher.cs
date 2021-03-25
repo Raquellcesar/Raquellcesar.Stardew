@@ -123,7 +123,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         /// <summary>
         ///     A method called via Harmony before <see cref="GameLocation.LowPriorityLeftClick"/>.
-        ///     It ignores the original method if the mouse being held and
+        ///     It ignores the original method if the mouse is being held and the player didn't click
+        ///     on furniture.
         /// </summary>
         /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
         /// <param name="__result">A reference to the result of the original method.</param>

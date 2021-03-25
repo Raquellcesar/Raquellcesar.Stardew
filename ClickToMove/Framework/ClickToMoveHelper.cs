@@ -12,6 +12,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.CompilerServices;
 
     using Microsoft.Xna.Framework;
 
@@ -35,29 +36,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using Rectangle = Microsoft.Xna.Framework.Rectangle;
     using SObject = StardewValley.Object;
 
-    /// <summary>Provides methods for interacting with the game code.</summary>
+    /// <summary>
+    ///     Provides methods for interacting with the game code.
+    /// </summary>
     internal static class ClickToMoveHelper
     {
-        /// <summary>
-        ///     This <see cref="Farmer"/> position on map considering an offset of half tile.
-        /// </summary>
-        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
-        /// <returns>This farmer's position on map considering an offset of half tile.</returns>
-        public static Vector2 OffsetPositionOnMap(this Farmer farmer)
-        {
-            return new Vector2(farmer.position.X + (Game1.tileSize / 2), farmer.position.Y + (Game1.tileSize / 2));
-        }
-
-        /// <summary>
-        ///     This <see cref="Farmer"/> position on screen considering an offset of half tile.
-        /// </summary>
-        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
-        /// <returns>This farmer's position on screen considering an offset of half tile.</returns>
-        public static Vector2 OffsetPositionOnScreen(this Farmer farmer)
-        {
-            return new Vector2(farmer.position.X + (Game1.tileSize / 2) - Game1.viewport.X, farmer.position.Y + (Game1.tileSize / 2) - Game1.viewport.Y);
-        }
-
         public static bool AtWarpOrDoor(this NPC npc, GameLocation gameLocation)
         {
             if (gameLocation.isCollidingWithWarp(npc.GetBoundingBox(), npc) is not null)
@@ -114,8 +97,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="tileX">The tile x coordinate.</param>
         /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the travelling cart is occupying the given tile coordinates in the
-        ///     given game location. Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the travelling cart is occupying the given tile
+        ///     coordinates in the given game location. Returns <see langword="false"/> otherwise.
         /// </returns>
         public static bool ContainsTravellingCart(this GameLocation gameLocation, int tileX, int tileY)
         {
@@ -159,14 +142,51 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         /// <param name="point1">The first point.</param>
         /// <param name="point2">The second point.</param>
-        /// <returns>
-        ///     Returns the Euclidean distance between the two given points.
-        /// </returns>
+        /// <returns>Returns the Euclidean distance between the two given points.</returns>
         public static float Distance(Point point1, Point point2)
         {
             double num1 = point1.X - point2.X;
             double num2 = point1.Y - point2.Y;
             return (float)Math.Sqrt((num1 * num1) + (num2 * num2));
+        }
+
+        /// <summary>
+        ///     Returns a list of the tiles at the border of this building.
+        /// </summary>
+        /// <param name="building">The <see cref="Building"/> instance.</param>
+        /// <returns>A list of the tiles at the border of this building.</returns>
+        public static List<Point> GetBorderTilesList(this Building building)
+        {
+            List<Point> list = new List<Point>();
+
+            int buildingTileX = building.tileX.Value;
+            int buildingTileY = building.tileY.Value;
+            int buildingTilesWidth = building.tilesWide.Value;
+            int buildingTilesHeight = building.tilesHigh.Value;
+
+            for (int i = 0, x = buildingTileX; i < buildingTilesWidth; i++, x++)
+            {
+                list.Add(new Point(x, buildingTileY));
+            }
+
+            int rightmostX = buildingTileX + buildingTilesWidth - 1;
+            for (int i = 1, y = buildingTileY + 1; i < buildingTilesHeight; i++, y++)
+            {
+                list.Add(new Point(rightmostX, y));
+            }
+
+            int downmostY = buildingTileY + buildingTilesHeight - 1;
+            for (int i = 1, x = rightmostX - 1; i < buildingTilesWidth; i++, x--)
+            {
+                list.Add(new Point(x, downmostY));
+            }
+
+            for (int i = 1, y = downmostY - 1; i < buildingTilesHeight - 1; i++, y--)
+            {
+                list.Add(new Point(buildingTileX, y));
+            }
+
+            return list;
         }
 
         /// <summary>
@@ -281,8 +301,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
         /// <param name="toolName">The tool name.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if this <see cref="Farmer"/> has the given tool in their inventory.
-        ///     Return <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if this <see cref="Farmer"/> has the given tool in
+        ///     their inventory. Return <see langword="false"/> otherwise.
         /// </returns>
         public static bool HasTool(this Farmer farmer, string toolName)
         {
@@ -323,8 +343,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="x">The tile x coordinate.</param>
         /// <param name="y">The tile y coordinate.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if there's a boulder at the given tile in this game location.
-        ///     Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if there's a boulder at the given tile in this game
+        ///     location. Returns <see langword="false"/> otherwise.
         /// </returns>
         public static bool IsBoulderAt(this GameLocation gameLocation, int x, int y)
         {
@@ -347,8 +367,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="gameLocation">The <see cref="GameLocation"/> where the bush is.</param>
         /// <param name="tile">The tile to check.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the bush can be destroyed by the player,
-        ///     <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the bush can be destroyed by the player, <see
+        ///     langword="false"/> otherwise.
         /// </returns>
         public static bool IsDestroyable(this Bush bush, GameLocation gameLocation, Point tile)
         {
@@ -424,9 +444,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if a fence is an isolated gate, i.e. a gate that has no neighbour fences.
         ///     Such fences can't be open and therefore are impassable.
         /// </summary>
-        /// <param name="gameLocation">The <see cref="GameLocation" /> where the fence is.</param>
-        /// <param name="fence">The <see cref="Fence" /> to check.</param>
-        /// <returns>Returns <see langword="true"/> if the given fence is a gate and has no other fences around it. Returns <see langword="false"/> otherwise.</returns>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> where the fence is.</param>
+        /// <param name="fence">The <see cref="Fence"/> to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the given fence is a gate and has no other fences
+        ///     around it. Returns <see langword="false"/> otherwise.
+        /// </returns>
         public static bool IsSoloGate(this GameLocation gameLocation, Fence fence)
         {
             foreach (WalkDirection walkDirection in WalkDirection.SimpleDirections)
@@ -478,11 +501,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Checks if a tile is passable, i.e. it can be reached by the player.
         /// </summary>
-        /// <param name="gameLocation">The <see cref="GameLocation" /> to check.</param>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> to check.</param>
         /// <param name="tileX">The tile x coordinate.</param>
         /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the given tile is passable. Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the given tile is passable. Returns <see
+        ///     langword="false"/> otherwise.
         /// </returns>
         public static bool IsTilePassable(this GameLocation gameLocation, int tileX, int tileY)
         {
@@ -492,10 +516,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Checks if a tile is passable, i.e. it can be reached by the player.
         /// </summary>
-        /// <param name="gameLocation">The <see cref="GameLocation" /> to check.</param>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> to check.</param>
         /// <param name="location">The tile position in pixels.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the given tile is passable. Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the given tile is passable. Returns <see
+        ///     langword="false"/> otherwise.
         /// </returns>
         public static bool IsTilePassable(this GameLocation gameLocation, Location location)
         {
@@ -625,42 +650,23 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Returns a list of the tiles at the border of this building.
+        ///     This <see cref="Farmer"/> position on map considering an offset of half tile.
         /// </summary>
-        /// <param name="building">The <see cref="Building"/> instance.</param>
-        /// <returns>A list of the tiles at the border of this building.</returns>
-        public static List<Point> GetBorderTilesList(this Building building)
+        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
+        /// <returns>This farmer's position on map considering an offset of half tile.</returns>
+        public static Vector2 OffsetPositionOnMap(this Farmer farmer)
         {
-            List<Point> list = new List<Point>();
+            return new Vector2(farmer.position.X + (Game1.tileSize / 2), farmer.position.Y + (Game1.tileSize / 2));
+        }
 
-            int buildingTileX = building.tileX.Value;
-            int buildingTileY = building.tileY.Value;
-            int buildingTilesWidth = building.tilesWide.Value;
-            int buildingTilesHeight = building.tilesHigh.Value;
-
-            for (int i = 0, x = buildingTileX; i < buildingTilesWidth; i++, x++)
-            {
-                list.Add(new Point(x, buildingTileY));
-            }
-
-            int rightmostX = buildingTileX + buildingTilesWidth - 1;
-            for (int i = 1, y = buildingTileY + 1; i < buildingTilesHeight; i++, y++)
-            {
-                list.Add(new Point(rightmostX, y));
-            }
-
-            int downmostY = buildingTileY + buildingTilesHeight - 1;
-            for (int i = 1, x = rightmostX - 1; i < buildingTilesWidth; i++, x--)
-            {
-                list.Add(new Point(x, downmostY));
-            }
-
-            for (int i = 1, y = downmostY - 1; i < buildingTilesHeight - 1; i++, y--)
-            {
-                list.Add(new Point(buildingTileX, y));
-            }
-
-            return list;
+        /// <summary>
+        ///     This <see cref="Farmer"/> position on screen considering an offset of half tile.
+        /// </summary>
+        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
+        /// <returns>This farmer's position on screen considering an offset of half tile.</returns>
+        public static Vector2 OffsetPositionOnScreen(this Farmer farmer)
+        {
+            return new Vector2(farmer.position.X + (Game1.tileSize / 2) - Game1.viewport.X, farmer.position.Y + (Game1.tileSize / 2) - Game1.viewport.Y);
         }
 
         public static void PlaySingingStone(this SObject @object)
@@ -681,9 +687,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     This <see cref="Farmer"/> selects a tool by name.
         /// </summary>
         /// <param name="farmer">This <see cref="Farmer"/> instance.</param>
-        /// <param name="toolName"> The tool's name.</param>
+        /// <param name="toolName">The tool's name.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the tool was found and selected in the farmer's inventory; <see langword="false"/>, otherwise.
+        ///     Returns <see langword="true"/> if the tool was found and selected in the farmer's
+        ///     inventory; <see langword="false"/>, otherwise.
         /// </returns>
         public static bool SelectTool(this Farmer farmer, string toolName)
         {
@@ -719,8 +726,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="gameLocation">The current game location.</param>
         /// <param name="warp">The warp to use.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the player is successfully warped.
-        ///     return <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the player is successfully warped. return <see
+        ///     langword="false"/> otherwise.
         /// </returns>
         public static bool WarpIfInRange(this GameLocation gameLocation, Warp warp)
         {
@@ -736,14 +743,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Warps the player through a <see cref="Warp"/> that's in range of both the player
-        ///     and the clicked point, if such a warp exists.
+        ///     Warps the player through a <see cref="Warp"/> that's in range of both the player and
+        ///     the clicked point, if such a warp exists.
         /// </summary>
         /// <param name="gameLocation">The current game location.</param>
         /// <param name="clickPoint">The point clicked.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the player is successfully warped.
-        ///     return <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the player is successfully warped. return <see
+        ///     langword="false"/> otherwise.
         /// </returns>
         public static bool WarpIfInRange(this GameLocation gameLocation, Vector2 clickPoint)
         {
