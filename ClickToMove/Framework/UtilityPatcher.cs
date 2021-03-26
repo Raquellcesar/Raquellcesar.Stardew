@@ -16,12 +16,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Harmony;
 
+    using Microsoft.Xna.Framework;
+
     using Raquellcesar.Stardew.Common;
 
     using StardewModdingAPI;
 
     using StardewValley;
     using StardewValley.Characters;
+    using StardewValley.Objects;
+    using StardewValley.TerrainFeatures;
 
     /// <summary>
     ///     Encapsulates Harmony patches for the <see cref="Utility"/> class.

@@ -14,5 +14,6 @@ namespace Raquellcesar.Stardew.ClickToMove
     /// </summary>
     public class ModConfig
     {
+        public static bool GreenSquaresGuide { get; set; } = true;
     }
 }

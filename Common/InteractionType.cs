@@ -25,18 +25,13 @@ namespace Raquellcesar.Stardew.Common
         Action = 1,
 
         /// <summary>
-        ///     The tile can be talked to.
+        ///     There's an NPC at the tile that can be talked to.
         /// </summary>
         Speech = 2,
 
         /// <summary>
-        ///     The tile can be inspected.
+        ///     There's a crop at the tile that can be harvested.
         /// </summary>
-        Inspection = 3,
-
-        /// <summary>
-        ///     The tile can be harvested.
-        /// </summary>
-        Harvest = 4,
+        Harvest = 3,
     }
 }

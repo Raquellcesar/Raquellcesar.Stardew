@@ -136,9 +136,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Returns <see langword="true"/> if this farmer is being sick, returns <see
         ///     langword="false"/> otherwise.
         /// </returns>
-        internal static bool IsFarmerBeingSick(this Farmer farmer)
+        internal static bool IsBeingSick(this Farmer farmer)
         {
-            return farmer is not null && FarmerPatcher.FarmersData.GetOrCreateValue(farmer).IsBeingSick;
+            return FarmerPatcher.FarmersData.GetOrCreateValue(farmer).IsBeingSick;
         }
 
         /// <summary>

@@ -11,7 +11,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
 
     using Microsoft.Xna.Framework;
 
@@ -76,11 +75,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     314, 315, 316, 317, 318, 319, 320, 321, 328, 329, 331, 401, 93, 94, 294, 295, 297, 461, 463, 464,
                     746, 326,
                 });
-
-        private static readonly string[] FestivalNames =
-            {
-                "eggFestival", "flowerFestival", "luau", "jellies", "fair", "iceFestival",
-            };
 
         /// <summary>
         ///     The time of the last click.
@@ -291,7 +285,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             while (true)
             {
                 if (Game1.player.passedOut || Game1.player.FarmerSprite.isPassingOut() || Game1.player.isEating
-                    || FarmerPatcher.IsFarmerBeingSick(Game1.player))
+                    || Game1.player.IsBeingSick())
                 {
                     return;
                 }
@@ -310,31 +304,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 AStarNode clickedNode = this.Graph.GetNode(clickedTile.X, clickedTile.Y);
 
-                this.SetInteractionAtCursor(clickedNode);
+                this.interactionAtCursor = InteractionType.None;
 
-                if (this.clickedOnCrop)
+                if (clickedNode is not null)
                 {
-                    if (this.ClickedOnAnotherQueueableCrop(clickedNode))
-                    {
-                        if (this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY)
-                            && Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool
-                            && this.phase == ClickToMovePhase.None)
-                        {
-                            this.waitingToFinishWatering = true;
-                        }
+                    this.SetInteractionAtCursor(clickedNode.X, clickedNode.Y);
 
+                    if (this.CheckForQueueableClicks(mouseX, mouseY, viewportX, viewportY, clickedNode.X, clickedNode.Y))
+                    {
                         return;
                     }
-
-                    if (this.ClickedOnHoeDirtAndHoldingSeed(clickedNode))
-                    {
-                        this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY);
-                    }
-                    else
-                    {
-                        this.clickedOnCrop = false;
-                        this.clickQueue.Clear();
-                    }
+                }
+                else if (this.clickedOnCrop)
+                {
+                    this.clickedOnCrop = false;
+                    this.clickQueue.Clear();
                 }
 
                 if (Game1.CurrentEvent is not null
@@ -364,12 +348,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     || (Game1.player.ActiveObject is Furniture && this.gameLocation is DecoratableLocation))
                 {
                     return;
-                }
-
-                if (Game1.currentMinigame is null && Game1.CurrentEvent is not null && Game1.CurrentEvent.isFestival
-                    && Game1.CurrentEvent.FestivalName == "Stardew Valley Fair")
-                {
-                    Game1.player.CurrentToolIndex = -1;
                 }
 
                 if (!Game1.player.CanMove && (Game1.eventUp || (this.gameLocation is FarmHouse && Game1.dialogueUp)))
@@ -494,7 +472,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     continue;
                 }
 
-                if (this.interactionAtCursor == InteractionType.Inspection)
+                if (this.gameLocation.doesTileHaveProperty(this.clickedTile.X, this.clickedTile.Y, "Action", "Buildings") is string action
+                    && action.Contains("Message"))
                 {
                     if (!ClickToMoveHelper.ClickedEggAtEggFestival(this.ClickPoint))
                     {
@@ -1266,19 +1245,27 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Adds a click to the clicks queue, if it's not already there.
+        /// </summary>
+        /// <param name="mouseX">The mouse x coordinate.</param>
+        /// <param name="mouseY">The mouse y coordinate.</param>
+        /// <param name="viewportX">The viewport x coordinate.</param>
+        /// <param name="viewportY">The viewport y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the click was successfuly added to the queue;
+        ///     returns <see langword="false"/> otherwise.
+        /// </returns>
         private bool AddToClickQueue(int mouseX, int mouseY, int viewportX, int viewportY)
         {
-            int tileX = (mouseX + viewportX) / Game1.tileSize;
-            int tileY = (mouseY + viewportY) / Game1.tileSize;
+            ClickQueueItem click = new ClickQueueItem(mouseX, mouseY, viewportX, viewportY);
 
-            ClickQueueItem item = new ClickQueueItem(mouseX, mouseY, viewportX, viewportY, tileX, tileY);
-
-            if (this.clickQueue.Contains(item))
+            if (this.clickQueue.Contains(click))
             {
                 return false;
             }
 
-            this.clickQueue.Enqueue(new ClickQueueItem(mouseX, mouseY, viewportX, viewportY, tileX, tileY));
+            this.clickQueue.Enqueue(click);
             return true;
         }
 
@@ -1351,16 +1338,105 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Checks for queueable clicks, i.e. clicks that trigger actions that can be queued. An
+        ///     example of this situation is when the player waters several tiles in succession.
+        /// </summary>
+        /// <param name="mouseX">The mouse x coordinate.</param>
+        /// <param name="mouseY">The mouse y coordinate.</param>
+        /// <param name="viewportX">The viewport x coordinate.</param>
+        /// <param name="viewportY">The viewport y coordinate.</param>
+        /// <param name="tileX">The clicked x coordinate.</param>
+        /// <param name="tileY">The clicked y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the processing of the current click should stop
+        ///     here. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool CheckForQueueableClicks(int mouseX, int mouseY, int viewportX, int viewportY, int tileX, int tileY)
+        {
+            if (this.clickedOnCrop)
+            {
+                if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
+                {
+                    if (this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY)
+                        && this.phase == ClickToMovePhase.None)
+                    {
+                        this.waitingToFinishWatering = true;
+                    }
+
+                    return true;
+                }
+
+                this.gameLocation.terrainFeatures.TryGetValue(new Vector2(tileX, tileY), out TerrainFeature terrainFeature);
+
+                if (terrainFeature is null)
+                {
+                    if (this.gameLocation.Objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object))
+                    {
+                        if (@object.readyForHarvest.Value
+                            || (@object.Name.Contains("Table") && @object.heldObject.Value is not null)
+                            || @object.IsSpawnedObject
+                            || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
+                        {
+                            this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY);
+                            return true;
+                        }
+                    }
+                }
+                else if (terrainFeature is HoeDirt dirt)
+                {
+                    if (dirt.crop is Crop crop)
+                    {
+                        if (crop.fullyGrown.Value || dirt.readyForHarvest())
+                        {
+                            this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY);
+                            return true;
+                        }
+                    }
+                    else if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Category == SObject.SeedsCategory)
+                    {
+                        this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY);
+                        return false;
+                    }
+
+                    if (dirt.state.Value != HoeDirt.watered && Game1.player.CurrentTool is WateringCan wateringCan)
+                    {
+                        if (wateringCan.WaterLeft > 0 || Game1.player.hasWateringCanEnchantment)
+                        {
+                            this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY);
+                            return true;
+                        }
+                        else
+                        {
+                            Game1.player.doEmote(4);
+                            Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
+                        }
+                    }
+                }
+
+                if (Utility.canGrabSomethingFromHere(tileX, tileY, Game1.player))
+                {
+                    this.AddToClickQueue(mouseX, mouseY, viewportX, viewportY);
+                    return true;
+                }
+
+                this.clickedOnCrop = false;
+                this.clickQueue.Clear();
+            }
+
+            return false;
+        }
+
         private void CheckForQueuedReadyToHarvestClicks()
         {
-            this.clickedOnCrop = false;
-
             if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
             {
                 this.waitingToFinishWatering = true;
                 this.clickedOnCrop = true;
                 return;
             }
+
+            this.clickedOnCrop = false;
 
             if (this.clickQueue.Count > 0)
             {
@@ -1568,67 +1644,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.waitingToFinishWatering && !Game1.player.UsingTool)
             {
                 this.waitingToFinishWatering = false;
-                this.clickedOnCrop = false;
                 this.CheckForQueuedReadyToHarvestClicks();
             }
-        }
-
-        private bool ClickedOnAnotherQueueableCrop(AStarNode clickedNode)
-        {
-            if (clickedNode is not null)
-            {
-                this.gameLocation.terrainFeatures.TryGetValue(
-                    new Vector2(clickedNode.X, clickedNode.Y),
-                    out TerrainFeature terrainFeature);
-
-                if (terrainFeature is HoeDirt hoeDirt)
-                {
-                    if (hoeDirt.state.Value != HoeDirt.watered && Game1.player.CurrentTool is WateringCan wateringCan)
-                    {
-                        if (wateringCan.WaterLeft > 0)
-                        {
-                            return true;
-                        }
-
-                        Game1.player.doEmote(4);
-                        Game1.showRedMessage(
-                            Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
-                    }
-
-                    if (hoeDirt.crop is not null && (Game1.player.CurrentTool is WateringCan { WaterLeft: > 0 }
-                                                     || hoeDirt.crop.fullyGrown.Value))
-                    {
-                        return true;
-                    }
-                }
-
-                if (this.interactionAtCursor == InteractionType.Harvest
-                    || Utility.canGrabSomethingFromHere(clickedNode.X, clickedNode.Y, Game1.player)
-                    || (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool ClickedOnHoeDirtAndHoldingSeed(AStarNode clickedNode)
-        {
-            if (clickedNode is not null)
-            {
-                this.gameLocation.terrainFeatures.TryGetValue(
-                    new Vector2(clickedNode.X, clickedNode.Y),
-                    out TerrainFeature terrainFeature);
-                if (terrainFeature is HoeDirt { crop: null } && Game1.player.ActiveObject is not null
-                                                             && Game1.player.ActiveObject.Category
-                                                             == SObject.SeedsCategory)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         /// <summary>
@@ -1812,18 +1829,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.path = null;
                 this.phase = ClickToMovePhase.OnFinalTile;
             }
-        }
-
-        private NPC GetFestivalHost()
-        {
-            Event festival = Game1.CurrentEvent;
-
-            if (ClickToMove.FestivalNames.Contains(festival.FestivalName))
-            {
-                return festival.getActorByName("Lewis");
-            }
-
-            return null;
         }
 
         private Rectangle GetHorseAlternativeBoundingBox(Horse horse)
@@ -2030,23 +2035,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     new Vector2(node.X, node.Y),
                     out TerrainFeature terrainFeature) && terrainFeature is HoeDirt dirt)
             {
-                if (Game1.player.CurrentTool is WateringCan { WaterLeft: <= 0 })
-                {
-                    Game1.player.doEmote(4);
-                    Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
-                }
-
-                if (dirt.state.Value != 1 && Game1.player.CurrentTool is WateringCan { WaterLeft: > 0 })
-                {
-                    this.clickedOnCrop = true;
-                }
-
-                Crop crop = dirt.crop;
-                if (crop is not null)
+                if (dirt.crop is Crop crop)
                 {
                     if (crop.dead.Value)
                     {
-                        if (!(Game1.player.CurrentTool is Hoe))
+                        if (Game1.player.CurrentTool is not Hoe)
                         {
                             this.AutoSelectTool("Scythe");
                         }
@@ -2056,8 +2049,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         return true;
                     }
 
-                    if ((dirt.state.Value != 1 && Game1.player.CurrentTool is WateringCan { WaterLeft: > 0 })
-                        || crop.IsReadyToHarvest())
+                    if (crop.IsReadyToHarvest())
                     {
                         this.clickedOnCrop = true;
                     }
@@ -2082,6 +2074,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         && Game1.player.ActiveObject.Category == SObject.SeedsCategory)
                     {
                         this.clickedOnCrop = true;
+                    }
+                }
+
+                if (dirt.state.Value != HoeDirt.watered && Game1.player.CurrentTool is WateringCan wateringCan)
+                {
+                    if (wateringCan.WaterLeft > 0 || Game1.player.hasWateringCanEnchantment)
+                    {
+                        this.clickedOnCrop = true;
+                    }
+                    else // to review!!!!!!
+                    {
+                        Game1.player.doEmote(4);
+                        Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
                     }
                 }
             }
@@ -2924,8 +2929,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.endNodeToBeActioned = true;
             }
 
-            if (this.interactionAtCursor == InteractionType.Action || this.interactionAtCursor == InteractionType.Inspection
-                                                     || this.interactionAtCursor == InteractionType.Speech)
+            if (this.interactionAtCursor == InteractionType.Action || this.interactionAtCursor == InteractionType.Speech)
             {
                 AStarNode gateNode = this.Graph.GetNode(this.clickedNode.X, this.clickedNode.Y + 1);
 
@@ -3272,61 +3276,70 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Determines the interaction available to the farmer at a clicked tile.
         /// </summary>
-        /// <param name="node">The node associated to the clicked tile.</param>
-        private void SetInteractionAtCursor(AStarNode node)
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        private void SetInteractionAtCursor(int tileX, int tileY)
         {
-            this.interactionAtCursor = InteractionType.None;
-
-            if (node is null)
-            {
-                return;
-            }
-
-            if (this.gameLocation.isActionableTile(node.X, node.Y, Game1.player)
-                || this.gameLocation.isActionableTile(node.X, node.Y + 1, Game1.player))
+            if (this.gameLocation.isActionableTile(tileX, tileY, Game1.player)
+                || this.gameLocation.isActionableTile(tileX, tileY + 1, Game1.player))
             {
                 this.interactionAtCursor = InteractionType.Action;
             }
 
-            if (this.gameLocation.doesTileHaveProperty(node.X, node.Y, "Action", "Buildings") is string action
-                && action.Contains("Message"))
-            {
-                this.interactionAtCursor = InteractionType.Inspection;
-            }
+            Vector2 tileVector = new Vector2(tileX, tileY);
 
-            Vector2 nodeTile = new Vector2(node.X, node.Y);
+            if (Game1.currentLocation.isCharacterAtTile(tileVector) is NPC character && !character.IsMonster && !character.IsInvisible)
+            {
+                if ((!Game1.eventUp || Game1.CurrentEvent is null || Game1.CurrentEvent.playerControlSequence)
+                    && (Game1.currentLocation is MovieTheater
+                        || (!(Game1.player.ActiveObject is not null
+                              && Game1.player.ActiveObject.canBeGivenAsGift()
+                              && !Game1.player.isRidingHorse()
+                              && character.isVillager()
+                              && ((Game1.player.friendshipData.ContainsKey(character.Name)
+                                   && Game1.player.friendshipData[character.Name].GiftsToday != 1)
+                                  || Game1.NPCGiftTastes.ContainsKey(character.Name))
+                              && !Game1.eventUp)
+                            && character.canTalk()
+                            && ((character.CurrentDialogue != null && character.CurrentDialogue.Count > 0)
+                                || (Game1.player.spouse is not null
+                                    && character.Name == Game1.player.spouse
+                                    && character.shouldSayMarriageDialogue.Value
+                                    && character.currentMarriageDialogue is not null
+                                    && character.currentMarriageDialogue.Count > 0)
+                                || character.hasTemporaryMessageAvailable()
+                                || (Game1.player.hasClubCard && character.Name.Equals("Bouncer") && Game1.player.IsLocalPlayer)
+                                || (character.Name.Equals("Henchman")
+                                    && character.currentLocation.Name.Equals("WitchSwamp")
+                                    && !Game1.player.hasOrWillReceiveMail("henchmanGone")))
+                            && !character.isOnSilentTemporaryMessage())))
+                {
+                    this.interactionAtCursor = InteractionType.Speech;
+                }
+                else if (this.gameLocation.currentEvent is not null)
+                {
+                    NPC festivalHost = ClickToMoveManager.Reflection.GetField<NPC>(this.gameLocation.currentEvent, "festivalHost").GetValue();
 
-            if (this.gameLocation.isCharacterAtTile(nodeTile) is NPC npc
-                && !npc.IsMonster
-                && (Game1.eventUp || Game1.player.ActiveObject is null
-                                  || !Game1.player.ActiveObject.canBeGivenAsGift()
-                                  || !Game1.player.friendshipData.TryGetValue(npc.Name, out Friendship friendship)
-                                  || friendship.GiftsToday == 1)
-                && npc.canTalk() && npc.CurrentDialogue is not null
-                && (npc.CurrentDialogue.Count > 0 || npc.hasTemporaryMessageAvailable())
-                && !npc.isOnSilentTemporaryMessage())
-            {
-                this.interactionAtCursor = InteractionType.Speech;
-            }
-            else if (Game1.CurrentEvent is not null && Game1.CurrentEvent.isFestival
-                && this.GetFestivalHost() is NPC festivalHost && festivalHost.getTileLocation().Equals(nodeTile))
-            {
-                this.interactionAtCursor = InteractionType.Speech;
+                    if (festivalHost is not null && festivalHost.getTileLocation().Equals(tileVector))
+                    {
+                        this.interactionAtCursor = InteractionType.Speech;
+                    }
+                }
             }
 
             if (Game1.player.IsLocalPlayer)
             {
-                if (this.gameLocation.Objects.TryGetValue(nodeTile, out SObject @object))
+                if (this.gameLocation.Objects.TryGetValue(tileVector, out SObject @object))
                 {
                     if (@object.readyForHarvest.Value
                         || (@object.Name.Contains("Table") && @object.heldObject.Value is not null)
-                        || @object.isSpawnedObject.Value
+                        || @object.IsSpawnedObject
                         || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
                     {
                         this.interactionAtCursor = InteractionType.Harvest;
                     }
                 }
-                else if (this.gameLocation.terrainFeatures.TryGetValue(nodeTile, out TerrainFeature terrainFeature)
+                else if (this.gameLocation.terrainFeatures.TryGetValue(tileVector, out TerrainFeature terrainFeature)
                          && terrainFeature is HoeDirt dirt && dirt.readyForHarvest())
                 {
                     this.interactionAtCursor = InteractionType.Harvest;
