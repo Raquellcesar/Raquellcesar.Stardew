@@ -1097,6 +1097,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Clears the internal state of this instance.
         /// </summary>
+        /// <param name="resetKeyStates">
+        ///     Whether the simulated key states should also be reset or not.
+        /// </param>
         public void Reset(bool resetKeyStates = true)
         {
             this.phase = ClickToMovePhase.None;
