@@ -188,8 +188,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <param name="x">The tile x coordinate.</param>
         /// <param name="y">The tile y coordinate.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if there's a boulder at the tile associated to this node.
-        ///     Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if there's a boulder at the tile associated to this
+        ///     node. Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool ContainsBoulder()
         {
@@ -254,6 +254,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                    && this.X <= 56 && (this.Y == 19 || this.Y == 20);
         }
 
+        /// <summary>
+        ///     Checks if there is any piece of furniture occupying the tile that this node
+        ///     represents that collides with the farmer.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is some furniture occupying this node's tile
+        ///     that collides with the farmer.
+        /// </returns>
+        public bool ContainsCollidingFurniture()
+        {
+            return this.Graph.GameLocation.furniture.Any(
+                furniture => furniture.furniture_type.Value != (int)FurnitureType.Rug
+                             && furniture.IntersectsForCollision(this.TileRectangle)
+                             && !Game1.player.TemporaryPassableTiles.Intersects(this.TileRectangle));
+        }
+
         public bool ContainsFence()
         {
             this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
@@ -296,23 +312,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                    && decoratableLocation.furniture.Any(
                        furniture => furniture is not BedFurniture && furniture
                                         .getBoundingBox(furniture.tileLocation.Value).Intersects(this.TileRectangle));
-        }
-
-        /// <summary>
-        ///     Checks if there is any piece of furniture occupying the tile that this node
-        ///     represents. Ignores beds and rugs.
-        /// </summary>
-        /// <returns>
-        ///     Returns <see langword="true"/> if there is some furniture occupying this node's tile.
-        /// </returns>
-        public bool ContainsFurnitureIgnoreRugs()
-        {
-            return this.Graph.GameLocation is DecoratableLocation decoratableLocation
-                   && decoratableLocation.furniture.Any(
-                       furniture => furniture is not BedFurniture
-                                    && furniture.furniture_type.Value != (int)FurnitureType.Rug
-                                    && furniture.getBoundingBox(furniture.tileLocation.Value)
-                                        .Intersects(this.TileRectangle));
         }
 
         public bool ContainsGate()
@@ -520,8 +519,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             foreach (AStarNode neighbour in neighbours)
             {
-                SObject @object = neighbour.GetObject();
-                if (@object is not null && @object.ParentSheetIndex == ObjectId.CrabPot)
+                if (neighbour.GetObject() is SObject @object && @object.ParentSheetIndex == ObjectId.CrabPot)
                 {
                     return neighbour;
                 }
@@ -571,6 +569,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return null;
         }
 
+        /// <summary>
+        ///     Gets the <see cref="Chest"/> at the tile associated with this node.
+        /// </summary>
+        /// <returns>
+        ///     The <see cref="Chest"/> at the tile associated with this node, if there is such
+        ///     chest. Returns <see langword="null"/> otherwise.
+        /// </returns>
         public Chest GetChest()
         {
             this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
@@ -578,43 +583,31 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return @object is Chest chest ? chest : null;
         }
 
+        /// <summary>
+        ///     Returns the <see cref="CrabPot"/> at this node or at the node 1 or 2 tiles below.
+        /// </summary>
+        /// <returns>
+        ///     The <see cref="CrabPot"/> at this node or at the node 1 or 2 tiles below, whichever
+        ///     is found first. If there is no <see cref="CrabPot"/> at none of these tiles, returns
+        ///     <see langword="null"/>.
+        /// </returns>
         public CrabPot GetCrabPot()
         {
-            SObject @object = this.GetObject();
-
-            if (@object is not null && @object.ParentSheetIndex == ObjectId.CrabPot)
+            if (this.GetObject() is SObject @object && @object.ParentSheetIndex == ObjectId.CrabPot)
             {
                 return @object as CrabPot;
             }
 
-            AStarNode node = this.Graph.GetNode(this.X, this.Y + 1);
-            if (node is not null)
+            if (this.Graph.GetNode(this.X, this.Y + 1) is AStarNode node && node.GetObject() is SObject @object1 && @object1.ParentSheetIndex == ObjectId.CrabPot && @object1.readyForHarvest.Value)
             {
-                @object = node.GetObject();
-                if (@object?.ParentSheetIndex == ObjectId.CrabPot)
-                {
-                    CrabPot crabPot = (CrabPot)@object;
-                    if (crabPot.readyForHarvest.Value)
-                    {
-                        return crabPot;
-                    }
-                }
+                return @object1 as CrabPot;
             }
 
-            node = this.Graph.GetNode(this.X, this.Y + 2);
-            if (node is not null)
+            if (this.Graph.GetNode(this.X, this.Y + 2) is AStarNode node1 && node1.GetObject() is SObject @object2 && @object2.ParentSheetIndex == ObjectId.CrabPot && @object2.readyForHarvest.Value)
             {
-                @object = node.GetObject();
-                if (@object?.ParentSheetIndex == ObjectId.CrabPot)
-                {
-                    CrabPot crabPot = (CrabPot)@object;
-                    if (crabPot.readyForHarvest.Value)
-                    {
-                        return crabPot;
-                    }
-                }
+                return @object2 as CrabPot;
             }
-
+            
             return null;
         }
 
@@ -1011,7 +1004,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 return false;
             }
 
-            return !this.ContainsFurnitureIgnoreRugs() && !this.ContainsAnimal() && !this.ContainsNpc()
+            return !this.ContainsCollidingFurniture() && !this.ContainsAnimal() && !this.ContainsNpc()
                    && !this.ContainsFestivalProp() && !this.IsBlockingBedTile() && !this.ContainsTravellingCart()
                    && !this.ContainsTravellingDesertShop() && !this.BrokenFestivalTile() && !this.ContainsCinema();
         }

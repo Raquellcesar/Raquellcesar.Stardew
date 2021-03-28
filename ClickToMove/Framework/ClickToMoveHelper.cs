@@ -12,7 +12,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Runtime.CompilerServices;
 
     using Microsoft.Xna.Framework;
 
