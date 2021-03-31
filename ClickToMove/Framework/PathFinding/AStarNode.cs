@@ -584,30 +584,28 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Returns the <see cref="CrabPot"/> at this node or at the node 1 or 2 tiles below.
+        ///     Returns the <see cref="CrabPot"/> at this node.
         /// </summary>
         /// <returns>
-        ///     The <see cref="CrabPot"/> at this node or at the node 1 or 2 tiles below, whichever
-        ///     is found first. If there is no <see cref="CrabPot"/> at none of these tiles, returns
-        ///     <see langword="null"/>.
+        ///     The <see cref="CrabPot"/> at this node, if there is one. If not, returns <see langword="null"/>.
         /// </returns>
         public CrabPot GetCrabPot()
         {
-            if (this.GetObject() is SObject @object && @object.ParentSheetIndex == ObjectId.CrabPot)
+            if (this.GetObject() is CrabPot crabPot)
             {
-                return @object as CrabPot;
+                return crabPot;
             }
 
-            if (this.Graph.GetNode(this.X, this.Y + 1) is AStarNode node && node.GetObject() is SObject @object1 && @object1.ParentSheetIndex == ObjectId.CrabPot && @object1.readyForHarvest.Value)
+            /*if (this.Graph.GetNode(this.X, this.Y + 1) is AStarNode node && node.GetObject() is CrabPot crabPot1 && crabPot1.readyForHarvest.Value)
             {
-                return @object1 as CrabPot;
+                return crabPot1;
             }
 
-            if (this.Graph.GetNode(this.X, this.Y + 2) is AStarNode node1 && node1.GetObject() is SObject @object2 && @object2.ParentSheetIndex == ObjectId.CrabPot && @object2.readyForHarvest.Value)
+            if (this.Graph.GetNode(this.X, this.Y + 2) is AStarNode node1 && node1.GetObject() is CrabPot crabPot2 && crabPot2.readyForHarvest.Value)
             {
-                return @object2 as CrabPot;
-            }
-            
+                return crabPot2;
+            }*/
+
             return null;
         }
 
@@ -738,12 +736,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 npc => npc.getTileX() == this.X && npc.getTileY() == this.Y);
         }
 
+        /// <summary>
+        ///     Gets the <see cref="SObject"/> at the tile represented by this node.
+        /// </summary>
+        /// <returns>
+        ///     Returns the <see cref="SObject"/> at the tile represented by this node, if there is
+        ///     one. Returns <see langword="null"/> otherwise.
+        /// </returns>
         public SObject GetObject()
         {
-            Vector2 position = new Vector2(this.X, this.Y);
-            return this.Graph.GameLocation.objects.ContainsKey(position)
-                       ? this.Graph.GameLocation.objects[position]
-                       : null;
+            return this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object)
+                ? @object
+                : null;
         }
 
         public int GetObjectParentSheetIndex()

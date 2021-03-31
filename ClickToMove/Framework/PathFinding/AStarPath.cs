@@ -16,7 +16,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     using Raquellcesar.Stardew.Common;
 
     /// <summary>
-    ///     The class for paths returned by the <see cref="AStarGraph" /> class.
+    ///     The class for paths returned by the <see cref="AStarGraph"/> class.
     /// </summary>
     public class AStarPath : IEnumerable<AStarNode>
     {
@@ -26,8 +26,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         private readonly List<AStarNode> nodes = new List<AStarNode>();
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="AStarPath"/> class,
-        ///     representing a path from start node to end node.
+        ///     Initializes a new instance of the <see cref="AStarPath"/> class, representing a path
+        ///     from start node to end node.
         /// </summary>
         /// <param name="startNode">The start node.</param>
         /// <param name="endNode">The end node.</param>
@@ -78,7 +78,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks if there's a gate at some point in the path.
         /// </summary>
-        /// <returns>Returns <see langword="true"/> if there exist a gate along the path, false otherwise.</returns>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there exist a gate along the path, false otherwise.
+        /// </returns>
         public AStarNode ContainsGate()
         {
             foreach (AStarNode node in this.nodes)
@@ -92,7 +94,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return null;
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public IEnumerator<AStarNode> GetEnumerator()
         {
             return this.nodes.GetEnumerator();
@@ -101,7 +103,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Returns the first <see cref="AStarNode"/> in the path.
         /// </summary>
-        /// <returns>The first node in the path. If the path is empty, returns null.</returns>
+        /// <returns>The first node in the path. If the path is empty, returns <see langword="null"/>.</returns>
         public AStarNode GetFirst()
         {
             return this.nodes.Count == 0 ? null : this.nodes[0];
@@ -110,15 +112,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Returns the last <see cref="AStarNode"/> in the path.
         /// </summary>
-        /// <returns>The last node in the path. If the path is empty, returns null.</returns>
+        /// <returns>The last node in the path. If the path is empty, returns <see langword="null"/>.</returns>
         public AStarNode GetLast()
         {
             return this.nodes.Count != 0 ? this.nodes[this.nodes.Count - 1] : null;
         }
 
         /// <summary>
-        ///     Removes the first <see cref="AStarNode"/> in the path.
-        ///     If the path is empty, the method does nothing.
+        ///     Removes the first <see cref="AStarNode"/> in the path. If the path is empty, the
+        ///     method does nothing.
         /// </summary>
         public void RemoveFirst()
         {
@@ -129,8 +131,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Removes the last <see cref="AStarNode"/> in the path.
-        ///     If the path is empty, the method does nothing.
+        ///     Removes the last <see cref="AStarNode"/> in the path. If the path is empty, the
+        ///     method does nothing.
         /// </summary>
         public void RemoveLast()
         {
@@ -144,16 +146,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         ///     Removes right angles from the path, if possible.
         /// </summary>
         /// <param name="endNodesToLeave">
-        ///     The number of nodes to ignore at the end of the path.
-        ///     It must be greater than 0. Defaults to 1.
+        ///     The number of nodes to ignore at the end of the path. It must be greater than 0.
+        ///     Defaults to 1.
         /// </param>
-        /// <remarks>
-        ///     If the argument is inferior to 1, the default value of 1 is used instead.
-        /// </remarks>
+        /// <remarks>If the argument is inferior to 1, the default value of 1 is used instead.</remarks>
         public void SmoothRightAngles(int endNodesToLeave = 1)
         {
-            // Constructs the list of nodes to remove, i.e. nodes that connect the previous node
-            // to a node in a diagonal direction.
+            // Constructs the list of nodes to remove, i.e. nodes that connect the previous node to
+            // a node in a diagonal direction.
             List<int> indexList = new List<int>();
             for (int i = 1; i < this.nodes.Count - 1 - Math.Max(endNodesToLeave, 1); i++)
             {
@@ -174,21 +174,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator()
         {
             return this.nodes.GetEnumerator();
         }
 
         /// <summary>
-        ///     Checks if a node can be removed from the path when smothing the path.
-        ///     A node can be safely removed from the path if it connects the previous node to a
-        ///     diagonal neighbour and the nodes leading to that diagonal neighbour are both clear.
+        ///     Checks if a node can be removed from the path when smothing the path. A node can be
+        ///     safely removed from the path if it connects the previous node to a diagonal
+        ///     neighbour and the nodes leading to that diagonal neighbour are both clear.
         /// </summary>
         /// <param name="i">The index of the node.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the node next can be removed from the path
-        ///     safely. Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the node next can be removed from the path safely.
+        ///     Returns <see langword="false"/> otherwise.
         /// </returns>
         private bool CanRemoveNode(int i)
         {

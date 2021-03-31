@@ -36,6 +36,12 @@ namespace Raquellcesar.Stardew.Common.DataStructures
         protected readonly IComparer<T> Comparer;
 
         /// <summary>
+        ///     An internal dictionary that maps elements to their position in the heap, allowing
+        ///     the search for one of its elements to be performed in O(1) time.
+        /// </summary>
+        private readonly Dictionary<T, int> indexes;
+
+        /// <summary>
         ///     Backing field for the <see cref="Count"/> property.
         /// </summary>
         private int count;
@@ -44,12 +50,6 @@ namespace Raquellcesar.Stardew.Common.DataStructures
         ///     The internal array used to store the heap elements.
         /// </summary>
         private T[] heapArray;
-
-        /// <summary>
-        ///     An internal dictionary that maps elements to their position in the heap, allowing
-        ///     the search for one of its elements to be performed in O(1) time.
-        /// </summary>
-        private readonly Dictionary<T, int> indexes;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="AutoResizableBinaryHeap{T}"/> class. It

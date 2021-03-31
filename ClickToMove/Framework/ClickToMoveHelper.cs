@@ -206,7 +206,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="y">The tile y coordinate.</param>
         /// <returns>
         ///     Returns the farm animal at the tile associated with this node, if there's one.
-        ///     Returns null if there isn't any animal at the tile.
+        ///     Returns <see langword="null"/> if there isn't any animal at the tile.
         /// </returns>
         public static FarmAnimal GetFarmAnimal(this GameLocation gameLocation, int x, int y)
         {
@@ -324,12 +324,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             if (Game1.currentMinigame is not null)
             {
-                return Game1.currentMinigame is AbigailGame || Game1.currentMinigame is FantasyBoardGame
-                                                            || Game1.currentMinigame is GrandpaStory
-                                                            || Game1.currentMinigame is HaleyCowPictures
-                                                            || Game1.currentMinigame is MineCart
-                                                            || Game1.currentMinigame is PlaneFlyBy
-                                                            || Game1.currentMinigame is RobotBlastoff;
+                return Game1.currentMinigame
+                    is AbigailGame
+                    or FantasyBoardGame
+                    or GrandpaStory
+                    or HaleyCowPictures
+                    or MineCart
+                    or PlaneFlyBy
+                    or RobotBlastoff
+                    or TargetGame;
             }
 
             return false;

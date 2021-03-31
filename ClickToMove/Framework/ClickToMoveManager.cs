@@ -14,22 +14,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
+    using Microsoft.Xna.Framework.Input;
 
     using StardewModdingAPI;
 
     using StardewValley;
+    using StardewValley.Minigames;
+    using StardewValley.Tools;
 
     /// <summary>
     ///     The manager of all the <see cref="ClickToMove"/> objects created by the mod.
     /// </summary>
-    public class ClickToMoveManager
+    public static class ClickToMoveManager
     {
         /// <summary>
         ///     Where all the <see cref="ClickToMove"/> objects created are kept. There's a <see
-        ///     cref="ClickToMove"/> object per <see cref="GameLocation"/> and this structure
-        ///     frees us from having to track the creation and destruction of each of them. Each
-        ///     <see cref="ClickToMove"/> is created on demand and destroyed once there are
-        ///     no reference to its <see cref="GameLocation"/> outside the table.
+        ///     cref="ClickToMove"/> object per <see cref="GameLocation"/> and this structure frees
+        ///     us from having to track the creation and destruction of each of them. Each <see
+        ///     cref="ClickToMove"/> is created on demand and destroyed once there are no reference
+        ///     to its <see cref="GameLocation"/> outside the table.
         /// </summary>
         private static readonly ConditionalWeakTable<GameLocation, ClickToMove> PathFindingControllers =
             new ConditionalWeakTable<GameLocation, ClickToMove>();
@@ -49,38 +52,50 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private static Texture2D targetTexture;
 
-        /// <summary>Gets the mod configuration.</summary>
+        /// <summary>
+        ///     Gets the mod configuration.
+        /// </summary>
         public static ModConfig Config { get; private set; }
 
-        /// <summary>Gets the helper for writing mods.</summary>
+        /// <summary>
+        ///     Gets the helper for writing mods.
+        /// </summary>
         public static IModHelper Helper { get; private set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether an active menu was closed in this tick.
-        ///     Used to prevent processing of the left mouse click in this tick
-        ///     and also the release of the left mouse button on the next tick.
+        ///     Gets or sets a value indicating whether an active menu was closed in this tick. Used
+        ///     to prevent processing of the left mouse click in this tick and also the release of
+        ///     the left mouse button on the next tick.
         /// </summary>
         public static bool JustClosedActiveMenu { get; set; }
 
-        /// <summary>Gets the monitor for monitoring and logging.</summary>
+        /// <summary>
+        ///     Gets the monitor for monitoring and logging.
+        /// </summary>
         public static IMonitor Monitor { get; private set; }
 
         /// <summary>
         ///     Gets or sets a value indicating whether an onscreen menu was clicked in this tick.
-        ///     Used to prevent processing of the left mouse click in this tick
-        ///     and also the release of the left mouse button on the next tick.
+        ///     Used to prevent processing of the left mouse click in this tick and also the release
+        ///     of the left mouse button on the next tick.
         /// </summary>
         public static bool OnScreenButtonClicked { get; set; }
 
-        /// <summary>Gets the reflection helper, which simplifies access to private game code.</summary>
+        /// <summary>
+        ///     Gets the reflection helper, which simplifies access to private game code.
+        /// </summary>
         public static IReflectionHelper Reflection { get; private set; }
 
         /// <summary>
-        ///     Adds the <see cref="GameLocation" /> and associated <see cref="ClickToMove" /> object
+        ///     Adds the <see cref="GameLocation"/> and associated <see cref="ClickToMove"/> object
         ///     if the game location doesn't exist, or updates the associated object if it does exist.
         /// </summary>
-        /// <param name="location"><see cref="GameLocation" /> to add or update. If it's null, nothing is done.</param>
-        /// <param name="clickToMove"><see cref="ClickToMove" /> object to associate with the game location.</param>
+        /// <param name="location">
+        ///     <see cref="GameLocation"/> to add or update. If it's null, nothing is done.
+        /// </param>
+        /// <param name="clickToMove">
+        ///     <see cref="ClickToMove"/> object to associate with the game location.
+        /// </param>
         public static void AddOrUpdate(GameLocation location, ClickToMove clickToMove)
         {
             if (location is not null)
@@ -98,7 +113,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        /// <summary>Draw the current click to move target.</summary>
+        /// <summary>
+        ///     Draw the current click to move target.
+        /// </summary>
         /// <param name="spriteBatch">The sprite batch being drawn.</param>
         public static void DrawClickToMoveTarget(SpriteBatch spriteBatch)
         {
@@ -170,11 +187,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Gets the <see cref="ClickToMove"/> object associated to a given <see cref="GameLocation"/>.
         /// </summary>
         /// <param name="gameLocation">
-        ///     The <see cref="GameLocation"/> for which to get the <see cref="PathFindingController"/>.
+        ///     The <see cref="GameLocation"/> for which to get the <see cref="ClickToMove"/> object.
         /// </param>
         /// <returns>
         ///     The <see cref="ClickToMove"/> associated to the given <see cref="GameLocation"/>.
-        ///     Returns null if the game location is null.
+        ///     Returns <see langword="null"/> if the game location is null.
         /// </returns>
         public static ClickToMove GetOrCreate(GameLocation gameLocation)
         {
@@ -201,12 +218,192 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
+        ///     Method called when the simulated left click is pressed.
+        /// </summary>
+        /// <param name="fishingGame">The <see cref="FishingGame"/> instance.</param>
+        /// <param name="timerToStart">The time until the minigame starts.</param>
+        public static void OnLeftClick(this FishingGame fishingGame, int timerToStart)
+        {
+            if (!Game1.isAnyGamePadButtonBeingPressed())
+            {
+                int showResultsTimer = MinigamesPatcher.FishingGameShowResultsTimer;
+
+                FishingRod fishingRod = Game1.player.CurrentTool as FishingRod;
+
+                if (timerToStart <= 0
+                    && showResultsTimer < 0
+                    && !fishingGame.gameDone
+                    && Game1.activeClickableMenu is null
+                    && !fishingRod.hit
+                    && !fishingRod.pullingOutOfWater
+                    && !fishingRod.isCasting
+                    && !fishingRod.fishCaught
+                    && !fishingRod.castedButBobberStillInAir)
+                {
+                    Game1.player.lastClick = Vector2.Zero;
+                    Game1.player.Halt();
+                    Game1.pressUseToolButton();
+
+                    return;
+                }
+
+                switch (showResultsTimer)
+                {
+                    case > 11000:
+                        MinigamesPatcher.FishingGameShowResultsTimer = 11001;
+                        break;
+                    case > 9000:
+                        MinigamesPatcher.FishingGameShowResultsTimer = 9001;
+                        break;
+                    case > 7000:
+                        MinigamesPatcher.FishingGameShowResultsTimer = 7001;
+                        break;
+                    case > 5000:
+                        MinigamesPatcher.FishingGameShowResultsTimer = 5001;
+                        break;
+                    case > 1000 and < 5000:
+                        MinigamesPatcher.FishingGameShowResultsTimer = 1500;
+                        Game1.playSound("smallSelect");
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Deals with the mouse left button inputs while playing the <see cref="FishingGame"/>.
+        /// </summary>
+        /// <param name="fishingGame">The <see cref="FishingGame"/> instance.</param>
+        /// <param name="clickToMove">
+        ///     The <see cref="ClickToMove"/> object associated to the minigame's location.
+        /// </param>
+        public static void ReceiveClickToMoveKeyStates(this FishingGame fishingGame, ClickToMove clickToMove)
+        {
+            ClickToMoveKeyStates clickKeyStates = clickToMove.ClickKeyStates;
+
+            if (clickKeyStates.MoveUpReleased)
+            {
+                Game1.player.setMoving(Farmer.release + Farmer.up);
+            }
+
+            if (clickKeyStates.MoveRightReleased)
+            {
+                Game1.player.setMoving(Farmer.release + Farmer.right);
+            }
+
+            if (clickKeyStates.MoveDownReleased)
+            {
+                Game1.player.setMoving(Farmer.release + Farmer.down);
+            }
+
+            if (clickKeyStates.MoveLeftReleased)
+            {
+                Game1.player.setMoving(Farmer.release + Farmer.left);
+            }
+
+            int timerToStart = MinigamesPatcher.FishingGameTimerToStart;
+
+            if (!fishingGame.gameDone && !Game1.player.UsingTool && timerToStart <= 0)
+            {
+                if ((clickKeyStates.MoveUpPressed && !clickKeyStates.MoveUpReleased) || clickKeyStates.MoveUpHeld)
+                {
+                    Game1.player.setMoving(Farmer.up);
+                }
+                else if ((clickKeyStates.MoveRightPressed && !clickKeyStates.MoveRightReleased)
+                         || clickKeyStates.MoveRightHeld)
+                {
+                    Game1.player.setMoving(Farmer.right);
+                }
+                else if ((clickKeyStates.MoveDownPressed && !clickKeyStates.MoveDownReleased)
+                         || clickKeyStates.MoveDownHeld)
+                {
+                    Game1.player.setMoving(Farmer.down);
+                }
+
+                if ((clickKeyStates.MoveLeftPressed && !clickKeyStates.MoveLeftReleased) || clickKeyStates.MoveLeftHeld)
+                {
+                    Game1.player.setMoving(Farmer.left);
+                }
+            }
+
+            /*if (MinigamesPatcher.LeftClickNextUpdateFishingGame)
+            {
+                fishingGame.OnLeftClick(timerToStart);
+                MinigamesPatcher.LeftClickNextUpdateFishingGame = false;
+            }*/
+
+            if (clickKeyStates.UseToolButtonPressed)
+            {
+                fishingGame.OnLeftClick(timerToStart);
+                //MinigamesPatcher.LeftClickNextUpdateFishingGame = true;
+            }
+
+            if (clickKeyStates.UseToolButtonReleased)
+            {
+                ClickToMoveManager.OnLeftClickRelease(clickToMove.GameLocation, clickToMove.ClickPoint.X, clickToMove.ClickPoint.Y);
+            }
+        }
+
+        /// <summary>
+        ///     Updates the state of the current minigame.
+        /// </summary>
+        /// <param name="currentMouseState">The current <see cref="MouseState"/>.</param>
+        public static void UpdateMinigameInput(MouseState currentMouseState)
+        {
+            GameLocation location = Game1.currentLocation;
+
+            if (location is not null)
+            {
+                if (Game1.currentMinigame is FishingGame fishingGame && fishingGame.gameDone)
+                {
+                    return;
+                }
+
+                ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(location);
+
+                if (currentMouseState.LeftButton == ButtonState.Pressed
+                    && Game1.oldMouseState.LeftButton == ButtonState.Released)
+                {
+                    clickToMove.OnClick(
+                        Game1.getMouseX(),
+                        Game1.getMouseY(),
+                        Game1.viewport.X,
+                        Game1.viewport.Y);
+                }
+                else if (currentMouseState.LeftButton == ButtonState.Pressed
+                         && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
+                {
+                    clickToMove.OnClickHeld(
+                        Game1.getMouseX(),
+                        Game1.getMouseY(),
+                        Game1.viewport.X,
+                        Game1.viewport.Y);
+                }
+                else if (currentMouseState.LeftButton == ButtonState.Released
+                         && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
+                {
+                    clickToMove.OnClickRelease(
+                        Game1.getMouseX(),
+                        Game1.getMouseY(),
+                        Game1.viewport.X,
+                        Game1.viewport.Y);
+                }
+
+                clickToMove.Update();
+
+                if (Game1.currentMinigame is FishingGame fishingGame2)
+                {
+                    fishingGame2.ReceiveClickToMoveKeyStates(clickToMove);
+                }
+            }
+        }
+
+        /// <summary>
         ///     Creates a new <see cref="ClickToMove"/> object. This method is to be used as a <see
         ///     cref="ConditionalWeakTable{GameLocation, ClickToMove}.CreateValueCallback"/>
         ///     delegate in the <see cref="GetOrCreate"/> method.
         /// </summary>
         /// <param name="gameLocation">
-        ///     The <see cref="GameLocation"/> for which to create the <see cref="PathFindingController"/> object.
+        ///     The <see cref="GameLocation"/> for which to create the <see cref="ClickToMove"/> object.
         /// </param>
         /// <returns>
         ///     A new <see cref="ClickToMove"/> object associated to the given <see cref="GameLocation"/>.
@@ -214,6 +411,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static ClickToMove CreateClickToMove(GameLocation gameLocation)
         {
             return new ClickToMove(gameLocation);
+        }
+
+        /// <summary>
+        ///     Method called when the simulated left click is released.
+        /// </summary>
+        /// <param name="gameLocation">The current <see cref="GameLocation"/>.</param>
+        /// <param name="x">The clicked x coordinate.</param>
+        /// <param name="y">The clicked y coordinate.</param>
+        private static void OnLeftClickRelease(GameLocation gameLocation, int x, int y)
+        {
+            if (MinigamesPatcher.FishingGameShowResultsTimer < 0
+                && Game1.player.CurrentTool is FishingRod fishingRod
+                && !fishingRod.isCasting
+                && Game1.activeClickableMenu is null
+                && Game1.player.CurrentTool.onRelease(gameLocation, x, y, Game1.player))
+            {
+                Game1.player.Halt();
+            }
         }
     }
 }

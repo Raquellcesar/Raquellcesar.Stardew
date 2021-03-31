@@ -54,7 +54,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="FarmerSprite.animateOnce"/>.
+        ///     A method called via Harmony to modify <see cref="FarmerSprite.animateOnce(GameTime)"/>.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileAnimateOnce(IEnumerable<CodeInstruction> instructions)

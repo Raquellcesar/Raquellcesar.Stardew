@@ -62,8 +62,8 @@ namespace Raquellcesar.Stardew.Tests.Common.PriorityQueueTests
             // A newly created priority queue contains no elements.
             Assert.IsFalse(this.PriorityQueue.Contains(node1, priority1));
 
-            // Once a node is added to the priority queue with a certain priority, it's contained in it
-            // but only for the specified priority.
+            // Once a node is added to the priority queue with a certain priority, it's contained in
+            // it but only for the specified priority.
             this.PriorityQueue.Enqueue(node1, priority1);
             Assert.IsTrue(this.PriorityQueue.Contains(node1, priority1));
             Assert.IsFalse(this.PriorityQueue.Contains(node1, priority2));

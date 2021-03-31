@@ -16,13 +16,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Harmony;
 
+    using Microsoft.Xna.Framework;
+
     using StardewModdingAPI;
 
     using StardewValley;
+    using StardewValley.Menus;
 
     /// <summary>
     ///     Applies Harmony patches to the <see cref="Event"/> class.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class EventPatcher
     {
         /// <summary>
@@ -183,6 +187,90 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     LogLevel.Error);
             }
         }
+
+        /*private static bool BeforeCheckForCollision(Event __instance, Rectangle position, Farmer who, GameLocation ___temporaryLocation)
+        {
+            foreach (NPC actor in __instance.actors)
+            {
+                if (actor.GetBoundingBox().Intersects(position) && !__instance.farmer.temporarilyInvincible && __instance.farmer.TemporaryPassableTiles.IsEmpty() && !actor.IsInvisible && !who.GetBoundingBox().Intersects(actor.GetBoundingBox()) && !actor.farmerPassesThrough)
+                {
+                    return true;
+                }
+            }
+
+            int num = 32;
+            int num2 = (this.isFestival ? (Math.Max(num, Game1.xEdge) + num) : num);
+            int num3 = Game1.currentLocation.map.Layers[0].DisplayWidth - num;
+            int num4 = num;
+            int num5 = Game1.currentLocation.map.Layers[0].DisplayHeight - num;
+            if ((Game1.currentMinigame == null || !(Game1.currentMinigame is FishingGame)) && (((position.X < num2 || position.X >= num3 || position.Y < num4 || position.Y >= num5) && who.IsLocalPlayer && this.isFestival) || position.X < 0 || position.Y < 0 || position.X >= Game1.currentLocation.map.Layers[0].DisplayWidth || position.Y >= Game1.currentLocation.map.Layers[0].DisplayHeight))
+            {
+                if (who.IsLocalPlayer && this.isFestival)
+                {
+                    who.Halt();
+                    who.Position = who.lastPosition;
+
+                    Game1.currentLocation.tapToMove.Reset();
+
+                    if (!Game1.IsMultiplayer && Game1.activeClickableMenu == null)
+                    {
+                        Game1.activeClickableMenu = new ConfirmationDialog(Game1.content.LoadString("Strings\\StringsFromCSFiles:Event.cs.1758", this.FestivalName), forceEndFestival);
+                    }
+                    else if (Game1.activeClickableMenu == null)
+                    {
+                        Game1.player.team.SetLocalReady("festivalEnd", ready: true);
+                        Game1.activeClickableMenu = new ReadyCheckDialog("festivalEnd", allowCancel: true, forceEndFestival);
+                    }
+                }
+
+                return true;
+            }
+
+            foreach (Object prop in __instance.props)
+            {
+                if (prop.getBoundingBox(prop.tileLocation).Intersects(position))
+                {
+                    return true;
+                }
+            }
+
+            if (___temporaryLocation is not null)
+            {
+                foreach (Object value in ___temporaryLocation.objects.Values)
+                {
+                    if (value.getBoundingBox(value.tileLocation).Intersects(position))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            foreach (Prop festivalProp in __instance.festivalProps)
+            {
+                if (festivalProp.isColliding(position))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void ForceEndFestival(this Event @event, Farmer who)
+        {
+            Game1.currentMinigame = null;
+            Game1.exitActiveMenu();
+
+            Game1.player.Halt();
+            @event.endBehaviors(null, Game1.currentLocation);
+
+            if (Game1.IsServer)
+            {
+                Game1.multiplayer.sendServerToClientsMessage("endFest");
+            }
+
+            Game1.changeMusicTrack("none");
+        }*/
 
         /// <summary>
         ///     A method called via Harmony to modify <see cref="Event.checkForCollision"/>.

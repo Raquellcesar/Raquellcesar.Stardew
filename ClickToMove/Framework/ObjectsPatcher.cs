@@ -18,18 +18,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     using Harmony;
 
     using Microsoft.Xna.Framework;
-    using Microsoft.Xna.Framework.Graphics;
+
+    using Raquellcesar.Stardew.Common;
 
     using StardewModdingAPI;
 
     using StardewValley;
+    using StardewValley.Locations;
     using StardewValley.Objects;
+
+    using xTile.Dimensions;
 
     using Rectangle = Microsoft.Xna.Framework.Rectangle;
     using SObject = StardewValley.Object;
 
     /// <summary>
-    ///     Encapsulates Harmony patches for the <see cref="Object"/> classes.
+    ///     Encapsulates Harmony patches for the <see cref="SObject"/> classes.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class ObjectsPatcher
@@ -40,13 +44,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
-            /*harmony.Patch(
-                AccessTools.Method(typeof(SObject), nameof(SObject.drawPlacementBounds)),
-                prefix: new HarmonyMethod(typeof(ObjectsPatcher), nameof(ObjectsPatcher.BeforeDrawPlacementBounds)));*/
-
             harmony.Patch(
                 AccessTools.Method(typeof(SObject), nameof(SObject.drawPlacementBounds)),
                 transpiler: new HarmonyMethod(typeof(ObjectsPatcher), nameof(ObjectsPatcher.TranspileDrawPlacementBounds)));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(CrabPot), nameof(CrabPot.checkForAction)),
+                transpiler: new HarmonyMethod(typeof(ObjectsPatcher), nameof(ObjectsPatcher.TranspileCrabPotCheckForAction)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(Wallpaper), nameof(Wallpaper.placementAction)),
@@ -54,7 +58,43 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Determines if an <see cref="Item"/> can be placed by a <see cref="Farmer"/> at a
+        ///     Whether a tile in this <see cref="GameLocation"/> has a neighbour tile in land at a
+        ///     given distance.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        /// <param name="distance">The distance to the given tile. Defaults to 1.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the given tile has a land neighbour in this <see
+        ///     cref="GameLocation"/>. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool NeighboursLand(this GameLocation gameLocation, int tileX, int tileY, int distance = 1)
+        {
+            foreach (int deltaX in new List<int> { -distance, 0, distance })
+            {
+                foreach (int deltaY in new List<int> { -distance, 0, distance })
+                {
+                    if (deltaX != 0 || deltaY != 0)
+                    {
+                        int x = tileX + deltaX;
+                        int y = tileY + deltaY;
+
+                        if (gameLocation.map.GetLayer("Back").PickTile(new Location(x * Game1.tileSize, y * Game1.tileSize), Game1.viewport.Size) is not null
+                            && (gameLocation.doesTileHaveProperty(x, y, "Water", "Back") is null
+                                || gameLocation.doesTileHaveProperty(x, y, "Passable", "Buildings") is not null))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Determines if an <see cref="Item"/> can be placed by this <see cref="Farmer"/> at a
         ///     given position in a <see cref="GameLocation"/>. This method replicates
         ///     Utility.playerCanPlaceItemHere, ignoring restrictions on the distance of the
         ///     placement position from the player. To be used by <see cref="TranspileDrawPlacementBounds"/>.
@@ -95,7 +135,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            if (item.canBePlacedHere(gameLocation, tileLocation))
+            if (ObjectsPatcher.ItemCanBePlacedHere(item, gameLocation, tileLocation))
             {
                 if (!((SObject)item).isPassable())
                 {
@@ -118,84 +158,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Method called via Harmony before <see cref="SObject.drawPlacementBounds"/>. It shows
-        ///     points away from the farmer as available for placing the object.
-        /// </summary>
-        /// <param name="__instance">The <see cref="SObject"/> instance.</param>
-        /// <param name="spriteBatch">The sprite batch being drawn.</param>
-        /// <param name="location">
-        ///     The <see cref="GameLocation"/> where the object is being placed.
-        /// </param>
-        /// <returns>
-        ///     Returns <see langword="false"/>, terminating prefixes and skipping the execution of
-        ///     the original method, effectively replacing the original method.
-        /// </returns>
-        private static bool BeforeDrawPlacementBounds(SObject __instance, SpriteBatch spriteBatch, GameLocation location)
-        {
-            if (!__instance.isPlaceable() || __instance is Wallpaper)
-            {
-                return false;
-            }
-
-            int x = (int)Game1.GetPlacementGrabTile().X * Game1.tileSize;
-            int y = (int)Game1.GetPlacementGrabTile().Y * Game1.tileSize;
-
-            Game1.isCheckingNonMousePlacement = !Game1.IsPerformingMousePlacement();
-
-            if (Game1.isCheckingNonMousePlacement)
-            {
-                Vector2 nearbyValidPlacementPosition = Utility.GetNearbyValidPlacementPosition(Game1.player, location, __instance, x, y);
-                x = (int)nearbyValidPlacementPosition.X;
-                y = (int)nearbyValidPlacementPosition.Y;
-            }
-
-            if (Utility.isThereAnObjectHereWhichAcceptsThisItem(location, __instance, x, y))
-            {
-                return false;
-            }
-
-            // bool canPlaceHere = Utility.playerCanPlaceItemHere(location, __instance, x, y,
-            // Game1.player) || (Utility.isThereAnObjectHereWhichAcceptsThisItem(location,
-            // __instance, x, y) && Utility.withinRadiusOfPlayer(x, y, 1, Game1.player));
-            bool canPlaceHere = ObjectsPatcher.PlayerCanPlaceItem(location, __instance, x, y, Game1.player);
-
-            Game1.isCheckingNonMousePlacement = false;
-
-            int width = 1;
-            int height = 1;
-
-            if (__instance is Furniture furniture)
-            {
-                width = furniture.getTilesWide();
-                height = furniture.getTilesHigh();
-            }
-
-            for (int x_offset = 0; x_offset < width; x_offset++)
-            {
-                for (int y_offset = 0; y_offset < height; y_offset++)
-                {
-                    spriteBatch.Draw(
-                        Game1.mouseCursors,
-                        new Vector2((((x / Game1.tileSize) + x_offset) * Game1.tileSize) - Game1.viewport.X, (((y / Game1.tileSize) + y_offset) * Game1.tileSize) - Game1.viewport.Y),
-                        new Rectangle(canPlaceHere ? 194 : 210, 388, 16, 16),
-                        Color.White,
-                        0,
-                        Vector2.Zero,
-                        4,
-                        SpriteEffects.None,
-                        0.01f);
-                }
-            }
-
-            if (__instance.bigCraftable.Value || __instance is Furniture || (__instance.Category != SObject.SeedsCategory && __instance.Category != SObject.fertilizerCategory))
-            {
-                __instance.draw(spriteBatch, x / Game1.tileSize, y / Game1.tileSize, 0.5f);
-            }
-
-            return false;
-        }
-
-        /// <summary>
         ///     A method called via Harmony before <see cref="Wallpaper.placementAction"/>. It
         ///     resets the <see cref="ClickToMove"/> object associated to the current game location.
         /// </summary>
@@ -208,7 +170,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     This method is a copy of the private Utility.itemCanBePlaced. To be used by <see cref="TranspileDrawPlacementBounds"/>.
+        ///     This method is a copy of the private Utility.itemCanBePlaced ignoring some
+        ///     unnecessary checks. To be used by <see cref="TranspileDrawPlacementBounds"/>.
         /// </summary>
         /// <param name="gameLocation">The <see cref="Game"/> where the item is being placed.</param>
         /// <param name="tileLocation">The tile for placement.</param>
@@ -221,10 +184,107 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             return
                 gameLocation.isTilePlaceable(tileLocation, item)
-                && item.isPlaceable()
                 && (item.Category != SObject.SeedsCategory || (item is SObject svObject && svObject.isSapling()))
                 && (((SObject)item).isPassable()
                     || !new Rectangle((int)(tileLocation.X * Game1.tileSize), (int)(tileLocation.Y * Game1.tileSize), Game1.tileSize, Game1.tileSize).Intersects(Game1.player.GetBoundingBox()));
+        }
+
+        /// <summary>
+        ///     This method is used instead of the original <see cref="Item.canBePlacedHere"/> in
+        ///     <see cref="PlayerCanPlaceItem"/>. If the item is a <see cref="CrabPot"/>, it checks
+        ///     for a land tile adjacent to the checked tile. Since now we check tiles away from the
+        ///     player for placement we need to make this check to avoid having tiles in the middle
+        ///     of water being considered available for placement of crab pots.
+        /// </summary>
+        /// <param name="item">The item to be placed.</param>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> where the tile is.</param>
+        /// <param name="tile">The tile where to place the item.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the item can be placed at the given tile in the
+        ///     given <see cref="GameLocation"/>. returns <see langword="false"/> otherwise.
+        /// </returns>
+        private static bool ItemCanBePlacedHere(Item item, GameLocation gameLocation, Vector2 tile)
+        {
+            if (item.ParentSheetIndex != ObjectId.CrabPot)
+            {
+                return item.canBePlacedHere(gameLocation, tile);
+            }
+
+            if (gameLocation is Caldera)
+            {
+                return false;
+            }
+
+            int x = (int)tile.X;
+            int y = (int)tile.Y;
+
+            if (gameLocation.objects.ContainsKey(tile)
+                || gameLocation.doesTileHaveProperty(x, y, "Water", "Back") is null
+                || gameLocation.doesTileHaveProperty(x, y, "Passable", "Buildings") is not null)
+            {
+                return false;
+            }
+
+            if ((gameLocation.doesTileHaveProperty(x + 1, y, "Water", "Back") is null || gameLocation.doesTileHaveProperty(x - 1, y, "Water", "Back") is null)
+                && (gameLocation.doesTileHaveProperty(x, y + 1, "Water", "Back") is null || gameLocation.doesTileHaveProperty(x, y - 1, "Water", "Back") is null))
+            {
+                return false;
+            }
+
+            if (gameLocation is Beach)
+            {
+                if (!gameLocation.NeighboursLand(x, y))
+                {
+                    return gameLocation.NeighboursLand(x, y, 2);
+                }
+
+                return false;
+            }
+
+            return gameLocation.NeighboursLand(x, y);
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="CrabPot.checkForAction"/>. It
+        ///     removes the check for a click when trying to remove the <see cref="CrabPot"/>.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileCrabPotCheckForAction(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            /*
+             * Relevant CIL code to remove:
+             *      if (Game1.didPlayerJustClickAtAll(ignoreNonMouseHeldInput: true))
+             *          IL_018a: ldc.i4.1
+             *          IL_018b: call bool StardewValley.Game1::didPlayerJustClickAtAll(bool)
+             *          IL_0190: brfalse.s IL_01ee
+             */
+
+            MethodInfo playerCanPlaceItem = AccessTools.Method(typeof(ObjectsPatcher), nameof(ObjectsPatcher.PlayerCanPlaceItem));
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                if (!found && codeInstructions[i].opcode == OpCodes.Ldc_I4_1 && i + 3 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Call && codeInstructions[i + 1].operand is MethodInfo { Name: "didPlayerJustClickAtAll" } && codeInstructions[i + 2].opcode == OpCodes.Brfalse)
+                {
+                    codeInstructions[i + 3].labels.AddRange(codeInstructions[i].labels);
+                    i += 3;
+
+                    found = true;
+                }
+
+                yield return codeInstructions[i];
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(CrabPot)}.{nameof(CrabPot.checkForAction)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
         }
 
         /// <summary>
@@ -249,12 +309,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             MethodInfo playerCanPlaceItem = AccessTools.Method(typeof(ObjectsPatcher), nameof(ObjectsPatcher.PlayerCanPlaceItem));
 
-            List<CodeInstruction> codeInstructions = instructions.ToList();
-
             bool found1 = false;
             bool found2 = false;
 
-            foreach (CodeInstruction instruction in codeInstructions)
+            foreach (CodeInstruction instruction in instructions)
             {
                 if (!found1
                     && instruction.opcode == OpCodes.Call

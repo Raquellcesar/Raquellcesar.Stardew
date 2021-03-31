@@ -25,6 +25,7 @@
     <LangVersion>latest</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>..\Stardew.ruleset</CodeAnalysisRuleSet>
+    <DocumentationFile>bin\x86\Debug\ClickToMove.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <DebugSymbols>true</DebugSymbols>
@@ -54,7 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Framework\BuildingsPatcher.cs" />
-    <Compile Include="DistanceToTarget.cs" />
+    <Compile Include="Framework\DistanceToTarget.cs" />
     <Compile Include="Framework\LocationsPatcher.cs" />
     <Compile Include="Framework\ClickState.cs" />
     <Compile Include="Framework\ClickToMoveKeyStates.cs" />
@@ -70,6 +71,7 @@
     <Compile Include="Framework\GamePatcher.cs" />
     <Compile Include="Framework\CharactersPatcher.cs" />
     <Compile Include="Framework\MenusPatcher.cs" />
+    <Compile Include="Framework\MinigamesPatcher.cs" />
     <Compile Include="Framework\NpcPatcher.cs" />
     <Compile Include="Framework\ObjectsPatcher.cs" />
     <Compile Include="Framework\PathFinding\AStarNode.cs" />

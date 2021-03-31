@@ -78,6 +78,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspileSetCurrentMinigame)));
 
             harmony.Patch(
+                AccessTools.Method(typeof(Game1), "_update"),
+                transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspileUpdate)));
+
+            harmony.Patch(
                 AccessTools.Method(typeof(Game1), nameof(Game1.didPlayerJustLeftClick)),
                 postfix: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.AfterDidPlayerJustLeftClick)));
 
@@ -1567,7 +1571,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Game1.warpFarmer"/>. It resets the
+        ///     A method called via Harmony before <see cref="Game1.warpFarmer(int, int, int)"/>. It resets the
         ///     <see cref="ClickToMove"/> object associated to the current game location.
         /// </summary>
         private static void BeforeWarpFarmer()
@@ -1873,9 +1877,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         {
                             jumpFalse = ilGenerator.DefineLabel();
 
-                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X
-                            // == -1 &&
-                            // ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
                             yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
                             yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                             yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
@@ -2069,6 +2071,64 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 ClickToMoveManager.Monitor.Log(
                         $"Failed to patch the setter for {nameof(Game1)}.{nameof(Game1.currentMinigame)}.\nThe point of injection was not found.",
+                        LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Game1._update"/>. It updates the
+        ///     inputs for controlling the farmer when they're playing a minigame.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileUpdate(IEnumerable<CodeInstruction> instructions)
+        {
+            // Add a call to UpdateClickToMove method after the first call to GetMouseState.
+
+            // Relevant CIL code: mouseState = Game1.input.GetMouseState();
+            // IL_06e1: ldsfld class StardewValley.InputState StardewValley.Game1::input
+            // IL_06e6: callvirt instance valuetype[Microsoft.Xna.Framework]
+            //          Microsoft.Xna.Framework.Input.MouseState StardewValley.InputState::GetMouseState()
+            // IL_06eb: stloc.s 13
+            //
+            // Code to include after the variable mouseState is defined: GamePatcher.UpdateClickToMove(mouseState);
+            // IL_0937: ldloc.s 13
+            // IL_0939: call void
+            //          Raquellcesar.Stardew.ClickToMove.Framework.GamePatcher::UpdateClickToMove(valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Input.MouseState)
+
+            MethodInfo updateClickToMove = AccessTools.Method(
+                typeof(ClickToMoveManager),
+                nameof(ClickToMoveManager.UpdateMinigameInput));
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                if (!found && codeInstructions[i].opcode == OpCodes.Callvirt && codeInstructions[i].operand is MethodInfo { Name: "GetMouseState" }
+                && i + 1 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
+                {
+                    object mouseStateLocIndex = codeInstructions[i + 1].operand;
+
+                    yield return codeInstructions[i];
+                    i++;
+                    yield return codeInstructions[i];
+
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, mouseStateLocIndex);
+                    yield return new CodeInstruction(OpCodes.Call, updateClickToMove);
+
+                    found = true;
+                }
+                else
+                {
+                    yield return codeInstructions[i];
+                }
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                        $"Failed to patch {nameof(Game1)}._update.\nThe point of injection was not found.",
                         LogLevel.Error);
             }
         }

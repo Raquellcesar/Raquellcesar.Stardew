@@ -7,7 +7,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace Raquellcesar.Stardew.ClickToMove
+namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     public enum DistanceToTarget
     {

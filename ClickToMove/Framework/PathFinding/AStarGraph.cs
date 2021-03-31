@@ -402,7 +402,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <param name="y">The y tile coordinate.</param>
         /// <returns>
         ///     Returns the node at the tile with coordinates (x, y), if that tile exists in the map for the game location
-        ///     associated to the graph. Otherwise, returns null.
+        ///     associated to the graph. Otherwise, returns <see langword="null"/>.
         /// </returns>
         public AStarNode GetNode(int x, int y)
         {
