@@ -325,16 +325,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            /*if (MinigamesPatcher.LeftClickNextUpdateFishingGame)
-            {
-                fishingGame.OnLeftClick(timerToStart);
-                MinigamesPatcher.LeftClickNextUpdateFishingGame = false;
-            }*/
-
             if (clickKeyStates.UseToolButtonPressed)
             {
                 fishingGame.OnLeftClick(timerToStart);
-                //MinigamesPatcher.LeftClickNextUpdateFishingGame = true;
             }
 
             if (clickKeyStates.UseToolButtonReleased)

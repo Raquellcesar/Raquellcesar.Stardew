@@ -35,12 +35,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static IReflectedField<int> fishingGameTimerToStartField;
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the <see cref="FishingGame"/> should receive
-        ///     a left click on the next update.
-        /// </summary>
-        public static bool LeftClickNextUpdateFishingGame { get; set; }
-
-        /// <summary>
         ///     Gets or sets the private field <see cref="FishingGame"/>.showResultsTimer.
         /// </summary>
         public static int FishingGameShowResultsTimer { get => fishingGameShowResultsTimerField.GetValue(); set => fishingGameShowResultsTimerField.SetValue(value); }
@@ -79,8 +73,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             MinigamesPatcher.fishingGameShowResultsTimerField = ClickToMoveManager.Reflection.GetField<int>(__instance, "showResultsTimer");
 
             MinigamesPatcher.fishingGameTimerToStartField = ClickToMoveManager.Reflection.GetField<int>(__instance, "timerToStart");
-
-            MinigamesPatcher.LeftClickNextUpdateFishingGame = false;
         }
 
         /// <summary>
