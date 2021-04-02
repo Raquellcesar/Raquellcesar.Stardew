@@ -38,7 +38,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             harmony.Patch(
                 AccessTools.Method(typeof(Wand), nameof(Wand.DoFunction)),
-                transpiler: new HarmonyMethod(typeof(ToolsPatcher), nameof(ToolsPatcher.TranspileWandDoFunction)));
+                postfix: new HarmonyMethod(typeof(ToolsPatcher), nameof(ToolsPatcher.AfterWandDoFunction)));
+
+            /*harmony.Patch(
+                AccessTools.Method(typeof(Wand), nameof(Wand.DoFunction)),
+                transpiler: new HarmonyMethod(typeof(ToolsPatcher), nameof(ToolsPatcher.TranspileWandDoFunction)));*/
         }
 
         /// <summary>
@@ -48,6 +52,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static void AfterDoDoneFishing()
         {
             ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+        }
+
+        /// <summary>
+        ///     A method called via Harmony after <see cref="Wand.DoFunction"/>. It unequips the
+        ///     <see cref="Wand"/>.
+        /// </summary>
+        private static void AfterWandDoFunction()
+        {
+            Game1.player.CurrentToolIndex = -1;
         }
 
         /// <summary>

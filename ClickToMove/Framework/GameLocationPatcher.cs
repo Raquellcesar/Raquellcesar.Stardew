@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="GameLocationPatcher.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -49,12 +49,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 postfix: new HarmonyMethod(
                     typeof(GameLocationPatcher),
                     nameof(GameLocationPatcher.AfterCleanupBeforePlayerExit)));
-
-            harmony.Patch(
-                AccessTools.Method(typeof(GameLocation), nameof(GameLocation.LowPriorityLeftClick)),
-                new HarmonyMethod(
-                    typeof(GameLocationPatcher),
-                    nameof(GameLocationPatcher.BeforeLowPriorityLeftClick)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(GameLocation), nameof(GameLocation.performTouchAction)),
@@ -119,29 +113,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).PreventMountingHorse = false;
             }
-        }
-
-        /// <summary>
-        ///     A method called via Harmony before <see cref="GameLocation.LowPriorityLeftClick"/>.
-        ///     It ignores the original method if the mouse is being held and the player didn't click
-        ///     on furniture.
-        /// </summary>
-        /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="__result">A reference to the result of the original method.</param>
-        /// <returns>
-        ///     Returns <see langword="false"/> to terminate prefixes and skip the execution of the
-        ///     original method; returns <see langword="true"/> otherwise.
-        /// </returns>
-        private static bool BeforeLowPriorityLeftClick(GameLocation __instance, ref bool __result)
-        {
-            if (ClickToMoveManager.GetOrCreate(__instance).ClickHoldActive
-                && ClickToMoveManager.GetOrCreate(__instance).Furniture is null)
-            {
-                __result = false;
-                return false;
-            }
-
-            return true;
         }
 
         /// <summary>A method called via Harmony to modify <see cref="GameLocation.performTouchAction" />.</summary>

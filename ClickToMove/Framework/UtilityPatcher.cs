@@ -16,16 +16,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Harmony;
 
-    using Microsoft.Xna.Framework;
-
     using Raquellcesar.Stardew.Common;
 
     using StardewModdingAPI;
 
     using StardewValley;
     using StardewValley.Characters;
-    using StardewValley.Objects;
-    using StardewValley.TerrainFeatures;
 
     /// <summary>
     ///     Encapsulates Harmony patches for the <see cref="Utility"/> class.
@@ -93,15 +89,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Deselects the farmer's active object after they place a bomb to avoid placing the
+        ///     Deselects the farmer's active object after they place a single item. Do the same for stacks of bombs to avoid placing the
         ///     bomb again by accident.
         /// </summary>
         private static void TryToPlaceItemTranspiler()
         {
-            if (Game1.player.ActiveObject != null && (Game1.player.ActiveObject.ParentSheetIndex == ObjectId.CherryBomb
-                                                      || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.Bomb
-                                                      || Game1.player.ActiveObject.ParentSheetIndex
-                                                      == ObjectId.MegaBomb))
+            if (Game1.player.ActiveObject is null
+                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.CherryBomb
+                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.Bomb
+                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.MegaBomb)
             {
                 Game1.player.CurrentToolIndex = -1;
             }

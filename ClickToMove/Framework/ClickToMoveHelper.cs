@@ -82,6 +82,55 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 .Contains(x, y);
         }
 
+        /// <summary>
+        ///     Checks if there is any piece of furniture occupying a given position in this <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The x coordinate of the position to check. In absolute coordinates.</param>
+        /// <param name="y">The y coordinate of the position to check. In absolute coordinates.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is some furniture occupying the given
+        ///     position. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool ContainsFurniture(this GameLocation gameLocation, int x, int y)
+        {
+            return gameLocation.furniture.Any(
+                furniture => furniture.getBoundingBox(furniture.tileLocation.Value).Contains(x, y));
+        }
+
+        /// <summary>
+        ///     Checks if there is any piece of furniture occupying a given position in this <see
+        ///     cref="GameLocation"/>. Ignores the walkable tiles in beds.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The x coordinate of the position to check. In absolute coordinates.</param>
+        /// <param name="y">The y coordinate of the position to check. In absolute coordinates.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is some furniture occupying the given
+        ///     position. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool ContainsFurnitureNoBed(this GameLocation gameLocation, int x, int y)
+        {
+            foreach (Furniture furniture in gameLocation.furniture)
+            {
+                if (furniture.getBoundingBox(furniture.tileLocation.Value).Contains(x, y))
+                {
+                    return furniture is not BedFurniture bed || bed.Occupies(x, y);
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Checks if a point is within the bounding box of this <see cref="Prop"/>.
+        /// </summary>
+        /// <param name="prop">The <see cref="Prop"/> instance.</param>
+        /// <param name="point">The point to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the given point is within the bounding box of this
+        ///     <see cref="Prop"/>. Returns <see langword="false"/> otherwise.
+        /// </returns>
         public static bool ContainsPoint(this Prop prop, Point point)
         {
             Rectangle boundingRect = ClickToMoveManager.Reflection.GetField<Rectangle>(prop, "boundingRect").GetValue();
@@ -260,13 +309,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return 0;
         }
 
-        public static Furniture GetFurniture(this GameLocation gameLocation, int clickPointX, int clickPointY)
+        /// <summary>
+        ///     Gets the piece of furniture occupying a given position in this <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The x coordinate of the position to check. In absolute coordinates.</param>
+        /// <param name="y">The y coordinate of the position to check. In absolute coordinates.</param>
+        /// <returns>
+        ///     Returns the piece of furniture occupying the given position in this <see
+        ///     cref="GameLocation"/>, if any. Returns <see langword="null"/> otherwise.
+        /// </returns>
+        public static Furniture GetFurniture(this GameLocation gameLocation, int x, int y)
         {
-            return gameLocation is DecoratableLocation decoratableLocation
-                       ? decoratableLocation.furniture.FirstOrDefault(
-                           furniture => furniture.getBoundingBox(furniture.tileLocation.Value)
-                               .Contains(clickPointX, clickPointY))
-                       : null;
+            return gameLocation.furniture.FirstOrDefault(
+                furniture => furniture.getBoundingBox(furniture.tileLocation.Value).Contains(x, y));
         }
 
         public static Point GetNextPointOut(int startX, int startY, int endX, int endY)
@@ -362,6 +418,41 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
+        ///     Checks if there's something that can be chopped or mined at a tile in this <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="tile">The tile to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's something that can be chopped or mined at
+        ///     the given tile in this <see cref="GameLocation"/>. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool IsChoppableOrMinable(this GameLocation gameLocation, Point tile)
+        {
+            gameLocation.terrainFeatures.TryGetValue(new Vector2(tile.X, tile.Y), out TerrainFeature terrainFeature);
+
+            if (terrainFeature is Tree || terrainFeature is FruitTree
+                                       || (terrainFeature is Bush bush
+                                           && bush.IsDestroyable(gameLocation, tile)))
+            {
+                return true;
+            }
+
+            foreach (LargeTerrainFeature largeTerrainFeature in gameLocation.largeTerrainFeatures)
+            {
+                if (largeTerrainFeature is Bush bush2
+                    && bush2.getRenderBounds(new Vector2(bush2.tilePosition.X, bush2.tilePosition.Y)).Contains(
+                        tile.X * Game1.tileSize,
+                        tile.Y * Game1.tileSize) && bush2.IsDestroyable(gameLocation, tile))
+                {
+                    return true;
+                }
+            }
+
+            return gameLocation.IsStumpAt(tile.X, tile.Y)
+                   || gameLocation.IsBoulderAt(tile.X, tile.Y);
+        }
+
+        /// <summary>
         ///     Checks whether a bush is destroyable from a given tile. Extends the game's <see
         ///     cref="Bush.isDestroyable"/> method to deal with bushes created by the Deep Woods mod.
         /// </summary>
@@ -393,32 +484,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return false;
-        }
-
-        public static bool IsMatureTreeStumpOrBoulderAt(this GameLocation gameLocation, Point tile)
-        {
-            gameLocation.terrainFeatures.TryGetValue(new Vector2(tile.X, tile.Y), out TerrainFeature terrainFeature);
-
-            if (terrainFeature is Tree || terrainFeature is FruitTree
-                                       || (terrainFeature is Bush bush
-                                           && bush.IsDestroyable(gameLocation, tile)))
-            {
-                return true;
-            }
-
-            foreach (LargeTerrainFeature largeTerrainFeature in gameLocation.largeTerrainFeatures)
-            {
-                if (largeTerrainFeature is Bush bush2
-                    && bush2.getRenderBounds(new Vector2(bush2.tilePosition.X, bush2.tilePosition.Y)).Contains(
-                        tile.X * Game1.tileSize,
-                        tile.Y * Game1.tileSize) && bush2.IsDestroyable(gameLocation, tile))
-                {
-                    return true;
-                }
-            }
-
-            return gameLocation.IsStumpAt(tile.X, tile.Y)
-                   || gameLocation.IsBoulderAt(tile.X, tile.Y);
         }
 
         public static bool IsOreAt(this GameLocation location, Point tile)
@@ -646,6 +711,39 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     return true;
                 }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Checks if this bed effectively occupies a given position.
+        /// </summary>
+        /// <param name="bed">The <see cref="BedFurniture"/> instance.</param>
+        /// <param name="x">The x coordinate to check. In absolute coordinates.</param>
+        /// <param name="y">The y coordinate to check. In absolute coordinates.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this bed effectively occupies a given position,
+        ///     i.e. the given position is within the limits of the bed's bounding box and can not
+        ///     be walked on. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool Occupies(this BedFurniture bed, int x, int y)
+        {
+            Rectangle bounds = bed.getBoundingBox(bed.TileLocation);
+
+            Rectangle rectangle = bounds;
+            rectangle.Height = Game1.tileSize;
+            if (rectangle.Contains(x, y))
+            {
+                return true;
+            }
+
+            rectangle = bounds;
+            rectangle.Y += 2 * Game1.tileSize;
+            rectangle.Height -= 2 * Game1.tileSize;
+            if (rectangle.Contains(x, y))
+            {
+                return true;
             }
 
             return false;

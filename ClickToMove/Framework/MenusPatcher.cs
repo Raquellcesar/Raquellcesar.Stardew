@@ -50,10 +50,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 transpiler: new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.TranspileNumberSelectionMenuReceiveLeftClick)));
 
             harmony.Patch(
-                AccessTools.Method(typeof(ShopMenu), nameof(ShopMenu.receiveLeftClick)),
-                new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.BeforeShopMenuReceiveLeftClick)));
-
-            harmony.Patch(
                 AccessTools.Method(typeof(Toolbar), nameof(Toolbar.receiveLeftClick)),
                 new HarmonyMethod(typeof(MenusPatcher), nameof(MenusPatcher.BeforeToolbarReceiveLeftClick)));
 
@@ -102,14 +98,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return true;
-        }
-
-        private static void BeforeShopMenuReceiveLeftClick(ShopMenu __instance, int x, int y)
-        {
-            if (__instance.upperRightCloseButton.containsPoint(x, y))
-            {
-                ClickToMoveManager.GetOrCreate(Game1.currentLocation).ResetRotatingFurniture();
-            }
         }
 
         /// <summary>

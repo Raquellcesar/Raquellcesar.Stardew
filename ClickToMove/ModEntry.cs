@@ -38,8 +38,6 @@ namespace Raquellcesar.Stardew.ClickToMove
             // Initialization.
             ClickToMoveManager.Init(ModEntry.config, this.Monitor, helper);
 
-            HarmonyInstance.DEBUG = true;
-
             // Add patches.
             HarmonyInstance harmony = HarmonyInstance.Create(this.ModManifest.UniqueID);
 

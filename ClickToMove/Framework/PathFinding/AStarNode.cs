@@ -260,12 +260,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </summary>
         /// <returns>
         ///     Returns <see langword="true"/> if there is some furniture occupying this node's tile
-        ///     that collides with the farmer.
+        ///     that collides with the farmer. Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool ContainsCollidingFurniture()
         {
             return this.Graph.GameLocation.furniture.Any(
-                furniture => furniture.furniture_type.Value != (int)FurnitureType.Rug
+                furniture => furniture.furniture_type.Value != Furniture.rug
                              && furniture.IntersectsForCollision(this.TileRectangle)
                              && !Game1.player.TemporaryPassableTiles.Intersects(this.TileRectangle));
         }
@@ -297,21 +297,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
 
             return false;
-        }
-
-        /// <summary>
-        ///     Checks if there is any piece of furniture occupying the tile that this node
-        ///     represents. Ignores beds.
-        /// </summary>
-        /// <returns>
-        ///     Returns <see langword="true"/> if there is some furniture occupying this node's tile.
-        /// </returns>
-        public bool ContainsFurniture()
-        {
-            return this.Graph.GameLocation is DecoratableLocation decoratableLocation
-                   && decoratableLocation.furniture.Any(
-                       furniture => furniture is not BedFurniture && furniture
-                                        .getBoundingBox(furniture.tileLocation.Value).Intersects(this.TileRectangle));
         }
 
         public bool ContainsGate()
@@ -591,33 +576,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public CrabPot GetCrabPot()
         {
-            if (this.GetObject() is CrabPot crabPot)
-            {
-                return crabPot;
-            }
-
-            /*if (this.Graph.GetNode(this.X, this.Y + 1) is AStarNode node && node.GetObject() is CrabPot crabPot1 && crabPot1.readyForHarvest.Value)
-            {
-                return crabPot1;
-            }
-
-            if (this.Graph.GetNode(this.X, this.Y + 2) is AStarNode node1 && node1.GetObject() is CrabPot crabPot2 && crabPot2.readyForHarvest.Value)
-            {
-                return crabPot2;
-            }*/
-
-            return null;
+            return this.GetObject() as CrabPot;
         }
 
-        public Furniture GetFurnitureIgnoreRugs()
+        /// <summary>
+        ///     Gets the furniture occupying the tile that this node represents ignoring rugs.
+        /// </summary>
+        /// <returns>
+        ///     Returns the furniture occupying the tile that this node represents, if it exists and
+        ///     it's not a rug. Returns <see langword="null"/> otherwise.
+        /// </returns>
+        public Furniture GetFurnitureNoRug()
         {
-            return this.Graph.GameLocation is DecoratableLocation decoratableLocation
-                       ? decoratableLocation.furniture.FirstOrDefault(
-                           furniture =>
-                               furniture is not BedFurniture && furniture.furniture_type.Value != (int)FurnitureType.Rug
-                                                             && furniture.getBoundingBox(furniture.tileLocation.Value)
-                                                                 .Intersects(this.TileRectangle))
-                       : null;
+            return this.Graph.GameLocation.furniture.FirstOrDefault(
+                furniture => furniture.furniture_type.Value != Furniture.rug
+                             && furniture.getBoundingBox(furniture.tileLocation.Value).Intersects(this.TileRectangle));
         }
 
         public Fence GetGate()

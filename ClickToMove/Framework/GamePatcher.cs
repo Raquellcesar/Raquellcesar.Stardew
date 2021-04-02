@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="GamePatcher.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -38,14 +38,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     public static class GamePatcher
     {
         /// <summary>
-        ///     A reference to the private method <see cref="Game1.addHour"/>. Needed for the
-        ///     reimplementation of <see cref="Game1.UpdateControlInput"/>.
+        ///     A reference to the private method <see cref="Game1"/>.addHour. Needed for the
+        ///     reimplementation of <see cref="Game1"/>.UpdateControlInput.
         /// </summary>
         private static IReflectedMethod addHour;
 
         /// <summary>
-        ///     A reference to the private method <see cref="Game1.addMinute"/>. Needed for the
-        ///     reimplementation of <see cref="Game1.UpdateControlInput"/>.
+        ///     A reference to the private method <see cref="Game1"/>.addMinute. Needed for the
+        ///     reimplementation of <see cref="Game1"/>.UpdateControlInput.
         /// </summary>
         private static IReflectedMethod addMinute;
 
@@ -56,8 +56,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static bool lastMouseLeftButtonDown;
 
         /// <summary>
-        ///     A reference to the private property <see cref="Game1.thumbstickToMouseModifier"/>.
-        ///     Needed for the reimplementation of <see cref="Game1.UpdateControlInput"/>.
+        ///     A reference to the private property <see cref="Game1"/>.thumbstickToMouseModifier.
+        ///     Needed for the reimplementation of <see cref="Game1"/>.UpdateControlInput.
         /// </summary>
         private static IReflectedProperty<float> thumbstickToMouseModifier;
 
@@ -192,13 +192,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        public static int ticks;
+
         /// <summary>
-        ///     A method called via Harmony before <see cref="Game1.UpdateControlInput"/>. It
+        ///     A method called via Harmony before <see cref="Game1"/>.UpdateControlInput. It
         ///     replicates the game's control input processing with some changes so we can implement
         ///     the path finding functionality.
         /// </summary>
         /// <param name="__instance">The <see cref="Game1"/> instance.</param>
         /// <param name="time">The time passed since the last call to <see cref="Game1.Update"/>.</param>
+        /// <param name="____activatedTick">The private field <see cref="Game1"/>._activatedTick.</param>
+        /// <param name="___inputSimulator">The private field <see cref="Game1"/>.inputSimulator.</param>
+        /// <param name="____didInitiateItemStow">The private field <see cref="Game1"/>._didInitiateItemStow.</param>
+        /// <param name="___multiplayer">The private field <see cref="Game1"/>.multiplayer.</param>
         /// <returns>
         ///     Returns <see langword="false"/>, which terminates prefixes and skips the execution
         ///     of the original method, effectively replacing the original method.
@@ -211,6 +217,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             ref bool ____didInitiateItemStow,
             Multiplayer ___multiplayer)
         {
+            GamePatcher.ticks++;
             KeyboardState currentKbState = Game1.GetKeyboardState();
             MouseState currentMouseState = Game1.input.GetMouseState();
             GamePadState currentPadState = Game1.input.GetGamePadState();
@@ -622,23 +629,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             Game1.ResetFreeCursorDrag();
 
-            // The field lastMouseLeftButtonDown needs to be set before sending clicks to the menus,
-            // so we can check its state when ClickToMoveManager.JustClosedActiveMenu is true.
-            SButtonState clickState = SButtonState.None;
-
-            bool mouseLeftButtonDown = ClickToMoveManager.Helper.Input.IsDown(SButton.MouseLeft) || ClickToMoveManager.Helper.Input.IsSuppressed(SButton.MouseLeft);
-
-            if (mouseLeftButtonDown)
-            {
-                clickState = GamePatcher.lastMouseLeftButtonDown ? SButtonState.Held : SButtonState.Pressed;
-            }
-            else if (GamePatcher.lastMouseLeftButtonDown)
-            {
-                clickState = SButtonState.Released;
-            }
-
-            GamePatcher.lastMouseLeftButtonDown = mouseLeftButtonDown;
-
             ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(Game1.currentLocation);
 
             clickToMove.Update();
@@ -698,7 +688,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 useToolButtonReleased = true;
             }
 
-            if (useToolButtonHeld && !(Game1.player.ActiveObject is Furniture))
+            if (useToolButtonHeld)
             {
                 Game1.mouseClickPolling += time.ElapsedGameTime.Milliseconds;
             }
@@ -845,30 +835,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.PopUIMode();
             }
 
-            switch (clickState)
-            {
-                case SButtonState.Pressed:
-                    clickToMove.OnClick(
-                        Game1.getMouseX(),
-                        Game1.getMouseY(),
-                        Game1.viewport.X,
-                        Game1.viewport.Y);
-                    break;
-                case SButtonState.Held:
-                    clickToMove.OnClickHeld(
-                        Game1.getMouseX(),
-                        Game1.getMouseY(),
-                        Game1.viewport.X,
-                        Game1.viewport.Y);
-                    break;
-                case SButtonState.Released:
-                    clickToMove.OnClickRelease(
-                        Game1.getMouseX(),
-                        Game1.getMouseY(),
-                        Game1.viewport.X,
-                        Game1.viewport.Y);
-                    break;
-            }
+            GamePatcher.HandleLeftClick(clickToMove);
 
             if (Game1.IsChatting || Game1.player.freezePause > 0)
             {
@@ -961,13 +928,32 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
             else
             {
-                if (useToolButtonPressed && (!Game1.player.UsingTool || Game1.player.CurrentTool is MeleeWeapon)
-                                         && !Game1.player.isEating && !Game1.pickingTool && !Game1.dialogueUp
-                                         && !Game1.menuUp && Game1.farmEvent is null
-                                         && (Game1.player.CanMove || Game1.player.CurrentTool is FishingRod
-                                                                  || Game1.player.CurrentTool is MeleeWeapon))
+                if (useToolButtonPressed
+                    && (!Game1.player.UsingTool || Game1.player.CurrentTool is MeleeWeapon)
+                    && !Game1.player.isEating
+                    && !Game1.pickingTool
+                    && !Game1.dialogueUp
+                    && !Game1.menuUp
+                    && Game1.farmEvent is null
+                    && (Game1.player.CanMove || Game1.player.CurrentTool is FishingRod || Game1.player.CurrentTool is MeleeWeapon))
                 {
-                    if (Game1.player.CurrentTool is not null)
+                    if (Game1.player.CurrentTool is not null && (Game1.player.CurrentTool is not MeleeWeapon || Game1.didPlayerJustLeftClick(ignoreNonMouseHeldInput: true)))
+                    {
+                        Game1.player.FireTool();
+                    }
+
+                    Game1.pressUseToolButton();
+
+                    if (Game1.player.UsingTool)
+                    {
+                        Game1.oldKBState = currentKbState;
+                        Game1.oldMouseState = currentMouseState;
+                        Game1.oldPadState = currentPadState;
+
+                        return false;
+                    }
+
+                    /*if (Game1.player.CurrentTool is not null)
                     {
                         Game1.player.FireTool();
                     }
@@ -983,7 +969,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     Game1.oldPadState = currentPadState;
 
-                    return false;
+                    return false;*/
                 }
 
                 if (useToolButtonReleased && ____didInitiateItemStow)
@@ -1064,31 +1050,29 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if (Game1.player.movementDirections.Count < 2)
                 {
-                    int initialCount = Game1.player.movementDirections.Count;
-
-                    if (moveUpHeld)
+                    if (clickToMove.ClickKeyStates.MoveUpHeld)
                     {
                         Game1.player.setMoving(Farmer.up);
                     }
 
-                    if (moveRightHeld)
+                    if (clickToMove.ClickKeyStates.MoveRightHeld)
                     {
                         Game1.player.setMoving(Farmer.right);
                     }
 
-                    if (moveDownHeld)
+                    if (clickToMove.ClickKeyStates.MoveDownHeld)
                     {
                         Game1.player.setMoving(Farmer.down);
                     }
 
-                    if (moveLeftHeld)
+                    if (clickToMove.ClickKeyStates.MoveLeftHeld)
                     {
                         Game1.player.setMoving(Farmer.left);
                     }
                 }
 
-                if (moveUpReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Up.Value) && !moveUpHeld))
+                if (clickToMove.ClickKeyStates.MoveUpReleased
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Up.Value) && !clickToMove.ClickKeyStates.MoveUpHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.up);
 
@@ -1098,8 +1082,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if (moveRightReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Right.Value) && !moveRightHeld))
+                if (clickToMove.ClickKeyStates.MoveRightReleased
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Right.Value) && !clickToMove.ClickKeyStates.MoveRightHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.right);
 
@@ -1109,8 +1093,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if (moveDownReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Down.Value) && !moveDownHeld))
+                if (clickToMove.ClickKeyStates.MoveDownReleased
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Down.Value) && !clickToMove.ClickKeyStates.MoveDownHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.down);
 
@@ -1120,8 +1104,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if (moveLeftReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Left.Value) && !moveLeftHeld))
+                if (clickToMove.ClickKeyStates.MoveLeftReleased
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Left.Value) && !clickToMove.ClickKeyStates.MoveLeftHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.left);
 
@@ -1131,24 +1115,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if ((!moveUpHeld
-                     && !moveRightHeld
-                     && !moveDownHeld
-                     && !moveLeftHeld
-                     && !Game1.player.UsingTool) || Game1.activeClickableMenu is not null)
+                if ((!clickToMove.ClickKeyStates.MoveUpHeld
+                     && !clickToMove.ClickKeyStates.MoveRightHeld
+                     && !clickToMove.ClickKeyStates.MoveDownHeld
+                     && !clickToMove.ClickKeyStates.MoveLeftHeld
+                     && !Game1.player.UsingTool)
+                    || Game1.activeClickableMenu is not null)
                 {
                     Game1.player.Halt();
                 }
             }
             else if (Game1.isQuestion)
             {
-                if (moveUpPressed)
+                if (clickToMove.ClickKeyStates.MoveUpPressed)
                 {
                     Game1.currentQuestionChoice = Math.Max(Game1.currentQuestionChoice - 1, 0);
 
                     Game1.playSound("toolSwap");
                 }
-                else if (moveDownPressed)
+                else if (clickToMove.ClickKeyStates.MoveDownPressed)
                 {
                     Game1.currentQuestionChoice = Math.Min(
                         Game1.currentQuestionChoice + 1,
@@ -1170,24 +1155,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     _ => 99
                 };
 
-                if (moveRightPressed)
-                {
-                    Game1.numberOfSelectedItems = Math.Min(Game1.numberOfSelectedItems + 1, val);
-                    Game1.playItemNumberSelectSound();
-                }
-                else if (moveLeftPressed)
-                {
-                    Game1.numberOfSelectedItems = Math.Max(Game1.numberOfSelectedItems - 1, 0);
-                    Game1.playItemNumberSelectSound();
-                }
-                else if (moveUpPressed)
+                if (clickToMove.ClickKeyStates.MoveUpPressed)
                 {
                     Game1.numberOfSelectedItems = Math.Min(Game1.numberOfSelectedItems + 10, val);
                     Game1.playItemNumberSelectSound();
                 }
-                else if (moveDownPressed)
+                else if (clickToMove.ClickKeyStates.MoveRightPressed)
+                {
+                    Game1.numberOfSelectedItems = Math.Min(Game1.numberOfSelectedItems + 1, val);
+                    Game1.playItemNumberSelectSound();
+                }
+                else if (clickToMove.ClickKeyStates.MoveDownPressed)
                 {
                     Game1.numberOfSelectedItems = Math.Max(Game1.numberOfSelectedItems - 10, 0);
+                    Game1.playItemNumberSelectSound();
+                }
+                else if (clickToMove.ClickKeyStates.MoveLeftPressed)
+                {
+                    Game1.numberOfSelectedItems = Math.Max(Game1.numberOfSelectedItems - 1, 0);
                     Game1.playItemNumberSelectSound();
                 }
             }
@@ -1571,12 +1556,55 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Game1.warpFarmer(int, int, int)"/>. It resets the
-        ///     <see cref="ClickToMove"/> object associated to the current game location.
+        ///     A method called via Harmony before <see cref="Game1"/>.warpFarmer(int, int, int). It
+        ///     resets the <see cref="ClickToMove"/> object associated to the current game location.
         /// </summary>
         private static void BeforeWarpFarmer()
         {
             ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+        }
+
+        /// <summary>
+        ///     Handles the mouse left button input.
+        /// </summary>
+        /// <param name="clickToMove">
+        ///     The <see cref="ClickToMove"/> object associated with the current location.
+        /// </param>
+        private static void HandleLeftClick(ClickToMove clickToMove)
+        {
+            SButtonState clickState = SButtonState.None;
+
+            bool mouseLeftButtonDown = ClickToMoveManager.Helper.Input.IsDown(SButton.MouseLeft) || ClickToMoveManager.Helper.Input.IsSuppressed(SButton.MouseLeft);
+
+            if (mouseLeftButtonDown)
+            {
+                clickState = GamePatcher.lastMouseLeftButtonDown ? SButtonState.Held : SButtonState.Pressed;
+            }
+            else if (GamePatcher.lastMouseLeftButtonDown)
+            {
+                clickState = SButtonState.Released;
+            }
+
+            GamePatcher.lastMouseLeftButtonDown = mouseLeftButtonDown;
+
+            switch (clickState)
+            {
+                case SButtonState.Pressed:
+                    clickToMove.OnClick(
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
+                    break;
+                case SButtonState.Held:
+                    clickToMove.OnClickHeld(
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
+                    break;
+                case SButtonState.Released:
+                    clickToMove.OnClickRelease(
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
+                    break;
+            }
         }
 
         /// <summary>
@@ -1877,7 +1905,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         {
                             jumpFalse = ilGenerator.DefineLabel();
 
-                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X
+                            // == -1 &&
+                            // ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
                             yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
                             yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                             yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
@@ -2076,24 +2106,23 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1._update"/>. It updates the
+        ///     A method called via Harmony to modify <see cref="Game1"/>._update. It updates the
         ///     inputs for controlling the farmer when they're playing a minigame.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileUpdate(IEnumerable<CodeInstruction> instructions)
         {
-            // Add a call to UpdateClickToMove method after the first call to GetMouseState.
-
-            // Relevant CIL code: mouseState = Game1.input.GetMouseState();
-            // IL_06e1: ldsfld class StardewValley.InputState StardewValley.Game1::input
-            // IL_06e6: callvirt instance valuetype[Microsoft.Xna.Framework]
-            //          Microsoft.Xna.Framework.Input.MouseState StardewValley.InputState::GetMouseState()
-            // IL_06eb: stloc.s 13
-            //
-            // Code to include after the variable mouseState is defined: GamePatcher.UpdateClickToMove(mouseState);
-            // IL_0937: ldloc.s 13
-            // IL_0939: call void
-            //          Raquellcesar.Stardew.ClickToMove.Framework.GamePatcher::UpdateClickToMove(valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Input.MouseState)
+            /* Add a call to UpdateClickToMove method after the first call to GetMouseState.
+             *
+             * Relevant CIL code:
+             *     mouseState = Game1.input.GetMouseState();
+             *         IL_06e1: ldsfld class StardewValley.InputState StardewValley.Game1::input
+             *         IL_06e6: callvirt instance valuetype[Microsoft.Xna.Framework] Microsoft.Xna.Framework.Input.MouseState StardewValley.InputState::GetMouseState()
+             *         IL_06eb: stloc.s 13
+             *
+             * Code to include after the variable mouseState is defined:
+             *     GamePatcher.UpdateClickToMove(mouseState);
+             */
 
             MethodInfo updateClickToMove = AccessTools.Method(
                 typeof(ClickToMoveManager),

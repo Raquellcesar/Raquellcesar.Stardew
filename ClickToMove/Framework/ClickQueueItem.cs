@@ -18,51 +18,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     public readonly struct ClickQueueItem : IEquatable<ClickQueueItem>
     {
         /// <summary>
-        ///     The tile x coordinate. Kept for efficiency.
-        /// </summary>
-        private readonly int tileX;
-
-        /// <summary>
-        ///     The tile y coordinate. Kept for efficiency.
-        /// </summary>
-        private readonly int tileY;
-
-        /// <summary>
         ///     Initializes a new instance of the <see cref="ClickQueueItem"/> struct.
         /// </summary>
-        /// <param name="mouseX">The mouse x coordinate.</param>
-        /// <param name="mouseY">The mouse y coordinate.</param>
-        /// <param name="viewportX">The viewport x coordinate.</param>
-        /// <param name="viewportY">The viewport y coordinate.</param>
-        public ClickQueueItem(int mouseX, int mouseY, int viewportX, int viewportY)
+        /// <param name="x">The clicked x absolute coordinate.</param>
+        /// <param name="y">The clicked y absolute coordinate.</param>
+        public ClickQueueItem(int x, int y)
         {
-            this.MouseX = mouseX;
-            this.MouseY = mouseY;
-            this.ViewportX = viewportX;
-            this.ViewportY = viewportY;
-            this.tileX = mouseX + viewportX;
-            this.tileY = mouseY + viewportY;
+            this.ClickX = x;
+            this.ClickY = y;
         }
 
         /// <summary>
-        ///     Gets the mouse x coordinate.
+        ///     Gets the clicked point x absolute coordinate.
         /// </summary>
-        public int MouseX { get; }
+        public int ClickX { get; }
 
         /// <summary>
-        ///     Gets the mouse y coordinate.
+        ///     Gets the clicked point y absolute coordinate.
         /// </summary>
-        public int MouseY { get; }
-
-        /// <summary>
-        ///     Gets the viewport x coordinate.
-        /// </summary>
-        public int ViewportX { get; }
-
-        /// <summary>
-        ///     Gets the viewport y coordinate.
-        /// </summary>
-        public int ViewportY { get; }
+        public int ClickY { get; }
 
         /// <inheritdoc/>
         /// <remarks>
@@ -70,7 +44,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </remarks>
         public bool Equals(ClickQueueItem other)
         {
-            return this.tileX == other.tileX && this.tileY == other.tileY;
+            return this.ClickX == other.ClickX && this.ClickY == other.ClickY;
         }
     }
 }

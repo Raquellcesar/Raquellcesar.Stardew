@@ -218,7 +218,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Method called when the simulated left click is pressed.
+        ///     Method called when the simulated left click is pressed in this <see cref="FishingGame"/>.
         /// </summary>
         /// <param name="fishingGame">The <see cref="FishingGame"/> instance.</param>
         /// <param name="timerToStart">The time until the minigame starts.</param>
@@ -270,7 +270,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Deals with the mouse left button inputs while playing the <see cref="FishingGame"/>.
+        ///     Deals with the simulated inputs while playing the <see cref="FishingGame"/>.
         /// </summary>
         /// <param name="fishingGame">The <see cref="FishingGame"/> instance.</param>
         /// <param name="clickToMove">
@@ -357,28 +357,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     && Game1.oldMouseState.LeftButton == ButtonState.Released)
                 {
                     clickToMove.OnClick(
-                        Game1.getMouseX(),
-                        Game1.getMouseY(),
-                        Game1.viewport.X,
-                        Game1.viewport.Y);
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
                 }
                 else if (currentMouseState.LeftButton == ButtonState.Pressed
                          && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
                 {
                     clickToMove.OnClickHeld(
-                        Game1.getMouseX(),
-                        Game1.getMouseY(),
-                        Game1.viewport.X,
-                        Game1.viewport.Y);
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
                 }
                 else if (currentMouseState.LeftButton == ButtonState.Released
                          && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
                 {
                     clickToMove.OnClickRelease(
-                        Game1.getMouseX(),
-                        Game1.getMouseY(),
-                        Game1.viewport.X,
-                        Game1.viewport.Y);
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
                 }
 
                 clickToMove.Update();

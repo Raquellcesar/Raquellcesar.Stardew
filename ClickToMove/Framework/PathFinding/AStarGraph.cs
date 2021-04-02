@@ -497,9 +497,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
         }
 
-        public bool IsTileOnMap(int x, int y)
+        /// <summary>
+        /// Checks if a tile is in the map associated to this graph's <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        /// <returns>
+        /// Returns <see langword="true"/> if the given tile is in the map associated to this graph's <see cref="GameLocation"/>.
+        /// Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public bool IsTileOnMap(int tileX, int tileY)
         {
-            return x >= 0 && x < this.GameLocation.map.Layers[0].LayerWidth && y >= 0 && y < this.GameLocation.map.Layers[0].LayerHeight;
+            return this.GameLocation.isTileOnMap(tileX, tileY);
         }
 
         public void RefreshBubbles()
@@ -512,6 +521,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
         }
 
+        /// <summary>
+        ///     Clears the bubble information from the graph nodes.
+        /// </summary>
+        /// <param name="one">Whether to clear the first bubble id.</param>
+        /// <param name="two">Whether to clear the second bubble id.</param>
         public void ResetBubbles(bool one = true, bool two = false)
         {
             if (this.GameLocation.map is null)

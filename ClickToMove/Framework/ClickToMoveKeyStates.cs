@@ -25,7 +25,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public WalkDirection LastWalkDirection { get; set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the move down key is being held.
+        ///     Gets or sets a value indicating whether the move down key is down.
         /// </summary>
         public bool MoveDownHeld { get; set; }
 
@@ -40,7 +40,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool MoveDownReleased { get; set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the move left key is being held.
+        ///     Gets or sets a value indicating whether the move left key is down.
         /// </summary>
         public bool MoveLeftHeld { get; set; }
 
@@ -55,7 +55,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool MoveLeftReleased { get; set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the move right key is being held.
+        ///     Gets or sets a value indicating whether the move right key is down.
         /// </summary>
         public bool MoveRightHeld { get; set; }
 
@@ -70,7 +70,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool MoveRightReleased { get; set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the move up key is being held.
+        ///     Gets or sets a value indicating whether the move up key is down.
         /// </summary>
         public bool MoveUpHeld { get; set; }
 
@@ -85,7 +85,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool MoveUpReleased { get; set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the left mouse button was really (physically) held.
+        ///     Gets or sets a value indicating whether the left mouse button is really (physically) down.
         /// </summary>
         public bool RealClickHeld { get; set; }
 
@@ -95,7 +95,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool ActionButtonPressed { get; set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether the use tool button is being held.
+        ///     Gets or sets a value indicating whether the use tool button is down.
         /// </summary>
         public bool UseToolButtonHeld { get; set; }
 
