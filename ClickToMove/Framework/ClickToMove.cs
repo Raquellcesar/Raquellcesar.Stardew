@@ -863,35 +863,38 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             this.ClickHoldActive = true;
 
-            if ((this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null)
-                && this.ClickKeyStates.RealClickHeld
-                && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
-                && this.phase != ClickToMovePhase.FollowingPath
-                && this.phase != ClickToMovePhase.OnFinalTile
-                && this.phase != ClickToMovePhase.ReachedEndOfPath
-                && this.phase != ClickToMovePhase.Complete)
+            if (this.ClickKeyStates.RealClickHeld)
             {
-                if (Game1.player.UsingTool)
+                if ((this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null)
+                    && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
+                    && this.phase != ClickToMovePhase.FollowingPath
+                    && this.phase != ClickToMovePhase.OnFinalTile
+                    && this.phase != ClickToMovePhase.ReachedEndOfPath
+                    && this.phase != ClickToMovePhase.Complete)
                 {
-                    this.ClickKeyStates.StopMoving();
-                    this.ClickKeyStates.SetUseTool(false);
-                    this.phase = ClickToMovePhase.None;
+                    if (Game1.player.UsingTool)
+                    {
+                        this.ClickKeyStates.StopMoving();
+                        this.ClickKeyStates.SetUseTool(false);
+                        this.phase = ClickToMovePhase.None;
+                    }
+                    else
+                    {
+                        this.phase = ClickToMovePhase.UseTool;
+                    }
+
+                    return;
                 }
-                else
+                else if (this.waterSourceAndFishingRodSelected
+                         && Game1.player.CurrentTool is FishingRod
+                         && this.phase == ClickToMovePhase.Complete)
                 {
                     this.phase = ClickToMovePhase.UseTool;
+                    return;
                 }
             }
-            else if (this.waterSourceAndFishingRodSelected
-                     && this.ClickKeyStates.RealClickHeld
-                     && Game1.player.CurrentTool is FishingRod)
-            {
-                if (this.phase == ClickToMovePhase.Complete)
-                {
-                    this.phase = ClickToMovePhase.UseTool;
-                }
-            }
-            else if (this.Furniture is not null)
+
+            if (this.Furniture is not null)
             {
                 ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - this.Furniture is {this.Furniture}.");
 
@@ -1129,8 +1132,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         public void SwitchBackToLastTool()
         {
-            if (((this.GameLocation.IsChoppableOrMinable(this.clickedTile)
-                  || this.forestLog is not null) && this.ClickKeyStates.RealClickHeld)
+            if ((this.ClickKeyStates.RealClickHeld
+                 && (this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null))
                 || this.lastToolIndexList.Count == 0)
             {
                 return;

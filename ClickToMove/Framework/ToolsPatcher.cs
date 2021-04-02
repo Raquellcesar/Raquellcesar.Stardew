@@ -46,7 +46,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="FishingRod.doDoneFishing"/>. It resets
+        ///     A method called via Harmony after <see cref="FishingRod"/>.doDoneFishing. It resets
         ///     the state of the <see cref="ClickToMove"/> object associated with the current game location.
         /// </summary>
         private static void AfterDoDoneFishing()
