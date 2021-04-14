@@ -162,11 +162,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             SpriteEffects.None,
                             0.58f);
                     }
-                    else if (clickToMove.NoPathHere.X != -1)
+                    else if (clickToMove.InvalidTarget.X != -1)
                     {
                         Vector2 position = new Vector2(
-                            (clickToMove.NoPathHere.X * Game1.tileSize) - Game1.viewport.X,
-                            (clickToMove.NoPathHere.Y * Game1.tileSize) - Game1.viewport.Y);
+                            (clickToMove.InvalidTarget.X * Game1.tileSize) - Game1.viewport.X,
+                            (clickToMove.InvalidTarget.Y * Game1.tileSize) - Game1.viewport.Y);
 
                         spriteBatch.Draw(
                             Game1.mouseCursors,
@@ -370,9 +370,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 else if (currentMouseState.LeftButton == ButtonState.Released
                          && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
                 {
-                    clickToMove.OnClickRelease(
-                        Game1.getMouseX() + Game1.viewport.X,
-                        Game1.getMouseY() + Game1.viewport.Y);
+                    clickToMove.OnClickRelease();
                 }
 
                 clickToMove.Update();

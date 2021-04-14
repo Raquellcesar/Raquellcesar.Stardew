@@ -53,20 +53,39 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return value is not null;
         }
 
+        /// <summary>
+        ///     Checks if this <see cref="Wallpaper"/> can really be placed at the clicked tile in
+        ///     the given <see cref="DecoratableLocation"/>.
+        /// </summary>
+        /// <param name="wallpaper">The <see cref="Wallpaper"/> instance.</param>
+        /// <param name="decoratableLocation">
+        ///     The <see cref="DecoratableLocation"/> where the Wallpaper is being placed.
+        /// </param>
+        /// <param name="tileX">The x coordinate of the tile clicked.</param>
+        /// <param name="tileY">The y coordinate of the tile clicked.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this <see cref="Wallpaper"/> can really be placed
+        ///     at the clicked tile in the given <see cref="DecoratableLocation"/>. Returns <see
+        ///     langword="false"/> otherwise.
+        /// </returns>
+        public static bool CanBePlaced(this Wallpaper wallpaper, DecoratableLocation decoratableLocation, int tileX, int tileY)
+        {
+            return wallpaper.isFloor.Value ? decoratableLocation.getFloorAt(new Point(tileX, tileY)) != -1 : decoratableLocation.isTileOnWall(tileX, tileY);
+        }
+
+        /// <summary>
+        ///     Checks whether there's an egg at the given point in the world during the egg festival.
+        /// </summary>
+        /// <param name="clickPoint">The point to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's a festival egg at the given point. Returns
+        ///     <see langword="false"/> otherwise.
+        /// </returns>
         public static bool ClickedEggAtEggFestival(Point clickPoint)
         {
-            if (Game1.CurrentEvent is not null && Game1.CurrentEvent.FestivalName == "Egg Festival")
-            {
-                foreach (Prop prop in Game1.CurrentEvent.festivalProps)
-                {
-                    if (prop.ContainsPoint(clickPoint))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+            return Game1.CurrentEvent is not null
+                && Game1.CurrentEvent.FestivalName == "Egg Festival"
+                && Game1.CurrentEvent.festivalProps.Any(prop => prop.ContainsPoint(clickPoint.X, clickPoint.Y));
         }
 
         /// <summary>
@@ -126,15 +145,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if a point is within the bounding box of this <see cref="Prop"/>.
         /// </summary>
         /// <param name="prop">The <see cref="Prop"/> instance.</param>
-        /// <param name="point">The point to check.</param>
+        /// <param name="pointX">The x absolute coordinate of the point to check.</param>
+        /// <param name="pointY">The y absolute coordinate of the point to check.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if the given point is within the bounding box of this
         ///     <see cref="Prop"/>. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool ContainsPoint(this Prop prop, Point point)
+        public static bool ContainsPoint(this Prop prop, int pointX, int pointY)
         {
             Rectangle boundingRect = ClickToMoveManager.Reflection.GetField<Rectangle>(prop, "boundingRect").GetValue();
-            return boundingRect.Contains(point.X, point.Y);
+            return boundingRect.Contains(pointX, pointY);
         }
 
         /// <summary>
@@ -284,29 +304,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return null;
         }
 
+        /// <summary>
+        ///     Gets the number of tiles added to the maximum possible fishing casting distance,
+        ///     depending on the <see cref="Farmer"/>'s skill level.
+        /// </summary>
+        /// <param name="who">The <see cref="Farmer"/> fishing.</param>
+        /// <returns>
+        ///     The number of tiles added to the maximum possible fishing casting distance according
+        ///     to the <see cref="Farmer"/>'s skill level.
+        /// </returns>
         public static int GetFishingAddedDistance(this Farmer who)
         {
-            if (who.FishingLevel >= 15)
+            return who.FishingLevel switch
             {
-                return 4;
-            }
-
-            if (who.FishingLevel >= 8)
-            {
-                return 3;
-            }
-
-            if (who.FishingLevel >= 4)
-            {
-                return 2;
-            }
-
-            if (who.FishingLevel >= 1)
-            {
-                return 1;
-            }
-
-            return 0;
+                >= 15 => 4,
+                >= 8 => 3,
+                >= 4 => 2,
+                >= 1 => 1,
+                _ => 0
+            };
         }
 
         /// <summary>

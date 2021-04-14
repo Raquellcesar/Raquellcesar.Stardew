@@ -12,6 +12,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.CompilerServices;
 
     using Microsoft.Xna.Framework;
 
@@ -50,12 +51,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             this.GCost = int.MaxValue;
         }
-
-        /// <summary>
-        ///     Gets the bounding box for the tile associated with this node.
-        /// </summary>
-        public Rectangle BoundingBox =>
-                    new Rectangle(this.X * Game1.tileSize, this.Y * Game1.tileSize, Game1.tileSize, Game1.tileSize);
 
         public bool BubbleChecked { get; set; }
 
@@ -125,34 +120,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </summary>
         public int Y { get; set; }
 
-        public bool BrokenFestivalTile()
-        {
-            if (Game1.CurrentEvent is not null)
-            {
-                if (this.X == 18 && this.Y == 31 && Game1.dayOfMonth == 16 && Game1.currentSeason == "fall")
-                {
-                    return true;
-                }
-
-                if (this.X == 16 && this.Y == 19 && Game1.dayOfMonth == 27 && Game1.currentSeason == "fall")
-                {
-                    return true;
-                }
-
-                if (this.X == 66 && this.Y == 4 && Game1.dayOfMonth == 8 && Game1.currentSeason == "winter")
-                {
-                    return true;
-                }
-
-                if (this.X == 103 && this.Y == 28 && Game1.dayOfMonth == 8 && Game1.currentSeason == "winter")
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         /// <inheritdoc/>
         /// <remarks>
         ///     The comparison between AStarNodes is made by comparing their <see cref="FCost"/> values.
@@ -184,9 +151,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Checks if there's a boulder at the tile associated to this node.
         /// </summary>
-        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="x">The tile x coordinate.</param>
-        /// <param name="y">The tile y coordinate.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if there's a boulder at the tile associated to this
         ///     node. Returns <see langword="false"/> otherwise.
@@ -255,6 +219,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
+        ///     Checks whether there's a festival prop here that blocks the way.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this node's tile contains a a festival prop
+        ///     blocking the way. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public bool ContainsCollidingFestivalProp()
+        {
+            return Game1.CurrentEvent is not null
+                && Game1.CurrentEvent.festivalProps.Any(prop => prop.isColliding(this.TileRectangle));
+        }
+
+        /// <summary>
         ///     Checks if there is any piece of furniture occupying the tile that this node
         ///     represents that collides with the farmer.
         /// </summary>
@@ -264,39 +241,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public bool ContainsCollidingFurniture()
         {
+            Rectangle tileRectangle = this.TileRectangle;
+
             return this.Graph.GameLocation.furniture.Any(
-                furniture => furniture.furniture_type.Value != Furniture.rug
-                             && furniture.IntersectsForCollision(this.TileRectangle)
-                             && !Game1.player.TemporaryPassableTiles.Intersects(this.TileRectangle));
+                    furniture => furniture.furniture_type.Value != Furniture.rug
+                                 && furniture.IntersectsForCollision(tileRectangle)
+                                 && !Game1.player.TemporaryPassableTiles.Intersects(tileRectangle));
         }
 
         public bool ContainsFence()
         {
             this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
             return @object is Fence;
-        }
-
-        /// <summary>
-        ///     Checks whether there's a festival prop here.
-        /// </summary>
-        /// <returns>
-        ///     Returns <see langword="true"/> if this node's tile contains a a festival prop.
-        ///     Returns <see langword="false"/> otherwise.
-        /// </returns>
-        public bool ContainsFestivalProp()
-        {
-            if (Game1.CurrentEvent is not null)
-            {
-                foreach (Prop prop in Game1.CurrentEvent.festivalProps)
-                {
-                    if (prop.isColliding(this.TileRectangle))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
         }
 
         public bool ContainsGate()
@@ -341,6 +297,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             return this.Graph.GameLocation.currentEvent?.actors?.Any(
                        npc => npc.getTileX() == this.X && npc.getTileY() == this.Y) == true;
+        }
+
+        /// <summary>
+        ///     Checks whether there's an <see cref="Event"/> prop here.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this node's tile contains a an event prop. Returns
+        ///     <see langword="false"/> otherwise.
+        /// </returns>
+        public bool ContainsProp()
+        {
+            return Game1.CurrentEvent is not null
+                && Game1.CurrentEvent.props.Any(
+                    @object => @object.TileLocation.X == this.X && @object.TileLocation.Y == this.Y);
         }
 
         public bool ContainsScarecrow()
@@ -467,6 +437,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </summary>
         /// <returns>
         ///     Returns <see langword="true"/> if the travelling cart is occupying this node's tile.
+        ///     Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool ContainsTravellingCart()
         {
@@ -480,7 +451,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </summary>
         /// <returns>
         ///     Returns <see langword="true"/> if the travelling desert shop is occupying this
-        ///     node's tile.
+        ///     node's tile. Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool ContainsTravellingDesertShop()
         {
@@ -489,6 +460,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                                                                 this.TileRectangle);
         }
 
+        /// <summary>
+        ///     Checks if the tile that this node represents contains a tree.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is a tree at node's tile. Returns <see
+        ///     langword="false"/> otherwise.
+        /// </returns>
         public bool ContainsTree()
         {
             this.Graph.GameLocation.terrainFeatures.TryGetValue(
@@ -624,7 +602,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return null;
         }
 
-        public AStarNode GetNearestNodeToCrabPot()
+        public AStarNode GetNearestLandNodeToCrabPot()
         {
             foreach (WalkDirection walkDirection in WalkDirection.Directions)
             {
@@ -773,34 +751,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return null;
         }
 
+        /// <summary>
+        ///     Checks whether the tile associated to this node is a blocking bed tile, i.e. a bed
+        ///     tile that the path should ignore.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this node's tile is a bed tile that the path
+        ///     shouldn't go through. Returns <see langword="false"/> otherwise.
+        /// </returns>
         public bool IsBlockingBedTile()
         {
-            if (this.Graph.GameLocation is FarmHouse farmHouse)
+            foreach (Furniture furniture in this.Graph.GameLocation.furniture)
             {
-                Point bedSpot = farmHouse.getBedSpot();
-
-                if (farmHouse.upgradeLevel == 0)
+                if (furniture is BedFurniture bed && bed.getBoundingBox(bed.TileLocation).Intersects(this.TileRectangle))
                 {
-                    if (this.Y == bedSpot.Y - 1 && (this.X == bedSpot.X || this.X == bedSpot.X - 1))
-                    {
-                        return true;
-                    }
-                }
-                else if (farmHouse.upgradeLevel is >= 1)
-                {
-                    if (this.Y == bedSpot.Y + 2
-                        && (this.X == bedSpot.X - 1 || this.X == bedSpot.X || this.X == bedSpot.X + 1))
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    if (this.Y == bedSpot.Y + 2
-                        && (this.X == bedSpot.X - 1 || this.X == bedSpot.X || this.X == bedSpot.X + 1))
-                    {
-                        return true;
-                    }
+                    return this.Graph.ClickToMove.Bed is null || bed != this.Graph.ClickToMove.Bed;
                 }
             }
 
@@ -815,21 +780,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
 
             return (node.X == this.X - 1 || node.X == this.X + 1) && (node.Y == this.Y - 1 || node.Y == this.Y + 1);
-        }
-
-        public bool IsDownLeft(AStarNode node)
-        {
-            return node is not null && this.X == node.X - 1 && this.Y == node.Y + 1;
-        }
-
-        public bool IsDownRightTo(AStarNode node)
-        {
-            return node is not null && this.X == node.X + 1 && this.Y == node.Y + 1;
-        }
-
-        public bool IsDownTo(AStarNode node)
-        {
-            return node is not null && this.X == node.X && this.Y == node.Y + 1;
         }
 
         public bool IsGate()
@@ -981,9 +931,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 return false;
             }
 
-            return !this.ContainsCollidingFurniture() && !this.ContainsAnimal() && !this.ContainsNpc()
-                   && !this.ContainsFestivalProp() && !this.IsBlockingBedTile() && !this.ContainsTravellingCart()
-                   && !this.ContainsTravellingDesertShop() && !this.BrokenFestivalTile() && !this.ContainsCinema();
+            return !this.ContainsCollidingFurniture()
+                   && !this.ContainsAnimal()
+                   && !this.ContainsNpc()
+                   && !this.ContainsProp()
+                   && !this.ContainsCollidingFestivalProp()
+                   && !this.ContainsTravellingCart()
+                   && !this.ContainsTravellingDesertShop()
+                   && !this.ContainsCinema();
         }
 
         public bool IsUpLeft(AStarNode node)
@@ -1096,6 +1051,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return false;
         }
 
+        /// <summary>
+        ///     Determines the <see cref="WalkDirection"/> when going from this node to the given node.
+        /// </summary>
+        /// <param name="endNode">The target node.</param>
+        /// <returns>
+        ///     The <see cref="WalkDirection"/> when going from this node to the given node.
+        /// </returns>
         public WalkDirection WalkDirectionTo(AStarNode endNode)
         {
             if (endNode is null)
@@ -1105,7 +1067,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             foreach (WalkDirection walkDirection in WalkDirection.Directions)
             {
-                if (this.X == endNode.X + walkDirection.X && this.Y == endNode.Y + walkDirection.Y)
+                if (endNode.X == this.X + walkDirection.X && endNode.Y == this.Y + walkDirection.Y)
                 {
                     return walkDirection;
                 }

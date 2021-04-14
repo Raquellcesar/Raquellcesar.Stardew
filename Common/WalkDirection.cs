@@ -252,17 +252,17 @@ namespace Raquellcesar.Stardew.Common
         /// </returns>
         public static WalkDirection GetWalkDirectionForAngle(float angleDegrees)
         {
-            if (angleDegrees < -112.5 && angleDegrees >= -157.5)
+            if (angleDegrees >= -157.5 && angleDegrees < -112.5)
             {
                 return WalkDirection.UpLeft;
             }
 
-            if (angleDegrees < -67.5 && angleDegrees >= -112.5)
+            if (angleDegrees >= -112.5 && angleDegrees < -67.5)
             {
                 return WalkDirection.Up;
             }
 
-            if (angleDegrees < -22.5 && angleDegrees >= -67.5)
+            if (angleDegrees >= -67.5 && angleDegrees < -22.5)
             {
                 return WalkDirection.UpRight;
             }
@@ -349,7 +349,7 @@ namespace Raquellcesar.Stardew.Common
         /// <returns>The <see cref="WalkDirection"/> when following the given direction.</returns>
         private static WalkDirection GetFacingWalkDirectionForAngle(float angle)
         {
-            if (angle <= -Math.PI / 4.0 && angle >= -3.0 * Math.PI / 4.0)
+            if (angle >= -3.0 * Math.PI / 4.0 && angle <= -Math.PI / 4.0)
             {
                 return WalkDirection.Up;
             }

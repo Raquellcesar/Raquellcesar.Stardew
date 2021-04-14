@@ -23,17 +23,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     using StardewValley.Buildings;
     using StardewValley.Locations;
 
-    using xTile;
-
     /// <summary>
     ///     This class represents the graph of nodes used by the A* search algorithm.
     /// </summary>
     public class AStarGraph
     {
         /// <summary>
-        ///     A reference to the oldMariner private field in a <see cref="Beach" /> game location.
+        ///     Gets the <see cref="Framework.ClickToMove"/> object to which this graph belongs.
         /// </summary>
-        private readonly IReflectedField<NPC> oldMariner;
+        public ClickToMove ClickToMove { get; }
 
         /// <summary>
         ///     The grid of nodes for this graph.
@@ -43,17 +41,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Initializes a new instance of the <see cref="AStarGraph" /> class.
         /// </summary>
-        /// <param name="gameLocation">
-        ///     The game location associated to this graph.
+        /// <param name="clickToMove">
+        ///     The <see cref="Framework.ClickToMove"/> to which this graph belongs.
         /// </param>
-        public AStarGraph(GameLocation gameLocation)
+        public AStarGraph(ClickToMove clickToMove)
         {
-            this.GameLocation = gameLocation;
-
-            if (gameLocation is Beach)
-            {
-                this.oldMariner = ClickToMoveManager.Reflection.GetField<NPC>(gameLocation, "oldMariner");
-            }
+            this.ClickToMove = clickToMove;
 
             this.Init();
         }
@@ -73,8 +66,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         {
             get
             {
-                float playerTileX = (Game1.player.position.X + (Game1.tileSize / 2f)) / Game1.tileSize;
-                float playerTileY = (Game1.player.position.Y + (Game1.tileSize / 2f)) / Game1.tileSize;
+                float playerTileX = (Game1.player.position.X + (Game1.tileSize / 2)) / Game1.tileSize;
+                float playerTileY = (Game1.player.position.Y + (Game1.tileSize / 2)) / Game1.tileSize;
                 return this.GetNode((int)playerTileX, (int)playerTileY);
             }
         }
@@ -82,12 +75,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Gets the <see cref="StardewValley.GameLocation" /> to which this graph is associated.
         /// </summary>
-        public GameLocation GameLocation { get; }
+        public GameLocation GameLocation => this.ClickToMove.GameLocation;
 
         /// <summary>
         ///     Gets the Old Mariner NPC.
         /// </summary>
-        public NPC OldMariner => this.oldMariner?.GetValue();
+        public NPC OldMariner => this.ClickToMove.OldMariner;
 
         /// <summary>
         ///     Computes a path between the two specified nodes.
@@ -127,9 +120,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
                 foreach (AStarNode neighbour in currentNode.GetNeighbours())
                 {
-                    if (closedSet.Contains(neighbour)
-                        || (this.GameLocation is FarmHouse && !endNode.IsBlockingBedTile()
-                                                       && neighbour.IsBlockingBedTile()))
+                    if (closedSet.Contains(neighbour) || neighbour.IsBlockingBedTile())
                     {
                         continue;
                     }

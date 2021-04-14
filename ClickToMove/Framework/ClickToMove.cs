@@ -11,6 +11,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     using Microsoft.Xna.Framework;
 
@@ -82,8 +83,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private static long startTime = long.MaxValue;
 
+        /// <summary>
+        ///     The queue of clicks to process.
+        /// </summary>
         private readonly Queue<ClickQueueItem> clickQueue = new Queue<ClickQueueItem>();
 
+        /// <summary>
+        ///     A reference to the ignoreWarps private field in a <see cref="GameLocation"/>.
+        /// </summary>
         private readonly IReflectedField<bool> ignoreWarps;
 
         /// <summary>
@@ -91,12 +98,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private readonly Stack<int> lastToolIndexList = new Stack<int>();
 
+        /// <summary>
+        ///     A reference to the oldMariner private field in a <see cref="Beach"/> game location.
+        /// </summary>
+        private readonly IReflectedField<NPC> oldMariner;
+
         private Building actionableBuilding;
 
         private bool clickedCinemaDoor;
 
         private bool clickedCinemaTicketBooth;
 
+        /// <summary>
+        ///     Whether the player clicked Haley's bracelet during her event.
+        /// </summary>
         private bool clickedHaleyBracelet;
 
         /// <summary>
@@ -123,11 +138,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Indicates that the player has just clicked.
         /// </summary>
         private bool clickPressed;
-
-        /// <summary>
-        ///     Whether the click can be queued.
-        /// </summary>
-        private bool clickQueueable;
 
         private CrabPot crabPot;
 
@@ -163,18 +173,28 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private float lastDistance = float.MaxValue;
 
-        private Monster monsterTarget;
-
-        private Point noPathHere = new Point(-1, -1);
+        private Point invalidTarget = new Point(-1, -1);
 
         /// <summary>
         ///     Contains the path last computed by the A* algorithm.
         /// </summary>
         private AStarPath path;
 
+        //private bool pendingFurnitureAction;
+
         private bool performActionFromNeighbourTile;
 
         private ClickToMovePhase phase;
+
+        /// <summary>
+        ///     Whether the player has picked a previously clicked furniture.
+        /// </summary>
+        private bool pickedFurniture = false;
+
+        /// <summary>
+        ///     Whether the click can be queued.
+        /// </summary>
+        private bool queueingClicks;
 
         private int reallyStuckCount;
 
@@ -182,19 +202,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private int stuckCount;
 
+        private Monster targetMonster;
+
         private string toolToSelect;
 
+        /// <summary>
+        ///     Counts the number of times a path is (re)computed when walking to the target.
+        /// </summary>
         private int tryCount;
 
         private bool waitingToFinishWatering;
 
-        private WalkDirection walkDirectionToMouse = WalkDirection.None;
-
         private bool warping;
 
         private bool waterSourceAndFishingRodSelected;
-
-        private bool pendingFurnitureAction;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="ClickToMove"/> class.
@@ -208,13 +229,23 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             this.ignoreWarps = ClickToMoveManager.Reflection.GetField<bool>(gameLocation, "ignoreWarps");
 
-            this.Graph = new AStarGraph(this.GameLocation);
+            if (gameLocation is Beach)
+            {
+                this.oldMariner = ClickToMoveManager.Reflection.GetField<NPC>(gameLocation, "oldMariner");
+            }
+
+            this.Graph = new AStarGraph(this);
         }
 
         /// <summary>
         ///     Gets or sets the last <see cref="MeleeWeapon"/> used.
         /// </summary>
         public static MeleeWeapon LastMeleeWeapon { get; set; }
+
+        /// <summary>
+        ///     Gets the current active bed. That's the bed the Farmer is in or a bed clicked by the player.
+        /// </summary>
+        public BedFurniture Bed { get; private set; }
 
         /// <summary>
         ///     Gets the tile clicked by the player.
@@ -240,6 +271,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Gets the point clicked by the player. In absolute coordinates.
         /// </summary>
         public Vector2 ClickVector => new Vector2(this.clickPoint.X, this.clickPoint.Y);
+
+        /// <summary>
+        ///     Gets or sets a value with the clicked absolute coordinates when the mouse left click
+        ///     is postponed. This happens when <see cref="Furniture"/> is selected, since we need
+        ///     to wait to see if the player will hold the click.
+        /// </summary>
+        public Point DeferredClick { get; set; } = new Point(-1, -1);
 
         /// <summary>
         ///     Gets the furniture that was clicked by the player.
@@ -271,7 +309,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         public bool Moving => this.phase > ClickToMovePhase.None;
 
-        public Point NoPathHere => this.noPathHere;
+        public Point InvalidTarget => this.invalidTarget;
+
+        /// <summary>
+        ///     Gets the Old Mariner NPC.
+        /// </summary>
+        public NPC OldMariner => this.oldMariner?.GetValue();
 
         public bool PreventMountingHorse { get; set; }
 
@@ -317,45 +360,948 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.clickPressed = true;
             ClickToMove.startTime = DateTime.Now.Ticks;
 
-            if (this.GameLocation is DecoratableLocation)
+            if (this.GameLocation is DecoratableLocation decoratableLocation)
             {
                 if (this.GameLocation.GetFurniture(x, y) is Furniture furniture)
                 {
-                    if (furniture.heldObject.Value is not null)
-                    {
-                        this.phase = ClickToMovePhase.UseTool;
-                        return;
-                    }
-
                     // We need to wait to see it the player will be holding the click.
                     this.Furniture = furniture;
-                    this.pickingFurniture = false;
-                    ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClick({x}, {y}) - this.Furniture = {furniture}.");
+                    this.pickedFurniture = false;
+                    this.DeferredClick = new Point(x, y);
                     return;
                 }
 
-                ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClick({x}, {y}) - this.Furniture = null");
                 this.Furniture = null;
+            }
 
-                // There's no furniture clicked. If the Farmer is holding some furniture, let the game handle the click.
-                if (Game1.player.ActiveObject is Furniture)
+            this.HandleClick(x, y);
+        }
+
+        /// <summary>
+        ///     Called if the mouse left button is being held by the player.
+        /// </summary>
+        /// <param name="x">The clicked x absolute coordinate.</param>
+        /// <param name="y">The clicked y absolute coordinate.</param>
+        public void OnClickHeld(int x, int y)
+        {
+            if (ClickToMoveManager.JustClosedActiveMenu
+                || ClickToMoveManager.OnScreenButtonClicked
+                || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
+                || Game1.currentMinigame is FishingGame
+                || DateTime.Now.Ticks - ClickToMove.startTime < ClickToMove.TicksBeforeClickHoldKicksIn)
+            {
+                return;
+            }
+
+            this.ClickHoldActive = true;
+
+            if (this.ClickKeyStates.RealClickHeld)
+            {
+                if ((this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null)
+                    && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
+                    && this.phase != ClickToMovePhase.FollowingPath
+                    && this.phase != ClickToMovePhase.OnFinalTile
+                    && this.phase != ClickToMovePhase.ReachedEndOfPath
+                    && this.phase != ClickToMovePhase.Complete)
                 {
-                    ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClick({x}, {y}) - Game1.player.ActiveObject is Furniture -> {Game1.player.ActiveObject}. Next phase UseTool.");
+                    if (Game1.player.UsingTool)
+                    {
+                        this.ClickKeyStates.StopMoving();
+                        this.ClickKeyStates.SetUseTool(false);
+                        this.phase = ClickToMovePhase.None;
+                    }
+                    else
+                    {
+                        this.phase = ClickToMovePhase.UseTool;
+                    }
+
+                    return;
+                }
+                else if (this.waterSourceAndFishingRodSelected
+                         && Game1.player.CurrentTool is FishingRod
+                         && this.phase == ClickToMovePhase.Complete)
+                {
                     this.phase = ClickToMovePhase.UseTool;
                     return;
                 }
             }
 
-            this.OnClickInternal(x, y);
+            if (this.Furniture is not null)
+            {
+                // Pick the furniture.
+                if (!this.pickedFurniture)
+                {
+                    this.pickedFurniture = true;
+                    this.phase = ClickToMovePhase.UseTool;
+                }
+            }
+            else
+            {
+                if (!Game1.player.canMove
+                    || this.warping
+                    || this.GameLocation.IsChoppableOrMinable(this.clickedTile)
+                    || this.forestLog is not null)
+                {
+                    return;
+                }
+
+                if (this.phase != ClickToMovePhase.KeepMoving)
+                {
+                    if (this.phase != ClickToMovePhase.None)
+                    {
+                        this.Reset();
+                    }
+
+                    this.phase = ClickToMovePhase.KeepMoving;
+                    this.invalidTarget.X = this.invalidTarget.Y = -1;
+                }
+
+                Vector2 mousePosition = new Vector2(x, y);
+
+                if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
+                    && !this.warping && !this.IgnoreWarps && this.GameLocation.WarpIfInRange(mousePosition))
+                {
+                    this.Reset();
+                    this.warping = true;
+                }
+
+                Vector2 playerOffsetPosition = Game1.player.OffsetPositionOnMap();
+
+                float distanceToMouse = Vector2.Distance(playerOffsetPosition, mousePosition);
+                WalkDirection walkDirectionToMouse = WalkDirection.None;
+                if (distanceToMouse > Game1.tileSize / 2)
+                {
+                    float angleDegrees = (float)Math.Atan2(
+                                             mousePosition.Y - playerOffsetPosition.Y,
+                                             mousePosition.X - playerOffsetPosition.X) / ((float)Math.PI * 2)
+                                         * 360;
+
+                    walkDirectionToMouse = WalkDirection.GetWalkDirectionForAngle(angleDegrees);
+                }
+
+                this.ClickKeyStates.SetMovement(walkDirectionToMouse);
+            }
+        }
+
+        /// <summary>
+        ///     Called if the mouse left button was just released by the player.
+        /// </summary>
+        public void OnClickRelease()
+        {
+            this.clickPressed = false;
+            this.ClickHoldActive = false;
+
+            if (ClickToMoveManager.JustClosedActiveMenu || ClickToMoveManager.OnScreenButtonClicked)
+            {
+                ClickToMoveManager.JustClosedActiveMenu = false;
+                ClickToMoveManager.OnScreenButtonClicked = false;
+            }
+            else if (!ClickToMoveHelper.InMiniGameWhereWeDontWantClicks())
+            {
+                if (Game1.player.CurrentTool is not FishingRod and not Slingshot)
+                {
+                    if (Game1.player.CanMove && Game1.player.UsingTool)
+                    {
+                        Farmer.canMoveNow(Game1.player);
+                    }
+
+                    this.ClickKeyStates.RealClickHeld = false;
+                    //this.ClickKeyStates.ActionButtonPressed = false;
+                    this.ClickKeyStates.UseToolButtonReleased = true;
+                }
+
+                if (this.Furniture is not null && !this.pickedFurniture)
+                {
+                    // The furniture clicked was not picked. Check if the Farmer is placing
+                    // something over it.
+                    if (this.Furniture.heldObject.Value is null && Game1.player.ActiveObject is Furniture)
+                    {
+                        this.phase = ClickToMovePhase.UseTool;
+                    }
+                    /*else if (this.pendingFurnitureAction)
+                    {
+                        this.pendingFurnitureAction = false;
+
+                        if (this.Furniture.ParentSheetIndex == FurnitureId.Calendar
+                            || this.Furniture.ParentSheetIndex == FurnitureId.Catalogue
+                            || this.Furniture.ParentSheetIndex == FurnitureId.FurnitureCatalogue
+                            || this.Furniture.ParentSheetIndex == FurnitureId.SamsBoombox
+                            || this.Furniture.furniture_type.Value == Furniture.fireplace
+                            || this.Furniture.furniture_type.Value == Furniture.torch
+                            || this.Furniture is StorageFurniture
+                            || this.Furniture is TV
+                            || this.Furniture.GetSeatCapacity() > 0)
+                        {
+                            this.phase = ClickToMovePhase.DoAction;
+                            return;
+                        }
+
+                        this.ClickKeyStates.ActionButtonPressed = true;
+                        this.phase = ClickToMovePhase.Complete;
+                    }*/
+                    else if (this.DeferredClick.X != -1)
+                    {
+                        this.HandleClick(this.DeferredClick.X, this.DeferredClick.Y);
+                    }
+                }
+                /*else if (this.pendingFurnitureAction)
+                {
+                    this.pendingFurnitureAction = false;
+
+                    this.ClickKeyStates.ActionButtonPressed = true;
+                    this.phase = ClickToMovePhase.Complete;
+                }*/
+                else if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool.UpgradeLevel > 0
+                                                       && Game1.player.canReleaseTool
+                                                       && Game1.player.CurrentTool is not FishingRod
+                                                       && (this.phase == ClickToMovePhase.None
+                                                           || this.phase == ClickToMovePhase.PendingComplete
+                                                           || Game1.player.UsingTool))
+                {
+                    this.phase = ClickToMovePhase.UseTool;
+                }
+                else if (Game1.player.CurrentTool is Slingshot && Game1.player.usingSlingshot)
+                {
+                    this.phase = ClickToMovePhase.ReleaseTool;
+                }
+                else if (this.phase == ClickToMovePhase.PendingComplete || this.phase == ClickToMovePhase.KeepMoving)
+                {
+                    this.Reset();
+
+                    this.CheckForQueuedClicks();
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Clears the internal state of this instance.
+        /// </summary>
+        /// <param name="resetKeyStates">
+        ///     Whether the simulated key states should also be reset or not.
+        /// </param>
+        public void Reset(bool resetKeyStates = true)
+        {
+            this.phase = ClickToMovePhase.None;
+
+            this.clickPoint = new Point(-1, -1);
+            this.clickedTile = new Point(-1, -1);
+
+            if (this.clickedNode is not null)
+            {
+                this.clickedNode.FakeTileClear = false;
+            }
+
+            this.clickedNode = null;
+
+            this.stuckCount = 0;
+            this.reallyStuckCount = 0;
+            this.lastDistance = float.MaxValue;
+            this.distanceToTarget = DistanceToTarget.Unknown;
+
+            this.clickedCinemaDoor = false;
+            this.clickedCinemaTicketBooth = false;
+            this.endNodeOccupied = false;
+            this.endNodeToBeActioned = false;
+            this.endTileIsActionable = false;
+            this.performActionFromNeighbourTile = false;
+            this.warping = false;
+            this.waterSourceAndFishingRodSelected = false;
+
+            this.actionableBuilding = null;
+            this.clickedOnHorse = null;
+            this.crabPot = null;
+            this.forageItem = null;
+            this.forestLog = null;
+            this.gateClickedOn = null;
+            this.gateNode = null;
+            this.TargetFarmAnimal = null;
+            this.TargetNpc = null;
+
+            if (resetKeyStates)
+            {
+                this.ClickKeyStates.Reset();
+            }
+
+            if (Game1.player.mount is not null)
+            {
+                Game1.player.mount.SetCheckActionEnabled(true);
+            }
+        }
+
+        /// <summary>
+        ///     Changes the farmer's equipped tool to the last used tool. This is used to get back
+        ///     to the tool that was equipped before a different tool was autoselected.
+        /// </summary>
+        public void SwitchBackToLastTool()
+        {
+            if ((this.ClickKeyStates.RealClickHeld
+                 && (this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null))
+                || this.lastToolIndexList.Count == 0)
+            {
+                return;
+            }
+
+            int lastToolIndex = this.lastToolIndexList.Pop();
+
+            if (this.lastToolIndexList.Count == 0)
+            {
+                Game1.player.CurrentToolIndex = lastToolIndex;
+
+                if (Game1.player.CurrentTool is FishingRod or Slingshot)
+                {
+                    this.Reset();
+
+                    ClickToMove.startTime = DateTime.Now.Ticks;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Executes the action for this tick according to the current phase.
+        /// </summary>
+        public void Update()
+        {
+            this.ClickKeyStates.ClearReleasedStates();
+
+            if (Game1.eventUp && !Game1.player.CanMove && !Game1.dialogueUp && this.phase != ClickToMovePhase.None
+                && (Game1.currentSeason != "winter" || Game1.dayOfMonth != 8)
+                && Game1.currentMinigame is not FishingGame)
+            {
+                this.Reset();
+            }
+            else
+            {
+                switch (this.phase)
+                {
+                    case ClickToMovePhase.FollowingPath when Game1.player.CanMove:
+                        this.FollowPath();
+                        break;
+                    case ClickToMovePhase.OnFinalTile when Game1.player.CanMove:
+                        this.MoveOnFinalTile();
+                        break;
+                    case ClickToMovePhase.ReachedEndOfPath:
+                        this.StopMovingAfterReachingEndOfPath();
+                        break;
+                    case ClickToMovePhase.Complete:
+                        this.OnClickToMoveComplete();
+                        break;
+                    case ClickToMovePhase.UseTool:
+                        this.ClickKeyStates.SetUseTool(true);
+                        this.phase = ClickToMovePhase.ReleaseTool;
+                        break;
+                    case ClickToMovePhase.ReleaseTool:
+                        this.ClickKeyStates.SetUseTool(false);
+                        this.phase = ClickToMovePhase.CheckForMoreClicks;
+                        break;
+                    case ClickToMovePhase.CheckForMoreClicks:
+                        this.Reset();
+                        this.CheckForQueuedClicks();
+                        break;
+                    case ClickToMovePhase.DoAction:
+                        this.ClickKeyStates.ActionButtonPressed = true;
+                        this.phase = ClickToMovePhase.FinishAction;
+                        break;
+                    case ClickToMovePhase.FinishAction:
+                        this.ClickKeyStates.ActionButtonPressed = false;
+                        this.phase = ClickToMovePhase.None;
+                        break;
+                }
+            }
+
+            if (!this.CheckToAttackMonsters())
+            {
+                this.CheckToRetargetNPC();
+                this.CheckToRetargetFarmAnimal();
+                this.CheckToOpenClosedGate();
+                this.CheckToWaterNextTile();
+            }
+        }
+
+        /// <summary>
+        ///     Adds a click to the clicks queue, if it's not already there.
+        /// </summary>
+        /// <param name="x">The clicked x absolute coordinate.</param>
+        /// <param name="y">The clicked y absolute coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the click was successfuly added to the queue;
+        ///     returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool AddToClickQueue(int x, int y)
+        {
+            ClickQueueItem click = new ClickQueueItem(x, y);
+
+            if (this.clickQueue.Contains(click))
+            {
+                return false;
+            }
+
+            this.clickQueue.Enqueue(click);
+            return true;
+        }
+
+        /// <summary>
+        ///     Equips the farmer with the appropriate tool for the interaction at the end of the path.
+        /// </summary>
+        private void AutoSelectPendingTool()
+        {
+            if (this.toolToSelect is not null)
+            {
+                this.lastToolIndexList.Push(Game1.player.CurrentToolIndex);
+
+                Game1.player.SelectTool(this.toolToSelect);
+
+                this.toolToSelect = null;
+            }
+        }
+
+        /// <summary>
+        ///     Selects the tool to be used at the end of the path.
+        /// </summary>
+        /// <param name="toolName">The name of the tool to select.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the tool was found in the farmer's inventory;
+        ///     returns <see langword="false"/>, otherwise.
+        /// </returns>
+        private bool AutoSelectTool(string toolName)
+        {
+            if (Game1.player.HasTool(toolName))
+            {
+                this.toolToSelect = toolName;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Checks if there is an active bed. A bed is active if the Farmer is in the bed or the
+        ///     player clicks it and can be traversed by the path. If the bed was clicked, it
+        ///     also sets the clicked tile to the farmer's bed spot tile.
+        /// </summary>
+        private void CheckBed()
+        {
+            foreach (Furniture furniture in this.GameLocation.furniture)
+            {
+                if (furniture is BedFurniture bed)
+                {
+                    if (bed.getBoundingBox(bed.TileLocation).Contains(this.clickPoint))
+                    {
+                        Point bedSpot = bed.GetBedSpot();
+                        this.clickedTile.X = bedSpot.X;
+                        this.clickedTile.Y = bedSpot.Y;
+
+                        this.Bed = bed;
+                        return;
+                    }
+
+                    if (bed.getBoundingBox(bed.TileLocation).Intersects(Game1.player.GetBoundingBox()))
+                    {
+                        this.Bed = bed;
+                        return;
+                    }
+                }
+            }
+
+            this.Bed = null;
+        }
+
+        /// <summary>
+        ///     Checks for queueable clicks, i.e. clicks that trigger actions that can be queued. An
+        ///     example of this situation is when the player waters several tiles in succession.
+        /// </summary>
+        /// <param name="x">The clicked x absolute coordinate.</param>
+        /// <param name="y">The clicked y absolute coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the processing of the current click should stop
+        ///     here. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool CheckForQueueableClicks(int x, int y)
+        {
+            if (this.queueingClicks)
+            {
+                if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
+                {
+                    if (this.AddToClickQueue(x, y)
+                        && this.phase == ClickToMovePhase.None)
+                    {
+                        this.waitingToFinishWatering = true;
+                    }
+
+                    return true;
+                }
+
+                Vector2 tile = new Vector2(x / Game1.tileSize, y / Game1.tileSize);
+
+                this.GameLocation.terrainFeatures.TryGetValue(tile, out TerrainFeature terrainFeature);
+
+                if (terrainFeature is null)
+                {
+                    if (this.GameLocation.Objects.TryGetValue(tile, out SObject @object))
+                    {
+                        if (@object.readyForHarvest.Value
+                            || (@object.Name.Contains("Table") && @object.heldObject.Value is not null)
+                            || @object.IsSpawnedObject
+                            || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
+                        {
+                            this.AddToClickQueue(x, y);
+                            return true;
+                        }
+                    }
+                }
+                else if (terrainFeature is HoeDirt dirt)
+                {
+                    if (dirt.readyForHarvest())
+                    {
+                        this.AddToClickQueue(x, y);
+                        return true;
+                    }
+
+                    if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Category == SObject.SeedsCategory)
+                    {
+                        this.AddToClickQueue(x, y);
+                        return false;
+                    }
+
+                    if (dirt.state.Value != HoeDirt.watered && Game1.player.CurrentTool is WateringCan wateringCan)
+                    {
+                        if (wateringCan.WaterLeft > 0 || Game1.player.hasWateringCanEnchantment)
+                        {
+                            this.AddToClickQueue(x, y);
+                            return true;
+                        }
+                        else
+                        {
+                            Game1.player.doEmote(4);
+                            Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
+                        }
+                    }
+                }
+
+                if (Utility.canGrabSomethingFromHere((int)tile.X, (int)tile.Y, Game1.player))
+                {
+                    this.AddToClickQueue(x, y);
+                    return true;
+                }
+
+                this.queueingClicks = false;
+                this.clickQueue.Clear();
+            }
+
+            return false;
+        }
+
+        private void CheckForQueuedClicks()
+        {
+            if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
+            {
+                this.waitingToFinishWatering = true;
+                this.queueingClicks = true;
+                return;
+            }
+
+            this.queueingClicks = false;
+
+            if (this.clickQueue.Count > 0)
+            {
+                if (Game1.player.CurrentTool is WateringCan { WaterLeft: <= 0 })
+                {
+                    Game1.player.doEmote(4);
+                    Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
+                    this.clickQueue.Clear();
+                    return;
+                }
+
+                ClickQueueItem clickQueueItem = this.clickQueue.Dequeue();
+
+                this.HandleClick(
+                    clickQueueItem.ClickX,
+                    clickQueueItem.ClickY);
+
+                if (Game1.player.CurrentTool is WateringCan)
+                {
+                    this.OnClickRelease();
+                }
+            }
+        }
+
+        private bool CheckToAttackMonsters()
+        {
+            if (Game1.player.stamina <= 0)
+            {
+                return false;
+            }
+
+            if (!this.enableCheckToAttackMonsters)
+            {
+                if (DateTime.Now.Ticks < ClickToMove.MinimumTicksBetweenMonsterChecks)
+                {
+                    return false;
+                }
+
+                this.enableCheckToAttackMonsters = true;
+            }
+
+            if (this.justUsedWeapon)
+            {
+                this.justUsedWeapon = false;
+                this.ClickKeyStates.Reset();
+
+                return false;
+            }
+
+            if (this.phase != ClickToMovePhase.FollowingPath && this.phase != ClickToMovePhase.OnFinalTile
+                                                             && !Game1.player.UsingTool
+                                                             && Game1.player.CurrentTool is not null
+                                                             && Game1.player.CurrentTool.isHeavyHitter())
+            {
+                Rectangle boundingBox = Game1.player.GetBoundingBox();
+                boundingBox.Inflate(Game1.tileSize, Game1.tileSize);
+
+                Point playerPosition = Game1.player.GetBoundingBox().Center;
+
+                this.targetMonster = null;
+                float minimumDistance = float.MaxValue;
+                foreach (NPC character in this.GameLocation.characters)
+                {
+                    if (character is Monster monster)
+                    {
+                        Point monsterPosition = monster.GetBoundingBox().Center;
+                        float distance = ClickToMoveHelper.Distance(monsterPosition, playerPosition);
+
+                        if (distance < minimumDistance && boundingBox.Intersects(monster.GetBoundingBox())
+                                                       && !this.IsObjectBlockingMonster(monster))
+                        {
+                            minimumDistance = distance;
+                            this.targetMonster = monster;
+                        }
+                    }
+                }
+
+                if (this.targetMonster is not null)
+                {
+                    Point nearestMonsterPosition = this.targetMonster.GetBoundingBox().Center;
+                    WalkDirection walkDirection = WalkDirection.GetFacingWalkDirection(
+                        playerPosition,
+                        nearestMonsterPosition);
+
+                    if (Game1.player.FacingDirection != walkDirection.Value)
+                    {
+                        Game1.player.faceDirection(walkDirection.Value);
+                    }
+
+                    if (this.targetMonster is RockCrab rockCrab && rockCrab.IsHidingInShell()
+                                                                && !(Game1.player.CurrentTool is Pickaxe))
+                    {
+                        Game1.player.SelectTool("Pickaxe");
+                    }
+                    else if (ClickToMove.LastMeleeWeapon is not null
+                             && ClickToMove.LastMeleeWeapon != Game1.player.CurrentTool)
+                    {
+                        this.lastToolIndexList.Clear();
+
+                        Game1.player.SelectTool(ClickToMove.LastMeleeWeapon.Name);
+                    }
+
+                    this.justUsedWeapon = true;
+
+                    this.ClickKeyStates.SetUseTool(true);
+
+                    this.invalidTarget.X = this.invalidTarget.Y = -1;
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Checks whether the farmer can consume whatever they're holding.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the farmer can consume the item they're holding.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool CheckToConsumeItem()
+        {
+            if (Game1.player.ActiveObject is not null
+                && (Game1.player.ActiveObject.Edibility != SObject.inedible
+                    || (Game1.player.ActiveObject.name.Length >= 11
+                        && Game1.player.ActiveObject.name.Substring(0, 11) == "Secret Note")))
+            {
+                this.phase = ClickToMovePhase.DoAction;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void CheckToOpenClosedGate()
+        {
+            if (this.gateNode is not null && Vector2.Distance(
+                    Game1.player.OffsetPositionOnMap(),
+                    new Vector2(this.gateNode.NodeCenterOnMap.X, this.gateNode.NodeCenterOnMap.Y)) < 83.2f)
+            {
+                Fence fence = this.gateNode.GetGate();
+
+                // Is the gate closed?
+                if (fence is not null && fence.gatePosition.Value != Fence.gateOpenedPosition)
+                {
+                    fence.checkForAction(Game1.player);
+                    this.gateNode = null;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     If the targeted <see cref="FarmAnimal"/> is no longer at the clicked position,
+        ///     recompute a new path to it.
+        /// </summary>
+        private void CheckToRetargetFarmAnimal()
+        {
+            if (this.TargetFarmAnimal is not null && this.clickedTile.X != -1
+                                                  && (this.clickedTile.X != this.TargetFarmAnimal.getTileX()
+                                                      || this.clickedTile.Y != this.TargetFarmAnimal.getTileY()))
+            {
+                this.HandleClick(
+                    (this.TargetFarmAnimal.getTileX() * Game1.tileSize) + (Game1.tileSize / 2),
+                    (this.TargetFarmAnimal.getTileY() * Game1.tileSize) + (Game1.tileSize / 2));
+            }
+        }
+
+        /// <summary>
+        ///     If the targeted <see cref="NPC"/> is no longer at the clicked position, recompute a
+        ///     new path to it.
+        /// </summary>
+        private void CheckToRetargetNPC()
+        {
+            if (this.TargetNpc is not null && (this.clickedTile.X != -1 || this.clickedTile.Y != -1))
+            {
+                if (this.TargetNpc.currentLocation != this.GameLocation)
+                {
+                    this.Reset();
+                }
+                else if (this.TargetNpc.AtWarpOrDoor(this.GameLocation))
+                {
+                    this.Reset();
+                }
+                else if (this.clickedTile.X != this.TargetNpc.getTileX()
+                         || this.clickedTile.Y != this.TargetNpc.getTileY())
+                {
+                    this.HandleClick(
+                        (this.TargetNpc.getTileX() * Game1.tileSize) + (Game1.tileSize / 2),
+                        (this.TargetNpc.getTileY() * Game1.tileSize) + (Game1.tileSize / 2));
+                }
+            }
+        }
+
+        private void CheckToWaterNextTile()
+        {
+            if (this.waitingToFinishWatering && !Game1.player.UsingTool)
+            {
+                this.waitingToFinishWatering = false;
+                this.CheckForQueuedClicks();
+            }
+        }
+
+        /// <summary>
+        ///     Sets the farmer's facing direction.
+        /// </summary>
+        /// <param name="faceClickPoint">
+        ///     Indicates whether the farmer should face the <see cref="clickPoint"/> or instead the
+        ///     <see cref="ClickedTile"/>.
+        /// </param>
+        private void FaceTileClicked(bool faceClickPoint = false)
+        {
+            int facingDirection;
+
+            if (faceClickPoint)
+            {
+                facingDirection = WalkDirection.GetFacingDirection(
+                    Game1.player.Position,
+                    Utility.PointToVector2(this.clickPoint));
+            }
+            else
+            {
+                facingDirection = WalkDirection.GetFacingDirection(
+                    Game1.player.getTileLocation(),
+                    Utility.PointToVector2(this.clickedTile));
+            }
+
+            if (facingDirection != Game1.player.FacingDirection)
+            {
+                Game1.player.Halt();
+                Game1.player.faceDirection(facingDirection);
+            }
+        }
+
+        private bool FindAlternatePath(AStarNode start, int x, int y)
+        {
+            if (start is not null)
+            {
+                AStarNode node = this.Graph.GetNode(x, y);
+
+                if (node?.TileClear == true)
+                {
+                    this.path = this.Graph.FindPath(start, node);
+
+                    if (this.path is not null)
+                    {
+                        this.path.SmoothRightAngles();
+                        this.phase = ClickToMovePhase.FollowingPath;
+
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Follows the path.
+        /// </summary>
+        private void FollowPath()
+        {
+            if (this.path.Count > 0)
+            {
+                AStarNode farmerNode = this.Graph.FarmerNodeOffset;
+
+                if (farmerNode is null)
+                {
+                    this.Reset();
+                    return;
+                }
+
+                // Next node reached.
+                if (this.path[0] == farmerNode)
+                {
+                    this.path.RemoveFirst();
+
+                    this.lastDistance = float.MaxValue;
+                    this.stuckCount = 0;
+                    this.reallyStuckCount = 0;
+                }
+
+                if (this.path.Count > 0)
+                {
+                    // An animal or an NPC is blocking the way, we need to recompute the path.
+                    if (this.path[0].ContainsAnimal()
+                        || (this.path[0].GetNpc() is NPC npc && npc is not Horse && !Game1.player.isRidingHorse()))
+                    {
+                        this.HandleClick(this.clickPoint.X, this.clickPoint.Y);
+
+                        return;
+                    }
+
+                    Vector2 playerOffsetPositionOnMap = Game1.player.OffsetPositionOnMap();
+                    Vector2 nextNodeCenter = this.path[0].NodeCenterOnMap;
+                    WalkDirection walkDirection = WalkDirection.GetWalkDirection(
+                        playerOffsetPositionOnMap,
+                        nextNodeCenter,
+                        Game1.player.getMovementSpeed());
+
+                    float distanceToNextNode = Vector2.Distance(playerOffsetPositionOnMap, nextNodeCenter);
+
+                    // No progress since last attempt.
+                    if (distanceToNextNode >= this.lastDistance)
+                    {
+                        this.stuckCount++;
+                    }
+
+                    this.lastDistance = distanceToNextNode;
+
+                    if (distanceToNextNode < Game1.player.getMovementSpeed()
+                        || this.stuckCount >= ClickToMove.MaxStuckCount)
+                    {
+                        if (this.reallyStuckCount >= ClickToMove.MaxReallyStuckCount)
+                        {
+                            this.reallyStuckCount++;
+                            if (this.reallyStuckCount == 8)
+                            {
+                                if (Game1.player.isRidingHorse())
+                                {
+                                    this.Reset();
+                                }
+                                else if (this.clickedOnHorse is not null)
+                                {
+                                    this.clickedOnHorse.checkAction(Game1.player, this.GameLocation);
+
+                                    this.Reset();
+                                }
+                                else if (this.Graph.FarmerNodeOffset.GetNpc() is Horse horse)
+                                {
+                                    horse.checkAction(Game1.player, this.GameLocation);
+                                }
+                                else
+                                {
+                                    // Try again.
+                                    this.HandleClick(
+                                        this.clickPoint.X,
+                                        this.clickPoint.Y,
+                                        this.tryCount + 1);
+                                }
+
+                                return;
+                            }
+
+                            walkDirection = WalkDirection.OppositeWalkDirection(walkDirection);
+                        }
+                        else
+                        {
+                            WalkDirection walkDirection2 = farmerNode.WalkDirectionTo(this.path[0]);
+
+                            if (walkDirection2 != walkDirection)
+                            {
+                                this.reallyStuckCount++;
+                                walkDirection = walkDirection2;
+                            }
+                            else
+                            {
+                                walkDirection2 = WalkDirection.GetWalkDirection(
+                                    playerOffsetPositionOnMap,
+                                    nextNodeCenter);
+
+                                if (walkDirection2 != walkDirection)
+                                {
+                                    this.reallyStuckCount++;
+                                    walkDirection = walkDirection2;
+                                }
+                            }
+
+                            this.stuckCount = 0;
+                        }
+                    }
+
+                    this.ClickKeyStates.SetMovement(walkDirection);
+                }
+            }
+
+            if (this.path.Count == 0)
+            {
+                this.path = null;
+                this.phase = ClickToMovePhase.OnFinalTile;
+            }
+        }
+
+        private Rectangle GetHorseAlternativeBoundingBox(Horse horse)
+        {
+            if (horse.FacingDirection == WalkDirection.Up.Value || horse.FacingDirection == WalkDirection.Down.Value)
+            {
+                return new Rectangle((int)horse.Position.X, (int)horse.Position.Y - 128, 64, 192);
+            }
+
+            return new Rectangle((int)horse.Position.X - 32, (int)horse.Position.Y, 128, 64);
         }
 
         /// <summary>
         ///     The method that actually handles the left clicks.
         /// </summary>
-        /// <param name="x" > The clicked x absolute coordinate.</param>
+        /// <param name="x">The clicked x absolute coordinate.</param>
         /// <param name="y">The clicked y absolute coordinate.</param>
         /// <param name="tryCount">The number of times we tried to follow the path.</param>
-        private void OnClickInternal(int x, int y, int tryCount = 0)
+        private void HandleClick(int x, int y, int tryCount = 0)
         {
             while (true)
             {
@@ -377,9 +1323,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (this.clickQueueable)
+                if (this.queueingClicks)
                 {
-                    this.clickQueueable = false;
+                    this.queueingClicks = false;
                     this.clickQueue.Clear();
                 }
 
@@ -458,12 +1404,30 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 this.Reset(false);
                 this.ClickKeyStates.ResetLeftOrRightClickButtons();
+                this.ClickKeyStates.RealClickHeld = true;
 
                 this.clickPoint = clickPoint;
                 this.clickedTile = clickedTile;
-                this.ClickKeyStates.RealClickHeld = true;
+                this.invalidTarget.X = this.invalidTarget.Y = -1;
+
                 this.tryCount = tryCount;
-                this.noPathHere.X = this.noPathHere.Y = -1;
+
+                if (this.GameLocation is DecoratableLocation decoratableLocation)
+                {
+                    // There's no furniture clicked. If the Farmer is holding some furniture, let
+                    // the game handle the click.
+                    if (Game1.player.ActiveObject is Furniture)
+                    {
+                        this.phase = ClickToMovePhase.UseTool;
+                        return;
+                    }
+
+                    if (Game1.player.ActiveObject is Wallpaper wallpaper && wallpaper.CanBePlaced(decoratableLocation, this.clickedTile.X, this.clickedTile.Y))
+                    {
+                        this.ClickKeyStates.ActionButtonPressed = true;
+                        return;
+                    }
+                }
 
                 if (Game1.player.isRidingHorse()
                     && (this.GetHorseAlternativeBoundingBox(Game1.player.mount).Contains(clickPoint.X, clickPoint.Y)
@@ -472,19 +1436,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.Reset();
                     return;
-                }
-
-                if (this.HoldingWallpaperAndTileClickedIsWallOrFloor())
-                {
-                    this.ClickKeyStates.ActionButtonPressed = true;
-                    return;
-                }
-
-                if (Game1.mailbox.Count > 0 && Game1.player.ActiveObject is null && this.GameLocation is Farm
-                    && this.clickedTile.X == 68 && this.clickedTile.Y == 14)
-                {
-                    y += Game1.tileSize;
-                    continue;
                 }
 
                 if (this.GameLocation.doesTileHaveProperty(this.clickedTile.X, this.clickedTile.Y, "Action", "Buildings") is string action
@@ -562,7 +1513,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                this.RetargetBedSpot();
+                this.CheckBed();
 
                 this.clickedNode = this.Graph.GetNode(this.clickedTile.X, this.clickedTile.Y);
 
@@ -622,7 +1573,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         {
                             this.Reset();
 
-                            this.OnClickInternal(
+                            this.HandleClick(
                                 ((int)horse.getTileLocation().X * Game1.tileSize) + (Game1.tileSize / 2),
                                 ((int)horse.getTileLocation().Y * Game1.tileSize) + (Game1.tileSize / 2));
 
@@ -660,7 +1611,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (this.clickedNode.ContainsCinema() && !this.clickedCinemaTicketBooth && !this.clickedCinemaDoor)
                 {
-                    this.noPathHere = this.clickedTile;
+                    this.invalidTarget = this.clickedTile;
 
                     this.Reset();
 
@@ -752,7 +1703,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         return;
                     }
 
-                    if (this.clickQueueable)
+                    if (this.queueingClicks)
                     {
                         this.phase = ClickToMovePhase.UseTool;
                         return;
@@ -770,7 +1721,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.path.Add(neighbour);
                     this.path.Add(this.startNode);
 
-                    this.noPathHere.X = this.noPathHere.Y = -1;
+                    this.invalidTarget.X = this.invalidTarget.Y = -1;
                     this.finalNode = this.path[this.path.Count - 1];
                     this.phase = ClickToMovePhase.FollowingPath;
 
@@ -779,7 +1730,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (this.startNode.IsSameNode(this.clickedNode))
                 {
-                    this.noPathHere.X = this.noPathHere.Y = -1;
+                    this.invalidTarget.X = this.invalidTarget.Y = -1;
 
                     Warp warp = this.clickedNode.GetWarp(this.IgnoreWarps);
                     if (warp is not null && (Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival))
@@ -809,11 +1760,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     y += Game1.tileSize;
 
-                    this.noPathHere = this.clickedTile;
+                    this.invalidTarget = this.clickedTile;
 
                     if (tryCount > 0)
                     {
-                        this.noPathHere.Y -= 1;
+                        this.invalidTarget.Y -= 1;
                     }
 
                     tryCount++;
@@ -827,11 +1778,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.TargetNpc.checkAction(Game1.player, this.GameLocation);
                 }
 
-                this.noPathHere = this.clickedTile;
+                this.invalidTarget = this.clickedTile;
 
                 if (tryCount > 0)
                 {
-                    this.noPathHere.Y -= 1;
+                    this.invalidTarget.Y -= 1;
                 }
 
                 this.Reset();
@@ -841,955 +1792,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        /// Whether the player has clicked on furniture to pick it.
-        /// </summary>
-        private bool pickingFurniture = false;
-
-        /// <summary>
-        ///     Called if the mouse left button is being held by the player.
-        /// </summary>
-        /// <param name="x">The clicked x absolute coordinate.</param>
-        /// <param name="y">The clicked y absolute coordinate.</param>
-        public void OnClickHeld(int x, int y)
-        {
-            if (ClickToMoveManager.JustClosedActiveMenu
-                || ClickToMoveManager.OnScreenButtonClicked
-                || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
-                || Game1.currentMinigame is FishingGame
-                || DateTime.Now.Ticks - ClickToMove.startTime < ClickToMove.TicksBeforeClickHoldKicksIn)
-            {
-                return;
-            }
-
-            this.ClickHoldActive = true;
-
-            if (this.ClickKeyStates.RealClickHeld)
-            {
-                if ((this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null)
-                    && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
-                    && this.phase != ClickToMovePhase.FollowingPath
-                    && this.phase != ClickToMovePhase.OnFinalTile
-                    && this.phase != ClickToMovePhase.ReachedEndOfPath
-                    && this.phase != ClickToMovePhase.Complete)
-                {
-                    if (Game1.player.UsingTool)
-                    {
-                        this.ClickKeyStates.StopMoving();
-                        this.ClickKeyStates.SetUseTool(false);
-                        this.phase = ClickToMovePhase.None;
-                    }
-                    else
-                    {
-                        this.phase = ClickToMovePhase.UseTool;
-                    }
-
-                    return;
-                }
-                else if (this.waterSourceAndFishingRodSelected
-                         && Game1.player.CurrentTool is FishingRod
-                         && this.phase == ClickToMovePhase.Complete)
-                {
-                    this.phase = ClickToMovePhase.UseTool;
-                    return;
-                }
-            }
-
-            if (this.Furniture is not null)
-            {
-                ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - this.Furniture is {this.Furniture}.");
-
-                // Wait until the furniture is really picked.
-                if (this.pickingFurniture)
-                {
-                    ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - this.pickingFurniture is true.");
-                    ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - this.GameLocation.GetFurniture({x}, {y}) is {this.GameLocation.GetFurniture(x, y)}.");
-                    if (this.GameLocation.GetFurniture(x, y) != this.Furniture)
-                    {
-                        ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - this.Furniture assigned to null. this.pickingFurniture assigned to false.");
-                        this.Furniture = null;
-                        this.pickingFurniture = false;
-                    }
-                }
-                else
-                {
-                    ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - this.pickingFurniture is false. Assigned to true. Next phase UseTool.");
-                    this.pickingFurniture = true;
-                    this.phase = ClickToMovePhase.UseTool;
-                }
-            }
-            else if (Game1.player.ActiveObject is Furniture && Game1.currentLocation is DecoratableLocation)
-            {
-                ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - Game1.player.ActiveObject is Furniture {Game1.player.ActiveObject}. Farmer stopped. Next phase None.");
-                // So that the Farmer doesn't keep walking after picking the furniture.
-                this.ClickKeyStates.SetMovement(WalkDirection.None);
-                this.phase = ClickToMovePhase.None;
-            }
-            else
-            {
-                ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - Farmer keeps moving.");
-                ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickHeld({x}, {y}) - Furniture at position is {this.GameLocation.GetFurniture(x, y)}.");
-                if (!Game1.player.canMove
-                    || this.warping
-                    || this.GameLocation.IsChoppableOrMinable(this.clickedTile)
-                    || this.forestLog is not null)
-                {
-                    return;
-                }
-
-                if (this.phase != ClickToMovePhase.None && this.phase != ClickToMovePhase.KeepMoving)
-                {
-                    this.Reset();
-                }
-
-                if (this.phase != ClickToMovePhase.KeepMoving)
-                {
-                    this.phase = ClickToMovePhase.KeepMoving;
-                    this.noPathHere.X = this.noPathHere.Y = -1;
-                }
-
-                Vector2 mousePosition = new Vector2(x, y);
-                Vector2 playerOffsetPosition = Game1.player.OffsetPositionOnMap();
-
-                float distanceToMouse = Vector2.Distance(playerOffsetPosition, mousePosition);
-                if (distanceToMouse > Game1.smallestTileSize / Game1.options.zoomLevel)
-                {
-                    if (distanceToMouse > Game1.tileSize / 2)
-                    {
-                        float angleDegrees = (float)Math.Atan2(
-                                                 mousePosition.Y - playerOffsetPosition.Y,
-                                                 mousePosition.X - playerOffsetPosition.X) / ((float)Math.PI * 2)
-                                             * 360;
-
-                        this.walkDirectionToMouse = WalkDirection.GetWalkDirectionForAngle(angleDegrees);
-                    }
-                }
-                else
-                {
-                    this.walkDirectionToMouse = WalkDirection.None;
-                }
-
-                this.ClickKeyStates.SetMovement(this.walkDirectionToMouse);
-
-                if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
-                    && !this.warping && !this.IgnoreWarps && this.GameLocation.WarpIfInRange(mousePosition))
-                {
-                    this.Reset();
-                    this.warping = true;
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Called if the mouse left button was just released by the player.
-        /// </summary>
-        /// <param name="x">The clicked x absolute coordinate.</param>
-        /// <param name="y">The clicked y absolute coordinate.</param>
-        public void OnClickRelease(int x = 0, int y = 0)
-        {
-            this.clickPressed = false;
-            this.ClickHoldActive = false;
-
-            if (ClickToMoveManager.JustClosedActiveMenu || ClickToMoveManager.OnScreenButtonClicked)
-            {
-                ClickToMoveManager.JustClosedActiveMenu = false;
-                ClickToMoveManager.OnScreenButtonClicked = false;
-            }
-            else if (!ClickToMoveHelper.InMiniGameWhereWeDontWantClicks())
-            {
-                if (Game1.player.CurrentTool is not FishingRod and not Slingshot)
-                {
-                    if (Game1.player.CanMove && Game1.player.UsingTool)
-                    {
-                        Farmer.canMoveNow(Game1.player);
-                    }
-
-                    this.ClickKeyStates.RealClickHeld = false;
-                    this.ClickKeyStates.ActionButtonPressed = false;
-                    this.ClickKeyStates.UseToolButtonReleased = true;
-                }
-
-                if (this.Furniture is not null)
-                {
-                    // The furniture clicked was not picked. If the Farmer is holding some furniture, let the game handle the click.
-                    ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickReleased({x}, {y}) - this.Furniture {this.Furniture}.");
-                    if (Game1.player.ActiveObject is Furniture)
-                    {
-                        ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickReleased({x}, {y}) - Game1.player.ActiveObject is Furniture {Game1.player.ActiveObject}. Next phase UseTool.");
-                        this.phase = ClickToMovePhase.UseTool;
-                    }
-                    else if (this.pendingFurnitureAction)
-                    {
-                        ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickReleased({x}, {y}) - this.pendingFurnitureAction is true.");
-                        this.pendingFurnitureAction = false;
-
-                        if (this.Furniture.ParentSheetIndex == FurnitureId.Catalogue
-                            || this.Furniture.ParentSheetIndex == FurnitureId.FurnitureCatalogue
-                            || this.Furniture.ParentSheetIndex == FurnitureId.Calendar
-                            || this.Furniture.furniture_type.Value == Furniture.fireplace
-                            || this.Furniture is StorageFurniture
-                            || this.Furniture is TV)
-                        {
-                            this.phase = ClickToMovePhase.DoAction;
-                            return;
-                        }
-
-                        this.ClickKeyStates.ActionButtonPressed = true;
-                        this.phase = ClickToMovePhase.Complete;
-                    }
-                    else
-                    {
-                        ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> OnClickReleased({x}, {y}) - Call OnClickInternal.");
-                        this.OnClickInternal(x, y);
-                    }
-                }
-                else if (this.pendingFurnitureAction)
-                {
-                    this.pendingFurnitureAction = false;
-
-                    this.ClickKeyStates.ActionButtonPressed = true;
-                    this.phase = ClickToMovePhase.Complete;
-                }
-                else if (Game1.player.CurrentTool is not null && Game1.player.CurrentTool.UpgradeLevel > 0
-                                                       && Game1.player.canReleaseTool
-                                                       && Game1.player.CurrentTool is not FishingRod
-                                                       && (this.phase == ClickToMovePhase.None
-                                                           || this.phase == ClickToMovePhase.PendingComplete
-                                                           || Game1.player.UsingTool))
-                {
-                    this.phase = ClickToMovePhase.UseTool;
-                }
-                else if (Game1.player.CurrentTool is Slingshot && Game1.player.usingSlingshot)
-                {
-                    this.phase = ClickToMovePhase.ReleaseTool;
-                }
-                else if (this.phase == ClickToMovePhase.PendingComplete || this.phase == ClickToMovePhase.KeepMoving)
-                {
-                    this.Reset();
-
-                    this.CheckForQueuedClicks();
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Clears the internal state of this instance.
-        /// </summary>
-        /// <param name="resetKeyStates">
-        ///     Whether the simulated key states should also be reset or not.
-        /// </param>
-        public void Reset(bool resetKeyStates = true)
-        {
-            this.phase = ClickToMovePhase.None;
-
-            this.clickPoint = new Point(-1, -1);
-            this.clickedTile = new Point(-1, -1);
-
-            if (this.clickedNode is not null)
-            {
-                this.clickedNode.FakeTileClear = false;
-            }
-
-            this.clickedNode = null;
-
-            this.stuckCount = 0;
-            this.reallyStuckCount = 0;
-            this.lastDistance = float.MaxValue;
-            this.distanceToTarget = DistanceToTarget.InRange;
-
-            this.clickedCinemaDoor = false;
-            this.clickedCinemaTicketBooth = false;
-            this.endNodeOccupied = false;
-            this.endNodeToBeActioned = false;
-            this.endTileIsActionable = false;
-            this.performActionFromNeighbourTile = false;
-            this.warping = false;
-            this.waterSourceAndFishingRodSelected = false;
-
-            this.actionableBuilding = null;
-            this.clickedOnHorse = null;
-            this.crabPot = null;
-            this.forageItem = null;
-            this.forestLog = null;
-            this.gateClickedOn = null;
-            this.gateNode = null;
-            this.TargetFarmAnimal = null;
-            this.TargetNpc = null;
-
-            if (resetKeyStates)
-            {
-                this.ClickKeyStates.Reset();
-            }
-
-            if (Game1.player.mount is not null)
-            {
-                Game1.player.mount.SetCheckActionEnabled(true);
-            }
-        }
-
-        /// <summary>
-        ///     Changes the farmer's equipped tool to the last used tool. This is used to get back
-        ///     to the tool that was equipped before a different tool was autoselected.
-        /// </summary>
-        public void SwitchBackToLastTool()
-        {
-            if ((this.ClickKeyStates.RealClickHeld
-                 && (this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null))
-                || this.lastToolIndexList.Count == 0)
-            {
-                return;
-            }
-
-            int lastToolIndex = this.lastToolIndexList.Pop();
-
-            if (this.lastToolIndexList.Count == 0)
-            {
-                Game1.player.CurrentToolIndex = lastToolIndex;
-
-                if (Game1.player.CurrentTool is FishingRod or Slingshot)
-                {
-                    this.Reset();
-
-                    ClickToMove.startTime = DateTime.Now.Ticks;
-                }
-            }
-        }
-
-        /// <summary>
-        ///     Executes the action for this tick according to the current phase.
-        /// </summary>
-        public void Update()
-        {
-            this.ClickKeyStates.ClearReleasedStates();
-
-            if (Game1.eventUp && !Game1.player.CanMove && !Game1.dialogueUp && this.phase != ClickToMovePhase.None
-                && (Game1.currentSeason != "winter" || Game1.dayOfMonth != 8)
-                && Game1.currentMinigame is not FishingGame)
-            {
-                this.Reset();
-            }
-            else
-            {
-                switch (this.phase)
-                {
-                    case ClickToMovePhase.FollowingPath when Game1.player.CanMove:
-                        this.FollowPath();
-                        break;
-                    case ClickToMovePhase.OnFinalTile when Game1.player.CanMove:
-                        this.MoveOnFinalTile();
-                        break;
-                    case ClickToMovePhase.ReachedEndOfPath:
-                        this.StopMovingAfterReachingEndOfPath();
-                        break;
-                    case ClickToMovePhase.Complete:
-                        this.OnClickToMoveComplete();
-                        break;
-                    case ClickToMovePhase.UseTool:
-                        ClickToMoveManager.Monitor.Log($"Tick {GamePatcher.ticks} -> Update - SetUseTool(true).");
-                        this.ClickKeyStates.SetUseTool(true);
-                        this.phase = ClickToMovePhase.ReleaseTool;
-                        break;
-                    case ClickToMovePhase.ReleaseTool:
-                        this.ClickKeyStates.SetUseTool(false);
-                        this.phase = ClickToMovePhase.CheckForMoreClicks;
-                        break;
-                    case ClickToMovePhase.CheckForMoreClicks:
-                        this.Reset();
-                        this.CheckForQueuedClicks();
-                        break;
-                    case ClickToMovePhase.DoAction:
-                        this.ClickKeyStates.ActionButtonPressed = true;
-                        this.phase = ClickToMovePhase.FinishAction;
-                        break;
-                    case ClickToMovePhase.FinishAction:
-                        this.ClickKeyStates.ActionButtonPressed = false;
-                        this.phase = ClickToMovePhase.None;
-                        break;
-                }
-            }
-
-            if (!this.CheckToAttackMonsters())
-            {
-                this.CheckToRetargetNPC();
-                this.CheckToRetargetFarmAnimal();
-                this.CheckToOpenClosedGate();
-                this.CheckToWaterNextTile();
-            }
-        }
-
-        /// <summary>
-        ///     Adds a click to the clicks queue, if it's not already there.
-        /// </summary>
-        /// <param name="x">The clicked x absolute coordinate.</param>
-        /// <param name="y">The clicked y absolute coordinate.</param>
-        /// <returns>
-        ///     Returns <see langword="true"/> if the click was successfuly added to the queue;
-        ///     returns <see langword="false"/> otherwise.
-        /// </returns>
-        private bool AddToClickQueue(int x, int y)
-        {
-            ClickQueueItem click = new ClickQueueItem(x, y);
-
-            if (this.clickQueue.Contains(click))
-            {
-                return false;
-            }
-
-            this.clickQueue.Enqueue(click);
-            return true;
-        }
-
-        /// <summary>
-        ///     Equips the farmer with the appropriate tool for the interaction at the end of the path.
-        /// </summary>
-        private void AutoSelectPendingTool()
-        {
-            if (this.toolToSelect is not null)
-            {
-                this.lastToolIndexList.Push(Game1.player.CurrentToolIndex);
-
-                Game1.player.SelectTool(this.toolToSelect);
-
-                this.toolToSelect = null;
-            }
-        }
-
-        /// <summary>
-        ///     Selects the tool to be used at the end of the path.
-        /// </summary>
-        /// <param name="toolName">The name of the tool to select.</param>
-        /// <returns>
-        ///     Returns <see langword="true"/> if the tool was found in the farmer's inventory;
-        ///     returns <see langword="false"/>, otherwise.
-        /// </returns>
-        private bool AutoSelectTool(string toolName)
-        {
-            if (Game1.player.HasTool(toolName))
-            {
-                this.toolToSelect = toolName;
-
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        ///     Checks for queueable clicks, i.e. clicks that trigger actions that can be queued. An
-        ///     example of this situation is when the player waters several tiles in succession.
-        /// </summary>
-        /// <param name="x">The clicked x absolute coordinate.</param>
-        /// <param name="y">The clicked y absolute coordinate.</param>
-        /// <returns>
-        ///     Returns <see langword="true"/> if the processing of the current click should stop
-        ///     here. Returns <see langword="false"/> otherwise.
-        /// </returns>
-        private bool CheckForQueueableClicks(int x, int y)
-        {
-            if (this.clickQueueable)
-            {
-                if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
-                {
-                    if (this.AddToClickQueue(x, y)
-                        && this.phase == ClickToMovePhase.None)
-                    {
-                        this.waitingToFinishWatering = true;
-                    }
-
-                    return true;
-                }
-
-                Vector2 tile = new Vector2(x / Game1.tileSize, y / Game1.tileSize);
-
-                this.GameLocation.terrainFeatures.TryGetValue(tile, out TerrainFeature terrainFeature);
-
-                if (terrainFeature is null)
-                {
-                    if (this.GameLocation.Objects.TryGetValue(tile, out SObject @object))
-                    {
-                        if (@object.readyForHarvest.Value
-                            || (@object.Name.Contains("Table") && @object.heldObject.Value is not null)
-                            || @object.IsSpawnedObject
-                            || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
-                        {
-                            this.AddToClickQueue(x, y);
-                            return true;
-                        }
-                    }
-                }
-                else if (terrainFeature is HoeDirt dirt)
-                {
-                    if (dirt.readyForHarvest())
-                    {
-                        this.AddToClickQueue(x, y);
-                        return true;
-                    }
-
-                    if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Category == SObject.SeedsCategory)
-                    {
-                        this.AddToClickQueue(x, y);
-                        return false;
-                    }
-
-                    if (dirt.state.Value != HoeDirt.watered && Game1.player.CurrentTool is WateringCan wateringCan)
-                    {
-                        if (wateringCan.WaterLeft > 0 || Game1.player.hasWateringCanEnchantment)
-                        {
-                            this.AddToClickQueue(x, y);
-                            return true;
-                        }
-                        else
-                        {
-                            Game1.player.doEmote(4);
-                            Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
-                        }
-                    }
-                }
-
-                if (Utility.canGrabSomethingFromHere((int)tile.X, (int)tile.Y, Game1.player))
-                {
-                    this.AddToClickQueue(x, y);
-                    return true;
-                }
-
-                this.clickQueueable = false;
-                this.clickQueue.Clear();
-            }
-
-            return false;
-        }
-
-        private void CheckForQueuedClicks()
-        {
-            if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
-            {
-                this.waitingToFinishWatering = true;
-                this.clickQueueable = true;
-                return;
-            }
-
-            this.clickQueueable = false;
-
-            if (this.clickQueue.Count > 0)
-            {
-                if (Game1.player.CurrentTool is WateringCan { WaterLeft: <= 0 })
-                {
-                    Game1.player.doEmote(4);
-                    Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
-                    this.clickQueue.Clear();
-                    return;
-                }
-
-                ClickQueueItem clickQueueItem = this.clickQueue.Dequeue();
-
-                this.OnClickInternal(
-                    clickQueueItem.ClickX,
-                    clickQueueItem.ClickY);
-
-                if (Game1.player.CurrentTool is WateringCan)
-                {
-                    this.OnClickRelease();
-                }
-            }
-        }
-
-        private bool CheckToAttackMonsters()
-        {
-            if (Game1.player.stamina <= 0)
-            {
-                return false;
-            }
-
-            if (!this.enableCheckToAttackMonsters)
-            {
-                if (DateTime.Now.Ticks < ClickToMove.MinimumTicksBetweenMonsterChecks)
-                {
-                    return false;
-                }
-
-                this.enableCheckToAttackMonsters = true;
-            }
-
-            if (this.justUsedWeapon)
-            {
-                this.justUsedWeapon = false;
-                this.ClickKeyStates.Reset();
-
-                return false;
-            }
-
-            if (this.phase != ClickToMovePhase.FollowingPath && this.phase != ClickToMovePhase.OnFinalTile
-                                                             && !Game1.player.UsingTool
-                                                             && Game1.player.CurrentTool is not null
-                                                             && Game1.player.CurrentTool.isHeavyHitter())
-            {
-                Rectangle boundingBox = Game1.player.GetBoundingBox();
-                boundingBox.Inflate(Game1.tileSize, Game1.tileSize);
-
-                Point playerPosition = Game1.player.GetBoundingBox().Center;
-
-                this.monsterTarget = null;
-                float minimumDistance = float.MaxValue;
-                foreach (NPC character in this.GameLocation.characters)
-                {
-                    if (character is Monster monster)
-                    {
-                        Point monsterPosition = monster.GetBoundingBox().Center;
-                        float distance = ClickToMoveHelper.Distance(monsterPosition, playerPosition);
-
-                        if (distance < minimumDistance && boundingBox.Intersects(monster.GetBoundingBox())
-                                                       && !this.IsObjectBlockingMonster(monster))
-                        {
-                            minimumDistance = distance;
-                            this.monsterTarget = monster;
-                        }
-                    }
-                }
-
-                if (this.monsterTarget is not null)
-                {
-                    Point nearestMonsterPosition = this.monsterTarget.GetBoundingBox().Center;
-                    WalkDirection walkDirection = WalkDirection.GetFacingWalkDirection(
-                        playerPosition,
-                        nearestMonsterPosition);
-
-                    if (Game1.player.FacingDirection != walkDirection.Value)
-                    {
-                        Game1.player.faceDirection(walkDirection.Value);
-                    }
-
-                    if (this.monsterTarget is RockCrab rockCrab && rockCrab.IsHidingInShell()
-                                                                && !(Game1.player.CurrentTool is Pickaxe))
-                    {
-                        Game1.player.SelectTool("Pickaxe");
-                    }
-                    else if (ClickToMove.LastMeleeWeapon is not null
-                             && ClickToMove.LastMeleeWeapon != Game1.player.CurrentTool)
-                    {
-                        this.lastToolIndexList.Clear();
-
-                        Game1.player.SelectTool(ClickToMove.LastMeleeWeapon.Name);
-                    }
-
-                    this.justUsedWeapon = true;
-
-                    this.ClickKeyStates.SetUseTool(true);
-
-                    this.noPathHere.X = this.noPathHere.Y = -1;
-
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        ///     Checks whether the farmer can consume whatever they're holding.
-        /// </summary>
-        /// <returns>
-        ///     Returns <see langword="true"/> if the farmer can consume the item they're holding.
-        ///     Returns <see langword="false"/> otherwise.
-        /// </returns>
-        private bool CheckToConsumeItem()
-        {
-            if (Game1.player.ActiveObject is not null
-                && (Game1.player.ActiveObject.Edibility != SObject.inedible
-                    || (Game1.player.ActiveObject.name.Length >= 11
-                        && Game1.player.ActiveObject.name.Substring(0, 11) == "Secret Note")))
-            {
-                this.phase = ClickToMovePhase.DoAction;
-                return true;
-            }
-
-            return false;
-        }
-
-        private void CheckToOpenClosedGate()
-        {
-            if (this.gateNode is not null && Vector2.Distance(
-                    Game1.player.OffsetPositionOnMap(),
-                    new Vector2(this.gateNode.NodeCenterOnMap.X, this.gateNode.NodeCenterOnMap.Y)) < 83.2f)
-            {
-                Fence fence = this.gateNode.GetGate();
-
-                // Is the gate closed?
-                if (fence is not null && fence.gatePosition.Value != Fence.gateOpenedPosition)
-                {
-                    fence.checkForAction(Game1.player);
-                    this.gateNode = null;
-                }
-            }
-        }
-
-        /// <summary>
-        ///     If the targeted <see cref="FarmAnimal"/> is no longer at the clicked position,
-        ///     recompute a new path to it.
-        /// </summary>
-        private void CheckToRetargetFarmAnimal()
-        {
-            if (this.TargetFarmAnimal is not null && this.clickedTile.X != -1
-                                                  && (this.clickedTile.X != this.TargetFarmAnimal.getTileX()
-                                                      || this.clickedTile.Y != this.TargetFarmAnimal.getTileY()))
-            {
-                this.OnClickInternal(
-                    (this.TargetFarmAnimal.getTileX() * Game1.tileSize) + (Game1.tileSize / 2),
-                    (this.TargetFarmAnimal.getTileY() * Game1.tileSize) + (Game1.tileSize / 2));
-            }
-        }
-
-        /// <summary>
-        ///     If the targeted <see cref="NPC"/> is no longer at the clicked position, recompute a
-        ///     new path to it.
-        /// </summary>
-        private void CheckToRetargetNPC()
-        {
-            if (this.TargetNpc is not null && (this.clickedTile.X != -1 || this.clickedTile.Y != -1))
-            {
-                if (this.TargetNpc.currentLocation != this.GameLocation)
-                {
-                    this.Reset();
-                }
-                else if (this.TargetNpc.AtWarpOrDoor(this.GameLocation))
-                {
-                    this.Reset();
-                }
-                else if (this.clickedTile.X != this.TargetNpc.getTileX()
-                         || this.clickedTile.Y != this.TargetNpc.getTileY())
-                {
-                    this.OnClickInternal(
-                        (this.TargetNpc.getTileX() * Game1.tileSize) + (Game1.tileSize / 2),
-                        (this.TargetNpc.getTileY() * Game1.tileSize) + (Game1.tileSize / 2));
-                }
-            }
-        }
-
-        private void CheckToWaterNextTile()
-        {
-            if (this.waitingToFinishWatering && !Game1.player.UsingTool)
-            {
-                this.waitingToFinishWatering = false;
-                this.CheckForQueuedClicks();
-            }
-        }
-
-        /// <summary>
-        ///     Sets the farmer's facing direction.
-        /// </summary>
-        /// <param name="faceClickPoint">
-        ///     Indicates whether the farmer should face the <see cref="clickPoint"/> or instead the
-        ///     <see cref="ClickedTile"/>.
-        /// </param>
-        private void FaceTileClicked(bool faceClickPoint = false)
-        {
-            int facingDirection;
-
-            if (faceClickPoint)
-            {
-                facingDirection = WalkDirection.GetFacingDirection(
-                    Game1.player.position.Value,
-                    Utility.PointToVector2(this.clickPoint));
-            }
-            else
-            {
-                facingDirection = WalkDirection.GetFacingDirection(
-                    new Vector2(Game1.player.position.X / Game1.tileSize, Game1.player.position.Y / Game1.tileSize),
-                    Utility.PointToVector2(this.clickedTile));
-            }
-
-            if (facingDirection != Game1.player.FacingDirection)
-            {
-                Game1.player.Halt();
-                Game1.player.faceDirection(facingDirection);
-            }
-        }
-
-        private bool FindAlternatePath(AStarNode start, int x, int y)
-        {
-            if (start is not null)
-            {
-                AStarNode node = this.Graph.GetNode(x, y);
-
-                if (node?.TileClear == true)
-                {
-                    this.path = this.Graph.FindPath(start, node);
-
-                    if (this.path is not null)
-                    {
-                        this.path.SmoothRightAngles();
-                        this.phase = ClickToMovePhase.FollowingPath;
-
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        ///     Follows the path.
-        /// </summary>
-        private void FollowPath()
-        {
-            if (this.path.Count > 0)
-            {
-                AStarNode farmerNode = this.Graph.FarmerNodeOffset;
-
-                if (farmerNode is null)
-                {
-                    this.Reset();
-                    return;
-                }
-
-                // Next node reached.
-                if (this.path[0] == farmerNode)
-                {
-                    this.path.RemoveFirst();
-
-                    this.lastDistance = float.MaxValue;
-                    this.stuckCount = 0;
-                    this.reallyStuckCount = 0;
-                }
-
-                if (this.path.Count > 0)
-                {
-                    // An animal or an NPC is blocking the way, we need to recompute the path.
-                    if (this.path[0].ContainsAnimal()
-                        || (this.path[0].GetNpc() is NPC npc && npc is not Horse && !Game1.player.isRidingHorse()))
-                    {
-                        this.OnClickInternal(this.clickPoint.X, this.clickPoint.Y);
-
-                        return;
-                    }
-
-                    Vector2 playerOffsetPositionOnMap = Game1.player.OffsetPositionOnMap();
-                    Vector2 nextNodeCenter = this.path[0].NodeCenterOnMap;
-                    WalkDirection walkDirection = WalkDirection.GetWalkDirection(
-                        playerOffsetPositionOnMap,
-                        nextNodeCenter,
-                        Game1.player.getMovementSpeed());
-
-                    float distanceToNextNode = Vector2.Distance(playerOffsetPositionOnMap, nextNodeCenter);
-
-                    // No progress since last attempt.
-                    if (distanceToNextNode >= this.lastDistance)
-                    {
-                        this.stuckCount++;
-                    }
-
-                    this.lastDistance = distanceToNextNode;
-
-                    if (distanceToNextNode < Game1.player.getMovementSpeed()
-                        || this.stuckCount >= ClickToMove.MaxStuckCount)
-                    {
-                        if (this.reallyStuckCount >= ClickToMove.MaxReallyStuckCount)
-                        {
-                            walkDirection = WalkDirection.OppositeWalkDirection(walkDirection);
-
-                            this.reallyStuckCount++;
-
-                            if (this.reallyStuckCount == 8)
-                            {
-                                if (Game1.player.isRidingHorse())
-                                {
-                                    this.Reset();
-                                }
-                                else if (this.clickedOnHorse is not null)
-                                {
-                                    this.clickedOnHorse.checkAction(Game1.player, this.GameLocation);
-
-                                    this.Reset();
-                                }
-                                else if (this.Graph.FarmerNodeOffset.GetNpc() is Horse horse)
-                                {
-                                    horse.checkAction(Game1.player, this.GameLocation);
-                                }
-                                else
-                                {
-                                    // Try again.
-                                    this.OnClickInternal(
-                                        this.clickPoint.X,
-                                        this.clickPoint.Y,
-                                        this.tryCount + 1);
-                                }
-
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            WalkDirection walkDirection2 = farmerNode.WalkDirectionTo(this.path[0]);
-
-                            if (walkDirection2 != walkDirection)
-                            {
-                                this.reallyStuckCount++;
-                                walkDirection = walkDirection2;
-                            }
-                            else
-                            {
-                                walkDirection2 = WalkDirection.GetWalkDirection(
-                                    playerOffsetPositionOnMap,
-                                    nextNodeCenter);
-
-                                if (walkDirection2 != walkDirection)
-                                {
-                                    this.reallyStuckCount++;
-                                    walkDirection = walkDirection2;
-                                }
-                            }
-
-                            this.stuckCount = 0;
-                        }
-                    }
-
-                    this.ClickKeyStates.SetMovement(walkDirection);
-                }
-            }
-
-            if (this.path.Count == 0)
-            {
-                this.path = null;
-                this.phase = ClickToMovePhase.OnFinalTile;
-            }
-        }
-
-        private Rectangle GetHorseAlternativeBoundingBox(Horse horse)
-        {
-            if (horse.FacingDirection == WalkDirection.Up.Value || horse.FacingDirection == WalkDirection.Down.Value)
-            {
-                return new Rectangle((int)horse.Position.X, (int)horse.Position.Y - 128, 64, 192);
-            }
-
-            return new Rectangle((int)horse.Position.X - 32, (int)horse.Position.Y, 128, 64);
-        }
-
-        /// <summary>
-        ///     Checks if the Farmer is holding a <see cref="Wallpaper"/> and the clicked tile is on
-        ///     the floor or walls of a <see cref="DecoratableLocation"/>.
-        /// </summary>
-        /// <returns>
-        ///     Returns <see langword="true"/> if the Farmer is holding a <see cref="Wallpaper"/>
-        ///     and the clicked tile is on the floor or walls of a <see
-        ///     cref="DecoratableLocation"/>. Returns <see langword="false"/> otherwise.
-        /// </returns>
-        private bool HoldingWallpaperAndTileClickedIsWallOrFloor()
-        {
-            if (Game1.player.CurrentItem is Wallpaper wallpaper && this.GameLocation is DecoratableLocation decoratableLocation)
-            {
-                return
-                    (wallpaper.isFloor.Value && decoratableLocation.getFloorAt(this.clickedTile) != -1)
-                    || decoratableLocation.isTileOnWall(this.clickedTile.X, this.clickedTile.Y);
-            }
-
-            return false;
-        }
-
-        /// <summary>
         ///     Checks whether the current click should be ignored.
         /// </summary>
         /// <returns>
         ///     Returns <see langword="true"/> if the current click should be ignored. Returns <see
-        ///     langword="false"/> if the click need to be looked at.
+        ///     langword="false"/> if the click needs to be looked at.
         /// </returns>
         private bool IgnoreClick()
         {
@@ -1801,14 +1808,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     || Game1.locationRequest is not null
                     || (Game1.CurrentEvent is not null && !Game1.CurrentEvent.playerControlSequence)
                     || Game1.dialogueUp
-                    || (Game1.activeClickableMenu is not null and not AnimalQueryMenu and not CarpenterMenu and not PurchaseAnimalsMenu and not MuseumMenu))
+                    || (Game1.activeClickableMenu is not null and not AnimalQueryMenu and not CarpenterMenu and not PurchaseAnimalsMenu and not MuseumMenu)
+                    || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks())
             {
                 return true;
             }
 
             if (ClickToMoveManager.JustClosedActiveMenu
-                || ClickToMoveManager.OnScreenButtonClicked
-                || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks())
+                || ClickToMoveManager.OnScreenButtonClicked)
             {
                 return true;
             }
@@ -1864,7 +1871,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 float deltaY = Math.Abs(clickedNodeCenterOnMap.Y - playerOffsetPositionOnMap.Y)
                                - Game1.player.speed;
 
-                if (this.distanceToTarget != DistanceToTarget.TooFar && this.crabPot is null && Game1.player.GetBoundingBox().Intersects(this.clickedNode.BoundingBox))
+                if (this.distanceToTarget != DistanceToTarget.TooFar && this.crabPot is null && Game1.player.GetBoundingBox().Intersects(this.clickedNode.TileRectangle))
                 {
                     this.distanceToTarget = DistanceToTarget.TooClose;
 
@@ -1889,7 +1896,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
                 else
                 {
-                    this.distanceToTarget = DistanceToTarget.InRange;
+                    this.distanceToTarget = DistanceToTarget.Unknown;
                     this.OnReachEndOfPath();
                 }
             }
@@ -1898,7 +1905,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (distanceToGoal < Game1.player.getMovementSpeed()
                     || this.stuckCount >= ClickToMove.MaxStuckCount
                     || (this.endNodeToBeActioned && distanceToGoal < Game1.tileSize)
-                    || (this.endNodeOccupied && distanceToGoal < 66))
+                    || (this.endNodeOccupied && distanceToGoal < Game1.tileSize + 2))
                 {
                     this.OnReachEndOfPath();
                     return;
@@ -1927,7 +1934,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (this.GameLocation is Beach beach)
             {
-                if (node.X == 53 && node.Y == 8 && Game1.CurrentEvent is not null && Game1.CurrentEvent.id == 13)
+                if (Game1.CurrentEvent is not null
+                    && Game1.CurrentEvent.playerControlSequenceID == "haleyBeach"
+                    && node.X == Game1.CurrentEvent.playerControlTargetTile.X
+                    && node.Y == Game1.CurrentEvent.playerControlTargetTile.Y)
                 {
                     this.clickedHaleyBracelet = true;
                     this.endNodeToBeActioned = true;
@@ -2015,7 +2025,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     if (crop.IsReadyToHarvest())
                     {
-                        this.clickQueueable = true;
+                        this.queueingClicks = true;
                     }
                     else if (Game1.player.CurrentTool is Pickaxe)
                     {
@@ -2037,7 +2047,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     if (Game1.player.ActiveObject is not null
                         && Game1.player.ActiveObject.Category == SObject.SeedsCategory)
                     {
-                        this.clickQueueable = true;
+                        this.queueingClicks = true;
                     }
                 }
 
@@ -2045,7 +2055,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     if (wateringCan.WaterLeft > 0 || Game1.player.hasWateringCanEnchantment)
                     {
-                        this.clickQueueable = true;
+                        this.queueingClicks = true;
                     }
                     else
                     {
@@ -2066,11 +2076,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (this.Furniture is not null)
             {
-                if (this.Furniture.furniture_type.Value == Furniture.fireplace
-                    || this.Furniture is TV
-                    || this.Furniture is StorageFurniture
+                if (this.Furniture.ParentSheetIndex == FurnitureId.Catalogue
                     || this.Furniture.ParentSheetIndex == FurnitureId.FurnitureCatalogue
-                    || this.Furniture.ParentSheetIndex == FurnitureId.Catalogue)
+                    || this.Furniture.ParentSheetIndex == FurnitureId.SamsBoombox
+                    || this.Furniture.furniture_type.Value == Furniture.fireplace
+                    || this.Furniture.furniture_type.Value == Furniture.torch
+                    || this.Furniture is StorageFurniture
+                    || this.Furniture is TV
+                    || this.Furniture.GetSeatCapacity() > 0)
                 {
                     this.performActionFromNeighbourTile = true;
 
@@ -2222,7 +2235,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.clickPoint.Y,
                     Game1.player))
             {
-                this.clickQueueable = true;
+                this.queueingClicks = true;
 
                 this.forageItem = this.GameLocation.getObjectAt(
                     this.clickPoint.X,
@@ -2373,7 +2386,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.crabPot = crabPot;
                 this.performActionFromNeighbourTile = true;
 
-                AStarNode neighbour = node.GetNearestNodeToCrabPot();
+                AStarNode neighbour = node.GetNearestLandNodeToCrabPot();
 
                 if (node != neighbour)
                 {
@@ -2842,8 +2855,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.endNodeToBeActioned = this.WateringCanActionAtEndNode();
             }
 
-            if (!this.endNodeToBeActioned && Game1.player.ActiveObject is not null
-                                          && Game1.player.ActiveObject is not null)
+            if (!this.endNodeToBeActioned && Game1.player.ActiveObject is not null)
             {
                 this.endNodeToBeActioned = Game1.player.ActiveObject.isPlaceable()
                                            && Game1.player.ActiveObject.canBePlacedHere(
@@ -2939,10 +2951,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             this.Reset();
-
             this.CheckForQueuedClicks();
         }
 
+        /// <summary>
+        ///     Method called after the Farmer reaches the end of the path.
+        /// </summary>
         private void OnReachEndOfPath()
         {
             this.AutoSelectPendingTool();
@@ -2972,8 +2986,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         {
                             Game1.player.faceDirection(
                                 WalkDirection.GetFacingDirection(
-                                    new Vector2(this.clickPoint.X, this.ClickPoint.Y),
-                                    Game1.player.OffsetPositionOnMap()));
+                                    Game1.player.OffsetPositionOnMap(),
+                                    this.ClickVector));
                         }
                     }
                 }
@@ -2985,7 +2999,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         walkDirection = WalkDirection.GetWalkDirection(
                             Game1.player.OffsetPositionOnMap(),
                             this.clickedNode.NodeCenterOnMap,
-                            Game1.tileSize / 4);
+                            Game1.smallestTileSize);
                     }
                 }
 
@@ -3006,16 +3020,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     if (Game1.player.CurrentTool is not FishingRod || this.waterSourceAndFishingRodSelected)
                     {
                         this.GrabTile = this.clickedTile;
-                        if (!this.GameLocation.IsChoppableOrMinable(this.clickedTile)
-                            && this.forestLog is null)
+                        if (!this.GameLocation.IsChoppableOrMinable(this.clickedTile) && this.forestLog is null)
                         {
                             this.clickedTile.X = -1;
                             this.clickedTile.Y = -1;
                         }
 
-                        if (this.clickedHaleyBracelet && Game1.CurrentEvent is not null)
+                        if (Game1.CurrentEvent is not null && this.clickedHaleyBracelet)
                         {
-                            Game1.CurrentEvent.receiveActionPress(53, 8);
+                            Game1.CurrentEvent.receiveActionPress(Game1.CurrentEvent.playerControlTargetTile.X, Game1.CurrentEvent.playerControlTargetTile.Y);
                             this.clickedHaleyBracelet = false;
                         }
                         else
@@ -3091,11 +3104,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.player.mount.SetCheckActionEnabled(false);
             }
 
-            if (this.ClickKeyStates.RealClickHeld && this.Furniture is not null && this.forageItem is null)
+            /*if (this.ClickKeyStates.RealClickHeld && this.Furniture is not null && this.forageItem is null)
             {
                 this.pendingFurnitureAction = true;
                 return true;
-            }
+            }*/
 
             if (this.interactionAtCursor == InteractionType.Action && this.GameLocation.name.Value == "Blacksmith"
                                                      && this.clickedTile.X == 3
@@ -3190,24 +3203,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return false;
-        }
-
-        /// <summary>
-        ///     Sets the clicked tile to the farmer's bed tile, if the player clicked the farmer's bed.
-        /// </summary>
-        private void RetargetBedSpot()
-        {
-            if (this.GameLocation is FarmHouse farmHouse)
-            {
-                BedFurniture bed = farmHouse.GetPlayerBed();
-
-                if (bed.getBoundingBox(bed.TileLocation).Contains(this.clickPoint))
-                {
-                    Point bedSpot = bed.GetBedSpot();
-                    this.clickedTile.X = bedSpot.X;
-                    this.clickedTile.Y = bedSpot.Y;
-                }
-            }
         }
 
         /// <summary>
