@@ -464,8 +464,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            return gameLocation.IsStumpAt(tile.X, tile.Y)
-                   || gameLocation.IsBoulderAt(tile.X, tile.Y);
+            return gameLocation.IsStumpAt(tile.X, tile.Y) || gameLocation.IsBoulderAt(tile.X, tile.Y);
         }
 
         /// <summary>
@@ -504,8 +503,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         public static bool IsOreAt(this GameLocation location, Point tile)
         {
-            return location.orePanPoint.Value != Point.Zero && location.orePanPoint.X == tile.X
-                                                            && location.orePanPoint.Y == tile.Y;
+            return location.orePanPoint.Value != Point.Zero
+                && location.orePanPoint.X == tile.X
+                && location.orePanPoint.Y == tile.Y;
         }
 
         public static bool IsReadyToHarvest(this Crop crop)
@@ -663,6 +663,23 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             return true;
+        }
+
+        /// <summary>
+        ///     Checks if there's a tree log at a tile in a game location.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="x">The tile x coordinate.</param>
+        /// <param name="y">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's a tree log at the given tile in this game
+        ///     location. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool IsTreeLogAt(this GameLocation gameLocation, int x, int y)
+        {
+            return gameLocation is Forest forest
+                && forest.log is not null
+                && forest.log.getBoundingBox(forest.log.tile).Contains(x * Game1.tileSize, y * Game1.tileSize);
         }
 
         public static bool IsWater(this GameLocation location, Point tile)
