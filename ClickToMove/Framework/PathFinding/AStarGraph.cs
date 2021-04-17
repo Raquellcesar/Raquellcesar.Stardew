@@ -1,11 +1,11 @@
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // <copyright file="AStarGraph.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 {
@@ -17,29 +17,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     using Raquellcesar.Stardew.Common;
     using Raquellcesar.Stardew.Common.DataStructures;
 
-    using StardewModdingAPI;
-
     using StardewValley;
     using StardewValley.Buildings;
-    using StardewValley.Locations;
 
     /// <summary>
     ///     This class represents the graph of nodes used by the A* search algorithm.
     /// </summary>
-    public class AStarGraph
+    internal class AStarGraph
     {
-        /// <summary>
-        ///     Gets the <see cref="Framework.ClickToMove"/> object to which this graph belongs.
-        /// </summary>
-        public ClickToMove ClickToMove { get; }
-
         /// <summary>
         ///     The grid of nodes for this graph.
         /// </summary>
         private AStarNode[,] nodes;
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="AStarGraph" /> class.
+        ///     Initializes a new instance of the <see cref="AStarGraph"/> class.
         /// </summary>
         /// <param name="clickToMove">
         ///     The <see cref="Framework.ClickToMove"/> to which this graph belongs.
@@ -50,6 +42,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             this.Init();
         }
+
+        /// <summary>
+        ///     Gets the <see cref="Framework.ClickToMove"/> object to which this graph belongs.
+        /// </summary>
+        public ClickToMove ClickToMove { get; }
 
         /// <summary>
         ///     Gets the node corresponding to the player position.
@@ -73,7 +70,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Gets the <see cref="StardewValley.GameLocation" /> to which this graph is associated.
+        ///     Gets the <see cref="StardewValley.GameLocation"/> to which this graph is associated.
         /// </summary>
         public GameLocation GameLocation => this.ClickToMove.GameLocation;
 
@@ -99,8 +96,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             startNode.HCost = AStarGraph.Heuristic(startNode, endNode);
             startNode.PreviousNode = null;
 
-            // The set of discovered nodes that may need to be expanded.
-            // Initially, only the start node is known.
+            // The set of discovered nodes that may need to be expanded. Initially, only the start
+            // node is known.
             FastBinaryHeap<AStarNode> openSet = new FastBinaryHeap<AStarNode>();
             openSet.Push(startNode);
 
@@ -389,16 +386,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <summary>
         ///     Gets the node for the tile with coordinates (x, y).
         /// </summary>
-        /// <param name="x">The x tile coordinate.</param>
-        /// <param name="y">The y tile coordinate.</param>
+        /// <param name="tileX">The x tile coordinate.</param>
+        /// <param name="tileY">The y tile coordinate.</param>
         /// <returns>
-        ///     Returns the node at the tile with coordinates (x, y), if that tile exists in the map for the game location
-        ///     associated to the graph. Otherwise, returns <see langword="null"/>.
+        ///     Returns the node at the tile with coordinates (x, y), if that tile exists in the map
+        ///     for the game location associated to the graph. Otherwise, returns <see langword="null"/>.
         /// </returns>
-        public AStarNode GetNode(int x, int y)
+        public AStarNode GetNode(int tileX, int tileY)
         {
-            return x >= 0 && x < this.nodes.GetLength(0) && y >= 0 && y < this.nodes.GetLength(1)
-                       ? this.nodes[x, y]
+            return tileX >= 0 && tileX < this.nodes.GetLength(0) && tileY >= 0 && tileY < this.nodes.GetLength(1)
+                       ? this.nodes[tileX, tileY]
                        : null;
         }
 
@@ -489,13 +486,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        /// Checks if a tile is in the map associated to this graph's <see cref="GameLocation"/>.
+        ///     Checks if a tile is in the map associated to this graph's <see cref="GameLocation"/>.
         /// </summary>
         /// <param name="tileX">The tile x coordinate.</param>
         /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
-        /// Returns <see langword="true"/> if the given tile is in the map associated to this graph's <see cref="GameLocation"/>.
-        /// Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the given tile is in the map associated to this
+        ///     graph's <see cref="GameLocation"/>. Returns <see langword="false"/> otherwise.
         /// </returns>
         public bool IsTileOnMap(int tileX, int tileY)
         {

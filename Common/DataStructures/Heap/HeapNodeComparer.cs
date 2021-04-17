@@ -50,7 +50,7 @@ namespace Raquellcesar.Stardew.Common.DataStructures
         /// <summary>
         ///     Compares two objects according to the heap type.
         /// </summary>
-        /// <remarks>This method will invoke the delegate <see cref="comparerFunction" />, created on instantiation.</remarks>
+        /// <remarks>This method will invoke the delegate <see cref="comparerFunction"/>, created on instantiation.</remarks>
         /// <param name="x">First object to compare.</param>
         /// <param name="y">Second object to compare.</param>
         /// <returns>

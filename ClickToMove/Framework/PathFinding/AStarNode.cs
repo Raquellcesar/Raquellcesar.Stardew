@@ -1,18 +1,17 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="AStarNode.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Runtime.CompilerServices;
 
     using Microsoft.Xna.Framework;
 
@@ -34,20 +33,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     /// <summary>
     ///     The class for nodes used by the <see cref="AStarGraph"/> class.
     /// </summary>
-    public class AStarNode : IComparable<AStarNode>
+    internal class AStarNode : IComparable<AStarNode>
     {
         /// <summary>
         ///     Initializes a new instance of the <see cref="AStarNode"/> class.
         /// </summary>
         /// <param name="graph">The <see cref="AStarGraph"/> to which this node belongs.</param>
-        /// <param name="x">The x tile coordinate.</param>
-        /// <param name="y">The y tile coordinate.</param>
-        public AStarNode(AStarGraph graph, int x, int y)
+        /// <param name="tileX">The x tile coordinate.</param>
+        /// <param name="tileY">The y tile coordinate.</param>
+        public AStarNode(AStarGraph graph, int tileX, int tileY)
         {
             this.Graph = graph;
 
-            this.X = x;
-            this.Y = y;
+            this.X = tileX;
+            this.Y = tileY;
 
             this.GCost = int.MaxValue;
         }
@@ -369,10 +368,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public bool ContainsStumpOrBoulder()
         {
-            switch (this.Graph.GameLocation)
+            /*switch (this.Graph.GameLocation)
             {
                 case Woods woods:
-                    if (woods.stumps.Any(t => t.occupiesTile(this.X, this.Y)))
+                    if (woods.stumps.Any(stump => stump.occupiesTile(this.X, this.Y)))
                     {
                         return true;
                     }
@@ -386,7 +385,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
                     break;
                 default:
-                    if (this.Graph.GameLocation.resourceClumps.Any(t => t.occupiesTile(this.X, this.Y)))
+                    if (this.Graph.GameLocation.resourceClumps.Any(resourceClump => resourceClump.occupiesTile(this.X, this.Y)))
                     {
                         return true;
                     }
@@ -396,7 +395,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject value);
 
-            return value is not null && value.Name == "Boulder";
+            return value is not null && value.Name == "Boulder";*/
+            return this.Graph.GameLocation.IsStumpOrBoulderAt(this.X, this.Y);
         }
 
         public bool ContainsStumpOrHollowLog()
@@ -753,7 +753,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         /// <summary>
         ///     Checks whether the tile associated to this node is a blocking bed tile, i.e. a bed
-        ///     tile that the path should ignore.
+        ///     tile that the path should not traverse.
         /// </summary>
         /// <returns>
         ///     Returns <see langword="true"/> if this node's tile is a bed tile that the path
@@ -765,13 +765,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             {
                 if (furniture is BedFurniture bed && bed.getBoundingBox(bed.TileLocation).Intersects(this.TileRectangle))
                 {
-                    return this.Graph.ClickToMove.Bed is null || bed != this.Graph.ClickToMove.Bed;
+                    return this.Graph.ClickToMove.CurrentBed != bed && this.Graph.ClickToMove.TargetBed != bed;
                 }
             }
 
             return false;
         }
 
+        /// <summary>
+        ///     Checks whether the given node is a diagonal neighbour to this node.
+        /// </summary>
+        /// <param name="node">The node to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the given node is a diagonal neighbout to this node.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         public bool IsDiagonalNeighbour(AStarNode node)
         {
             if (node is null)

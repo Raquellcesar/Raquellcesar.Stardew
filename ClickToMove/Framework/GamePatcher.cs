@@ -105,11 +105,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 AccessTools.Method(typeof(Game1), nameof(Game1.exitActiveMenu)),
                 postfix: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.AfterExitActiveMenu)));
 
-            /*harmony.Patch(
-                AccessTools.Method(typeof(Game1), nameof(Game1.pressActionButton)),
-                transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspilePressActionButton)));*/
-
             harmony.Patch(
+                AccessTools.Method(typeof(Game1), nameof(Game1.pressActionButton)),
+                transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspilePressActionButton)));
+
+            /*harmony.Patch(
                 AccessTools.Method(typeof(Game1), nameof(Game1.pressActionButton)),
                 prefix: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforePressActionButton)));
 
@@ -119,7 +119,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             harmony.Patch(
                 AccessTools.Method(typeof(GameLocation), nameof(GameLocation.checkAction)),
-                prefix: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforeGameLocationCheckAction)));
+                prefix: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforeGameLocationCheckAction)));*/
 
             harmony.Patch(
                 AccessTools.Method(typeof(Game1), nameof(Game1.pressUseToolButton)),
@@ -1839,6 +1839,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (useToolButtonReleased && Game1.player.canReleaseTool && Game1.player.UsingTool
                     && Game1.player.CurrentTool is not null)
                 {
+                    ClickToMoveManager.Monitor.Log($"GamePatcher.UpdateControlInput() -> End using tool {Game1.player.CurrentTool}.");
                     Game1.player.EndUsingTool();
                 }
                 else if (switchToolButtonPressed && !Game1.player.UsingTool && !Game1.dialogueUp

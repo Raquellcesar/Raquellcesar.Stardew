@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="ClickToMoveKeyStates.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -17,7 +17,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     ///     These states simulate inputs that will be used to produce the desired outcomes (move the
     ///     farmer, use a tool, act upon an object, etc.).
     /// </summary>
-    public class ClickToMoveKeyStates
+    internal class ClickToMoveKeyStates
     {
         /// <summary>
         ///     Gets or sets the <see cref="WalkDirection"/> of the last movement.

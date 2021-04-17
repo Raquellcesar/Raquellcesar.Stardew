@@ -43,7 +43,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
     ///     cref="StardewValley.GameLocation"/> and will maintain data to optimize path finding in
     ///     that location.
     /// </summary>
-    public class ClickToMove
+    internal class ClickToMove
     {
         private const int MaxReallyStuckCount = 2;
 
@@ -156,7 +156,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private SObject forageItem;
 
-        private ResourceClump forestLog;
+        //private ResourceClump forestLog;
 
         private Fence gateClickedOn;
 
@@ -238,11 +238,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public static MeleeWeapon LastMeleeWeapon { get; set; }
 
         /// <summary>
-        ///     Gets the current active bed. That's the bed the Farmer is in or a bed clicked by the player.
-        /// </summary>
-        public BedFurniture Bed { get; private set; }
-
-        /// <summary>
         ///     Gets the tile clicked by the player.
         /// </summary>
         public Point ClickedTile => this.clickedTile;
@@ -266,6 +261,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Gets the point clicked by the player. In absolute coordinates.
         /// </summary>
         public Vector2 ClickVector => new Vector2(this.clickPoint.X, this.clickPoint.Y);
+
+        /// <summary>
+        ///     Gets the bed the Farmer is in.
+        /// </summary>
+        public BedFurniture CurrentBed { get; private set; }
 
         /// <summary>
         ///     Gets or sets a value with the clicked absolute coordinates when the mouse left click
@@ -314,6 +314,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public bool PreventMountingHorse { get; set; }
 
         /// <summary>
+        ///     Gets the bed clicked by the player.
+        /// </summary>
+        public BedFurniture TargetBed { get; private set; }
+
+        /// <summary>
         ///     Gets the <see cref="FarmAnimal"/> that's at the current goal node, if any.
         /// </summary>
         public FarmAnimal TargetFarmAnimal { get; private set; }
@@ -354,7 +359,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return;
             }
 
-            if (this.GameLocation is DecoratableLocation decoratableLocation)
+            ClickToMove.startTime = DateTime.Now.Ticks;
+
+            if (this.GameLocation is DecoratableLocation)
             {
                 if (this.GameLocation.GetFurniture(x, y) is Furniture furniture)
                 {
@@ -396,7 +403,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld - this.ClickKeyStates.RealClickHeld is true");
 
-                if ((this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null)
+                if (this.GameLocation.IsChoppableOrMinable(this.clickedTile)
                     && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
                     && this.phase != ClickToMovePhase.FollowingPath
                     && this.phase != ClickToMovePhase.OnFinalTile
@@ -444,8 +451,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if (!Game1.player.canMove
                     || this.warping
-                    || this.GameLocation.IsChoppableOrMinable(this.clickedTile)
-                    || this.forestLog is not null)
+                    || this.GameLocation.IsChoppableOrMinable(this.clickedTile))
                 {
                     ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld - not moving");
                     return;
@@ -496,7 +502,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         public void OnClickRelease()
         {
-            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickRelease()");
+            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickRelease() - Game1.player.CurrentTool.UpgradeLevel: {Game1.player.CurrentTool?.UpgradeLevel}; Game1.player.canReleaseTool: {Game1.player.canReleaseTool}");
 
             this.ClickHoldActive = false;
 
@@ -515,7 +521,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
 
                     this.ClickKeyStates.RealClickHeld = false;
-                    //this.ClickKeyStates.ActionButtonPressed = false;
                     this.ClickKeyStates.UseToolButtonReleased = true;
                 }
 
@@ -527,39 +532,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     {
                         this.phase = ClickToMovePhase.UseTool;
                     }
-                    /*else if (this.pendingFurnitureAction)
-                    {
-                        this.pendingFurnitureAction = false;
-
-                        if (this.Furniture.ParentSheetIndex == FurnitureId.Calendar
-                            || this.Furniture.ParentSheetIndex == FurnitureId.Catalogue
-                            || this.Furniture.ParentSheetIndex == FurnitureId.FurnitureCatalogue
-                            || this.Furniture.ParentSheetIndex == FurnitureId.SamsBoombox
-                            || this.Furniture.furniture_type.Value == Furniture.fireplace
-                            || this.Furniture.furniture_type.Value == Furniture.torch
-                            || this.Furniture is StorageFurniture
-                            || this.Furniture is TV
-                            || this.Furniture.GetSeatCapacity() > 0)
-                        {
-                            this.phase = ClickToMovePhase.DoAction;
-                            return;
-                        }
-
-                        this.ClickKeyStates.ActionButtonPressed = true;
-                        this.phase = ClickToMovePhase.Complete;
-                    }*/
                     else if (this.DeferredClick.X != -1)
                     {
                         this.HandleClick(this.DeferredClick.X, this.DeferredClick.Y);
                     }
                 }
-                /*else if (this.pendingFurnitureAction)
-                {
-                    this.pendingFurnitureAction = false;
-
-                    this.ClickKeyStates.ActionButtonPressed = true;
-                    this.phase = ClickToMovePhase.Complete;
-                }*/
                 else if (Game1.player.CurrentTool is not null
                          && Game1.player.CurrentTool is not FishingRod
                          && Game1.player.CurrentTool.UpgradeLevel > 0
@@ -622,7 +599,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.clickedOnHorse = null;
             this.crabPot = null;
             this.forageItem = null;
-            this.forestLog = null;
+            //this.forestLog = null;
             this.gateClickedOn = null;
             this.gateNode = null;
             this.TargetFarmAnimal = null;
@@ -645,8 +622,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         public void SwitchBackToLastTool()
         {
-            if ((this.ClickKeyStates.RealClickHeld
-                 && (this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null))
+            if ((this.ClickKeyStates.RealClickHeld && this.GameLocation.IsChoppableOrMinable(this.clickedTile))
                 || this.lastToolIndexList.Count == 0)
             {
                 return;
@@ -777,7 +753,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </returns>
         private bool AutoSelectTool(string toolName)
         {
-            if (Game1.player.HasTool(toolName))
+            if (Game1.player.getToolFromName(toolName) is not null)
             {
                 this.toolToSelect = toolName;
 
@@ -788,35 +764,39 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Checks if there is an active bed. A bed is active if the Farmer is in the bed or the
-        ///     player clicks it and can be traversed by the path. If the bed was clicked, it also
-        ///     sets the clicked tile to the farmer's bed spot tile.
+        ///     Checks if the Farmer is in the bed and/or the player clicks a bed. Beds in those
+        ///     situations can be traversed by the path. If a bed was clicked, it also sets the
+        ///     clicked tile to the farmer's bed spot tile.
         /// </summary>
         private void CheckBed()
         {
+            this.CurrentBed = null;
+            this.TargetBed = null;
+
             foreach (Furniture furniture in this.GameLocation.furniture)
             {
+                if (this.CurrentBed is not null && this.TargetBed is not null)
+                {
+                    break;
+                }
+
                 if (furniture is BedFurniture bed)
                 {
-                    if (bed.getBoundingBox(bed.TileLocation).Contains(this.clickPoint))
+                    if (this.CurrentBed is null && bed.getBoundingBox(bed.TileLocation).Intersects(Game1.player.GetBoundingBox()))
+                    {
+                        this.CurrentBed = bed;
+                    }
+
+                    if (this.TargetBed is null && bed.getBoundingBox(bed.TileLocation).Contains(this.clickPoint))
                     {
                         Point bedSpot = bed.GetBedSpot();
                         this.clickedTile.X = bedSpot.X;
                         this.clickedTile.Y = bedSpot.Y;
 
-                        this.Bed = bed;
-                        return;
-                    }
-
-                    if (bed.getBoundingBox(bed.TileLocation).Intersects(Game1.player.GetBoundingBox()))
-                    {
-                        this.Bed = bed;
-                        return;
+                        this.TargetBed = bed;
                     }
                 }
             }
-
-            this.Bed = null;
         }
 
         /// <summary>
@@ -1073,13 +1053,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private void CheckToRetargetFarmAnimal()
         {
-            if (this.TargetFarmAnimal is not null && this.clickedTile.X != -1
-                                                  && (this.clickedTile.X != this.TargetFarmAnimal.getTileX()
-                                                      || this.clickedTile.Y != this.TargetFarmAnimal.getTileY()))
+            if (this.TargetFarmAnimal is not null
+                && this.clickedTile.X != -1
+                && (this.clickedTile.X != this.TargetFarmAnimal.getTileX() || this.clickedTile.Y != this.TargetFarmAnimal.getTileY()))
             {
                 this.HandleClick(
-                    (this.TargetFarmAnimal.getTileX() * Game1.tileSize) + (Game1.tileSize / 2),
-                    (this.TargetFarmAnimal.getTileY() * Game1.tileSize) + (Game1.tileSize / 2));
+                    this.TargetFarmAnimal.getStandingX() + (Game1.tileSize / 2),
+                    this.TargetFarmAnimal.getStandingY() + (Game1.tileSize / 2));
             }
         }
 
@@ -1323,7 +1303,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.HandleClick({x}, {y}, {tryCount})");
 
-                ClickToMove.startTime = DateTime.Now.Ticks;
+                /*ClickToMove.startTime = DateTime.Now.Ticks;*/
 
                 this.interactionAtCursor = InteractionType.None;
 
@@ -2193,7 +2173,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            if (this.GameLocation is Forest forest)
+            /*if (this.GameLocation is Forest forest)
             {
                 if (forest.log is not null && forest.log.getBoundingBox(forest.log.tile).Contains(
                         this.clickedNode.X * Game1.tileSize,
@@ -2207,6 +2187,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     return true;
                 }
+            }*/
+
+            if (this.GameLocation.IsTreeLogAt(this.clickedNode.X, this.clickedNode.Y))
+            {
+                this.performActionFromNeighbourTile = true;
+                this.endNodeToBeActioned = true;
+
+                this.AutoSelectTool("Axe");
+
+                return true;
             }
 
             if (node.GetObjectParentSheetIndex() == ObjectId.ArtifactSpot)
@@ -2354,7 +2344,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.SelectDifferentEndNode(this.TargetFarmAnimal.getTileX(), this.TargetFarmAnimal.getTileY());
                 }
 
-                if ((this.TargetFarmAnimal.type.Value.Contains("Cow")
+                if (this.TargetFarmAnimal.wasPet
+                    && this.TargetFarmAnimal.currentProduce > 0
+                    && this.TargetFarmAnimal.age >= this.TargetFarmAnimal.ageWhenMature
+                    && Game1.player.couldInventoryAcceptThisObject(this.TargetFarmAnimal.currentProduce, 1)
+                    && this.AutoSelectTool(this.TargetFarmAnimal.toolUsedForHarvest?.Value))
+                {
+                    return true;
+                }
+
+                this.performActionFromNeighbourTile = true;
+                return true;
+
+                /*if ((this.TargetFarmAnimal.type.Value.Contains("Cow")
                      || this.TargetFarmAnimal.type.Value.Contains("Goat")) && Game1.player.CurrentTool is MilkPail)
                 {
                     return true;
@@ -2367,7 +2369,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 this.performActionFromNeighbourTile = true;
 
-                return true;
+                return true;*/
             }
 
             if (Game1.player.ActiveObject is not null
@@ -3040,7 +3042,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     if (Game1.player.CurrentTool is not FishingRod || this.waterSourceAndFishingRodSelected)
                     {
                         this.GrabTile = this.clickedTile;
-                        if (!this.GameLocation.IsChoppableOrMinable(this.clickedTile) && this.forestLog is null)
+                        if (!this.GameLocation.IsChoppableOrMinable(this.clickedTile))
                         {
                             this.clickedTile.X = -1;
                             this.clickedTile.Y = -1;
@@ -3124,12 +3126,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.player.mount.SetCheckActionEnabled(false);
             }
 
-            /*if (this.ClickKeyStates.RealClickHeld && this.Furniture is not null && this.forageItem is null)
-            {
-                this.pendingFurnitureAction = true;
-                return true;
-            }*/
-
             if (this.interactionAtCursor == InteractionType.Action && this.GameLocation.name.Value == "Blacksmith"
                                                      && this.clickedTile.X == 3
                                                      && (this.clickedTile.Y == 12 || this.clickedTile.Y == 13 || this.clickedTile.Y == 14))
@@ -3144,8 +3140,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.GameLocation.isActionableTile(this.clickedTile.X, this.clickedTile.Y, Game1.player)
                 && !this.clickedNode.ContainsGate())
             {
-                if (this.GameLocation.IsChoppableOrMinable(this.clickedTile)
-                    || this.forestLog is not null)
+                if (this.GameLocation.IsChoppableOrMinable(this.clickedTile))
                 {
                     if (this.ClickHoldActive)
                     {
@@ -3228,18 +3223,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Selects a new end node for the current path computation, at the given tile coordinates.
         /// </summary>
-        /// <param name="x">The tile x coordinate.</param>
-        /// <param name="y">The tile y coordinate.</param>
-        private void SelectDifferentEndNode(int x, int y)
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        private void SelectDifferentEndNode(int tileX, int tileY)
         {
-            AStarNode node = this.Graph.GetNode(x, y);
+            AStarNode node = this.Graph.GetNode(tileX, tileY);
             if (node is not null)
             {
                 this.clickedNode = node;
-                this.clickedTile.X = x;
-                this.clickedTile.Y = y;
-                this.clickPoint.X = (x * Game1.tileSize) + (Game1.tileSize / 2);
-                this.clickPoint.Y = (y * Game1.tileSize) + (Game1.tileSize / 2);
+                this.clickedTile.X = tileX;
+                this.clickedTile.Y = tileY;
+                this.clickPoint.X = (tileX * Game1.tileSize) + (Game1.tileSize / 2);
+                this.clickPoint.Y = (tileY * Game1.tileSize) + (Game1.tileSize / 2);
             }
         }
 
@@ -3317,6 +3312,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Stops the player after reaching the end of the path and checks if they are engaged
+        ///     in some ongoing activity (mining, chopping, watering, hoeing).
+        /// </summary>
         private void StopMovingAfterReachingEndOfPath()
         {
             this.ClickKeyStates.SetMovement(WalkDirection.None);
@@ -3325,7 +3324,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (this.ClickKeyStates.RealClickHeld
                 && (((Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
-                     && (this.GameLocation.IsChoppableOrMinable(this.clickedTile) || this.forestLog is not null))
+                     && this.GameLocation.IsChoppableOrMinable(this.clickedTile))
                     || (Game1.player.UsingTool
                         && (Game1.player.CurrentTool is WateringCan || Game1.player.CurrentTool is Hoe))))
             {

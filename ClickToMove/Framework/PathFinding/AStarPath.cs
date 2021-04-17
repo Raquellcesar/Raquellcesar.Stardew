@@ -1,16 +1,15 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="AStarPath.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
 
     using Raquellcesar.Stardew.Common;
@@ -18,7 +17,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     /// <summary>
     ///     The class for paths returned by the <see cref="AStarGraph"/> class.
     /// </summary>
-    public class AStarPath : IEnumerable<AStarNode>
+    internal class AStarPath
     {
         /// <summary>
         ///     The internal list that actually contains the path nodes.
@@ -31,7 +30,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </summary>
         /// <param name="startNode">The start node.</param>
         /// <param name="endNode">The end node.</param>
-        public AStarPath(AStarNode startNode, AStarNode endNode)
+        internal AStarPath(AStarNode startNode, AStarNode endNode)
         {
             for (AStarNode aStarNode = endNode; aStarNode != startNode; aStarNode = aStarNode.PreviousNode)
             {
@@ -52,7 +51,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// <param name="i">The index of the node to access.</param>
         /// <returns>The node at index i.</returns>
         /// <exception cref="IndexOutOfRangeException">If the index is out of bounds.</exception>
-        public AStarNode this[int i]
+        internal AStarNode this[int i]
         {
             get
             {
@@ -64,58 +63,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
                 return this.nodes[i];
             }
-        }
-
-        /// <summary>
-        ///     Adds a node at the end of the path.
-        /// </summary>
-        /// <param name="node">The node to add.</param>
-        public void Add(AStarNode node)
-        {
-            this.nodes.Add(node);
-        }
-
-        /// <summary>
-        ///     Checks if there's a gate at some point in the path.
-        /// </summary>
-        /// <returns>
-        ///     Returns <see langword="true"/> if there exist a gate along the path, false otherwise.
-        /// </returns>
-        public AStarNode ContainsGate()
-        {
-            foreach (AStarNode node in this.nodes)
-            {
-                if (node.IsGate())
-                {
-                    return node;
-                }
-            }
-
-            return null;
-        }
-
-        /// <inheritdoc/>
-        public IEnumerator<AStarNode> GetEnumerator()
-        {
-            return this.nodes.GetEnumerator();
-        }
-
-        /// <summary>
-        ///     Returns the first <see cref="AStarNode"/> in the path.
-        /// </summary>
-        /// <returns>The first node in the path. If the path is empty, returns <see langword="null"/>.</returns>
-        public AStarNode GetFirst()
-        {
-            return this.nodes.Count == 0 ? null : this.nodes[0];
-        }
-
-        /// <summary>
-        ///     Returns the last <see cref="AStarNode"/> in the path.
-        /// </summary>
-        /// <returns>The last node in the path. If the path is empty, returns <see langword="null"/>.</returns>
-        public AStarNode GetLast()
-        {
-            return this.nodes.Count != 0 ? this.nodes[this.nodes.Count - 1] : null;
         }
 
         /// <summary>
@@ -174,10 +121,50 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
         }
 
-        /// <inheritdoc/>
-        IEnumerator IEnumerable.GetEnumerator()
+        /// <summary>
+        ///     Adds a node at the end of the path.
+        /// </summary>
+        /// <param name="node">The node to add.</param>
+        internal void Add(AStarNode node)
         {
-            return this.nodes.GetEnumerator();
+            this.nodes.Add(node);
+        }
+
+        /// <summary>
+        ///     Checks if there's a gate at some point in the path.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there exist a gate along the path, false otherwise.
+        /// </returns>
+        internal AStarNode ContainsGate()
+        {
+            foreach (AStarNode node in this.nodes)
+            {
+                if (node.IsGate())
+                {
+                    return node;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        ///     Returns the first <see cref="AStarNode"/> in the path.
+        /// </summary>
+        /// <returns>The first node in the path. If the path is empty, returns <see langword="null"/>.</returns>
+        internal AStarNode GetFirst()
+        {
+            return this.nodes.Count == 0 ? null : this.nodes[0];
+        }
+
+        /// <summary>
+        ///     Returns the last <see cref="AStarNode"/> in the path.
+        /// </summary>
+        /// <returns>The last node in the path. If the path is empty, returns <see langword="null"/>.</returns>
+        internal AStarNode GetLast()
+        {
+            return this.nodes.Count != 0 ? this.nodes[this.nodes.Count - 1] : null;
         }
 
         /// <summary>

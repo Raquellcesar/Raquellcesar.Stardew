@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="ClickToMoveManager.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -55,7 +55,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Gets the mod configuration.
         /// </summary>
-        public static ModConfig Config { get; private set; }
+        internal static ModConfig Config { get; private set; }
 
         /// <summary>
         ///     Gets the helper for writing mods.
@@ -96,7 +96,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="clickToMove">
         ///     <see cref="ClickToMove"/> object to associate with the game location.
         /// </param>
-        public static void AddOrUpdate(GameLocation location, ClickToMove clickToMove)
+        internal static void AddOrUpdate(GameLocation location, ClickToMove clickToMove)
         {
             if (location is not null)
             {
@@ -193,7 +193,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     The <see cref="ClickToMove"/> associated to the given <see cref="GameLocation"/>.
         ///     Returns <see langword="null"/> if the game location is null.
         /// </returns>
-        public static ClickToMove GetOrCreate(GameLocation gameLocation)
+        internal static ClickToMove GetOrCreate(GameLocation gameLocation)
         {
             return gameLocation is not null
                        ? ClickToMoveManager.PathFindingControllers.GetValue(gameLocation, ClickToMoveManager.CreateClickToMove)
@@ -206,7 +206,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="config">The mod configuration.</param>
         /// <param name="monitor">The monitor for monitoring and logging.</param>
         /// <param name="helper">The helper for writing mods.</param>
-        public static void Init(ModConfig config, IMonitor monitor, IModHelper helper)
+        internal static void Init(ModConfig config, IMonitor monitor, IModHelper helper)
         {
             ClickToMoveManager.Config = config;
             ClickToMoveManager.Monitor = monitor;
@@ -276,7 +276,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="clickToMove">
         ///     The <see cref="ClickToMove"/> object associated to the minigame's location.
         /// </param>
-        public static void ReceiveClickToMoveKeyStates(this FishingGame fishingGame, ClickToMove clickToMove)
+        internal static void ReceiveClickToMoveKeyStates(this FishingGame fishingGame, ClickToMove clickToMove)
         {
             ClickToMoveKeyStates clickKeyStates = clickToMove.ClickKeyStates;
 

@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="ClickToMoveHelper.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -268,33 +268,34 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Gets the farm animal at the tile associated with this node, if there's one.
+        ///     Gets the farm animal at the given position in ths <see cref="GameLocation"/>.
         /// </summary>
         /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="x">The tile x coordinate.</param>
-        /// <param name="y">The tile y coordinate.</param>
+        /// <param name="x">The x absolute coordinate.</param>
+        /// <param name="y">The y absolute coordinate.</param>
         /// <returns>
-        ///     Returns the farm animal at the tile associated with this node, if there's one.
-        ///     Returns <see langword="null"/> if there isn't any animal at the tile.
+        ///     Returns the farm animal at the given position in ths <see cref="GameLocation"/>, if there's one.
+        ///     Returns <see langword="null"/> if there isn't any animal at the specified position.
         /// </returns>
         public static FarmAnimal GetFarmAnimal(this GameLocation gameLocation, int x, int y)
         {
+            Rectangle rectangle = new Rectangle(x, y, Game1.tileSize, Game1.tileSize);
+
             if (gameLocation is AnimalHouse animalHouse)
             {
                 foreach (FarmAnimal farmAnimal in animalHouse.animals.Values)
                 {
-                    if (farmAnimal.GetBoundingBox().Contains(x, y))
+                    if (farmAnimal.GetBoundingBox().Intersects(rectangle))
                     {
                         return farmAnimal;
                     }
                 }
             }
-
-            if (gameLocation is Farm farm)
+            else if (gameLocation is Farm farm)
             {
                 foreach (FarmAnimal farmAnimal in farm.animals.Values)
                 {
-                    if (farmAnimal.GetBoundingBox().Contains(x, y))
+                    if (farmAnimal.GetBoundingBox().Intersects(rectangle))
                     {
                         return farmAnimal;
                     }
@@ -375,10 +376,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Returns <see langword="true"/> if this <see cref="Farmer"/> has the given tool in
         ///     their inventory. Return <see langword="false"/> otherwise.
         /// </returns>
-        public static bool HasTool(this Farmer farmer, string toolName)
+        /*public static bool HasTool(this Farmer farmer, string toolName)
         {
             return farmer.items.Any(item => item?.Name.Contains(toolName) == true);
-        }
+        }*/
 
         public static bool HoeSelectedAndTileHoeable(GameLocation gameLocation, Point tile)
         {
@@ -414,21 +415,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if there's a boulder at a tile in a game location.
         /// </summary>
         /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="x">The tile x coordinate.</param>
-        /// <param name="y">The tile y coordinate.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if there's a boulder at the given tile in this game
         ///     location. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool IsBoulderAt(this GameLocation gameLocation, int x, int y)
+        public static bool IsBoulderAt(this GameLocation gameLocation, int tileX, int tileY)
         {
             if (!(gameLocation is Forest || gameLocation is Woods) && gameLocation.resourceClumps.Any(
-                    resourceClump => resourceClump.IsBoulderAt(x, y)))
+                    resourceClump => resourceClump.IsBoulderAt(tileX, tileY)))
             {
                 return true;
             }
 
-            gameLocation.objects.TryGetValue(new Vector2(x, y), out SObject @object);
+            gameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object);
 
             return @object is not null && (@object.Name == "Stone" || @object.Name == "Boulder");
         }
@@ -464,7 +465,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            return gameLocation.IsStumpAt(tile.X, tile.Y) || gameLocation.IsBoulderAt(tile.X, tile.Y);
+            /*return gameLocation.IsStumpAt(tile.X, tile.Y) || gameLocation.IsBoulderAt(tile.X, tile.Y);*/
+            return gameLocation.IsStumpOrBoulderAt(tile.X, tile.Y);
         }
 
         /// <summary>
@@ -554,18 +556,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if there's a tree stump at a tile in a game location.
         /// </summary>
         /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="x">The tile x coordinate.</param>
-        /// <param name="y">The tile y coordinate.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
         ///     Returns true if there's a tree stump at the given tile in this game location.
         ///     Returns false otherwise.
         /// </returns>
-        public static bool IsStumpAt(this GameLocation gameLocation, int x, int y)
+        public static bool IsStumpAt(this GameLocation gameLocation, int tileX, int tileY)
         {
             if (gameLocation is Woods woods)
             {
                 return woods.stumps.Any(
-                    stump => stump.occupiesTile(x, y)
+                    stump => stump.occupiesTile(tileX, tileY)
                              && (stump.parentSheetIndex.Value == ResourceClump.stumpIndex
                                  || stump.parentSheetIndex.Value == ResourceClump.hollowLogIndex));
             }
@@ -573,12 +575,62 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (gameLocation is not MineShaft && gameLocation is not Forest)
             {
                 return gameLocation.resourceClumps.Any(
-                    resourceClump => resourceClump.occupiesTile(x, y)
+                    resourceClump => resourceClump.occupiesTile(tileX, tileY)
                                      && (resourceClump.parentSheetIndex.Value == ResourceClump.stumpIndex
                                          || resourceClump.parentSheetIndex.Value == ResourceClump.hollowLogIndex));
             }
 
             return false;
+        }
+
+        /// <summary>
+        ///     Checks if there's a tree stump or a boulder at a tile in a game location.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's a tree stump or a boulder at the given tile in this game
+        ///     location. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool IsStumpOrBoulderAt(this GameLocation gameLocation, int tileX, int tileY)
+        {
+            switch (gameLocation)
+            {
+                case Woods woods:
+                    {
+                        if (woods.stumps.Any(stump => stump.occupiesTile(tileX, tileY)))
+                        {
+                            return true;
+                        }
+
+                        break;
+                    }
+
+                case Forest forest:
+                    {
+                        if (forest.log is not null && forest.log.occupiesTile(tileX, tileY))
+                        {
+                            return true;
+                        }
+
+                        break;
+                    }
+
+                default:
+                    {
+                        if (gameLocation.resourceClumps.Any(resourceClump => resourceClump.occupiesTile(tileX, tileY)))
+                        {
+                            return true;
+                        }
+
+                        break;
+                    }
+            }
+
+            gameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object);
+
+            return @object is not null && (@object.Name == "Stone" || @object.Name == "Boulder");
         }
 
         /// <summary>
@@ -669,17 +721,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if there's a tree log at a tile in a game location.
         /// </summary>
         /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="x">The tile x coordinate.</param>
-        /// <param name="y">The tile y coordinate.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if there's a tree log at the given tile in this game
         ///     location. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool IsTreeLogAt(this GameLocation gameLocation, int x, int y)
+        public static bool IsTreeLogAt(this GameLocation gameLocation, int tileX, int tileY)
         {
             return gameLocation is Forest forest
                 && forest.log is not null
-                && forest.log.getBoundingBox(forest.log.tile).Contains(x * Game1.tileSize, y * Game1.tileSize);
+                && forest.log.occupiesTile(tileX, tileY);
         }
 
         public static bool IsWater(this GameLocation location, Point tile)
@@ -739,8 +791,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 Building buildingAt = buildableGameLocation.getBuildingAt(tile);
 
-                if (buildingAt is not null && (buildingAt.buildingType.Contains("Obelisk")
-                                           || buildingAt.buildingType == "Junimo Hut"))
+                if (buildingAt is not null
+                    && (buildingAt.buildingType.Contains("Obelisk")
+                        || buildingAt.buildingType == "Junimo Hut"))
                 {
                     return true;
                 }
@@ -753,8 +806,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if this bed effectively occupies a given position.
         /// </summary>
         /// <param name="bed">The <see cref="BedFurniture"/> instance.</param>
-        /// <param name="x">The x coordinate to check. In absolute coordinates.</param>
-        /// <param name="y">The y coordinate to check. In absolute coordinates.</param>
+        /// <param name="x">The x absolute coordinate to check.</param>
+        /// <param name="y">The y absolute coordinate to check.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if this bed effectively occupies a given position,
         ///     i.e. the given position is within the limits of the bed's bounding box and can not
@@ -827,9 +880,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </returns>
         public static bool SelectTool(this Farmer farmer, string toolName)
         {
+            if (farmer.CurrentTool is Tool tool && tool.Name.Contains(toolName))
+            {
+                return true;
+            }
+
             for (int i = 0; i < farmer.items.Count; i++)
             {
-                if (farmer.items[i] is not null && farmer.items[i].Name.Contains(toolName))
+                if (farmer.items[i] is not null && farmer.items[i] is Tool && farmer.items[i].Name.Contains(toolName))
                 {
                     farmer.CurrentToolIndex = i;
 
@@ -919,15 +977,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if a resource clump is a boulder occupying a given tile.
         /// </summary>
         /// <param name="resourceClump">The <see cref="ResourceClump"/> instance.</param>
-        /// <param name="x">The tile x coordinate.</param>
-        /// <param name="y">The tile y coordinate.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
         ///     Returns true if this <see cref="ResourceClump"/> is a boulder at the given tile
         ///     coordinates. Returns false otherwise.
         /// </returns>
-        private static bool IsBoulderAt(this ResourceClump resourceClump, int x, int y)
+        public static bool IsBoulderAt(this ResourceClump resourceClump, int tileX, int tileY)
         {
-            return resourceClump.occupiesTile(x, y)
+            return resourceClump.occupiesTile(tileX, tileY)
                    && (resourceClump.parentSheetIndex.Value == ResourceClump.meteoriteIndex
                        || resourceClump.parentSheetIndex.Value == ResourceClump.boulderIndex
                        || resourceClump.parentSheetIndex.Value == ResourceClump.mineRock1Index

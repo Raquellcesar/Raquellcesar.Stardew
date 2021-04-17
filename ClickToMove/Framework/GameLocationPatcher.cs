@@ -16,20 +16,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Harmony;
 
+    using Microsoft.Xna.Framework;
+
+    using Netcode;
+
     using StardewModdingAPI;
 
     using StardewValley;
 
-    /// <summary>Applies Harmony patches to the <see cref="GameLocation" /> class.</summary>
+    /// <summary>
+    ///     Applies Harmony patches to the <see cref="GameLocation"/> class.
+    /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
     internal static class GameLocationPatcher
     {
         /// <summary>
         ///     Initialize the Harmony patches.
         /// </summary>
-        /// <param name="harmony">
-        ///     The Harmony patching API.
-        /// </param>
+        /// <param name="harmony">The Harmony patching API.</param>
         public static void Hook(HarmonyInstance harmony)
         {
             harmony.Patch(
@@ -51,10 +55,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     nameof(GameLocationPatcher.AfterCleanupBeforePlayerExit)));
 
             harmony.Patch(
+                AccessTools.Method(typeof(GameLocation), nameof(GameLocation.isTileOccupiedForPlacement)),
+                transpiler: new HarmonyMethod(
+                    typeof(GameLocationPatcher),
+                    nameof(GameLocationPatcher.TranspileIsTileOccupiedForPlacement)));
+
+            harmony.Patch(
                 AccessTools.Method(typeof(GameLocation), nameof(GameLocation.performTouchAction)),
                 transpiler: new HarmonyMethod(
                     typeof(GameLocationPatcher),
-                    nameof(GameLocationPatcher.Transpile_performTouchAction)));
+                    nameof(GameLocationPatcher.TranspilePerformTouchAction)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(GameLocation), "resetLocalState"),
@@ -64,8 +74,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="GameLocation.answerDialogueAction"/>. It resets the
-        ///     <see cref="ClickToMove"/> object associated to the current game location.
+        ///     A method called via Harmony after <see cref="GameLocation.answerDialogueAction"/>.
+        ///     It resets the <see cref="ClickToMove"/> object associated to the current game location.
         /// </summary>
         /// <param name="questionAndAnswer">The string identifying a dialogue answer.</param>
         private static void AfterAnswerDialogueAction(string questionAndAnswer)
@@ -77,8 +87,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="GameLocation.cleanupBeforePlayerExit"/>. It resets the
-        ///     <see cref="ClickToMove"/> object associated to this <see cref="GameLocation"/>.
+        ///     A method called via Harmony after <see
+        ///     cref="GameLocation.cleanupBeforePlayerExit"/>. It resets the <see
+        ///     cref="ClickToMove"/> object associated to this <see cref="GameLocation"/>.
         /// </summary>
         /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
         private static void AfterCleanupBeforePlayerExit(GameLocation __instance)
@@ -87,8 +98,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="GameLocation.resetLocalState"/>. It resets the
-        ///     stored map information in the search graph associated to this <see cref="GameLocation"/>.
+        ///     A method called via Harmony after <see cref="GameLocation.resetLocalState"/>. It
+        ///     resets the stored map information in the search graph associated to this <see cref="GameLocation"/>.
         /// </summary>
         /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
         private static void AfterResetLocalState(GameLocation __instance)
@@ -101,8 +112,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="GameLocation.answerDialogueAction"/>. It sets
-        ///     <see cref="ClickToMove.PreventMountingHorse"/> to false.
+        ///     A method called via Harmony before <see cref="GameLocation.answerDialogueAction"/>.
+        ///     It sets <see cref="ClickToMove.PreventMountingHorse"/> to false.
         /// </summary>
         /// <param name="questionAndAnswer">The string identifying a dialogue answer.</param>
         /// <param name="questionParams">The question parameters.</param>
@@ -115,9 +126,98 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        /// <summary>A method called via Harmony to modify <see cref="GameLocation.performTouchAction" />.</summary>
+        /// <summary>
+        ///     Method to be called by <see
+        ///     cref="GameLocationPatcher.TranspileIsTileOccupiedForPlacement(IEnumerable{CodeInstruction})"/>.
+        ///     For some reason the patch generates invalid code when I attempt to insert directly
+        ///     the code wraped in this method, causing either one of these two exceptions:
+        ///     "System.InvalidProgramException: JIT Compiler encountered an internal limitation."
+        ///     or a "System.InvalidProgramException: Common Language Runtime detected an invalid program."
+        /// </summary>
+        /// <param name="gameLocation">
+        ///     The <see cref="GameLocation"/> where the object is being placed.
+        /// </param>
+        /// <param name="tileLocation">The tile coordinates of the placement position.</param>
+        /// <param name="toPlace">The <see cref="Object"/> to place.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the tile is occupied by a <see cref="Farmer"/> and
+        ///     there is no object to place or it's furniture. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private static bool IsTileOccupiedForPlacementTranspiler(GameLocation gameLocation, Vector2 tileLocation, Object toPlace)
+        {
+            return gameLocation.isTileOccupiedByFarmer(tileLocation) is not null
+                && (toPlace is null || (!toPlace.isPassable() && (toPlace.Category == Object.furnitureCategory || toPlace.Category == 0)));
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify <see
+        ///     cref="GameLocation.isTileOccupiedForPlacement"/>. It restricts the check for the
+        ///     Farmer occupying the placement position to the situation where the object has type
+        ///     furniture or has no defined type.
+        /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
-        private static IEnumerable<CodeInstruction> Transpile_performTouchAction(
+        private static IEnumerable<CodeInstruction> TranspileIsTileOccupiedForPlacement(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            /*
+             * Relevant CIL code:
+             *     if (this.isTileOccupiedByFarmer(tileLocation) != null && (toPlace == null || !toPlace.isPassable()))
+             *         IL_00c1: ldarg.0
+             *         IL_00c2: ldarg.1
+             *         IL_00c3: call instance class StardewValley.Farmer StardewValley.GameLocation::isTileOccupiedByFarmer(valuetype [Microsoft.Xna.Framework]Microsoft.Xna.Framework.Vector2)
+             *         IL_00c8: brfalse.s IL_00d7
+             *         IL_00ca: ldarg.2
+             *         IL_00cb: brfalse.s IL_00d5
+             *         IL_00cd: ldarg.2
+             *         IL_00ce: callvirt instance bool StardewValley.Object::isPassable()
+             *         IL_00d3: brtrue.s IL_00d7
+             *
+             * Replace with:
+             *     if (this.isTileOccupiedByFarmer(tileLocation) != null && (toPlace == null || (!toPlace.isPassable() && (toPlace.Category == Object.furnitureCategory || toPlace.Category == 0))))
+             */
+
+            MethodInfo isTileOccupiedForPlacementTranspiler = AccessTools.Method(typeof(GameLocationPatcher), nameof(GameLocationPatcher.IsTileOccupiedForPlacementTranspiler));
+
+            List<CodeInstruction> codeInstructions = instructions.ToList();
+
+            bool found = false;
+
+            for (int i = 0; i < codeInstructions.Count; i++)
+            {
+                if (!found
+                    && codeInstructions[i].opcode == OpCodes.Ldarg_0
+                    && i + 9 < codeInstructions.Count
+                    && codeInstructions[i + 8].opcode == OpCodes.Brtrue)
+                {
+                    object jumpEndIf = codeInstructions[i + 8].operand;
+
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldarg_1);
+                    yield return new CodeInstruction(OpCodes.Ldarg_2);
+                    yield return new CodeInstruction(OpCodes.Call, isTileOccupiedForPlacementTranspiler);
+                    yield return new CodeInstruction(OpCodes.Brfalse_S, jumpEndIf);
+
+                    i += 9;
+
+                    found = true;
+                }
+
+                yield return codeInstructions[i];
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(GameLocation)}.{nameof(GameLocation.isTileOccupiedForPlacement)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="GameLocation.performTouchAction"/>.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspilePerformTouchAction(
             IEnumerable<CodeInstruction> instructions)
         {
             /* Reset the ClickToMove object associated with the current game location at specific points. */

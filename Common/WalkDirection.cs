@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="WalkDirection.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.Common
 {
@@ -14,10 +14,14 @@ namespace Raquellcesar.Stardew.Common
     using Microsoft.Xna.Framework;
 
     /// <summary>
-    ///     This class represents the movement directions allowed in the game. The <see cref="int"/>
-    ///     values used for the directions must be inline with the values used for facing directions
-    ///     in game.
+    ///     This class represents the movement directions allowed in the game. Each WalkDirection is
+    ///     associated to a unitary 2D vector and an <see langword="int"/> that eventually will be
+    ///     used for setting the Farmer's facing direction.
     /// </summary>
+    /// <remarks>
+    ///     The <see langword="int"/> values used for the directions must be inline with the values
+    ///     used for facing directions in game.
+    /// </remarks>
     public sealed class WalkDirection
     {
         /// <summary>
@@ -116,7 +120,7 @@ namespace Raquellcesar.Stardew.Common
         public string Name { get; }
 
         /// <summary>
-        ///     Gets the <see cref="WalkDirection"/> value.
+        ///     Gets the <see cref="WalkDirection"/> value, which eventually will be used for setting the Farmer's facing direction.
         /// </summary>
         public int Value { get; }
 

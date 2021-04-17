@@ -21,53 +21,56 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         None,
 
         /// <summary>
-        ///     The farmer is following a computed path.
+        ///     The Farmer is following a computed path.
         /// </summary>
         FollowingPath,
 
         /// <summary>
-        ///     The farmer is on the final tile of the path.
+        ///     The Farmer is on the final tile of the path.
         /// </summary>
         OnFinalTile,
 
         /// <summary>
-        ///     The farmer reached the end of the path.
+        ///     The Farmer reached the end of the path.
         /// </summary>
         ReachedEndOfPath,
 
         /// <summary>
-        ///     The farmer completed the path (and executed the eventual action at the end).
+        ///     The Farmer completed the path (and executed the eventual action at the end).
         /// </summary>
         Complete,
 
         /// <summary>
-        ///     The farmer will use a tool on this tick.
+        ///     The Farmer will use a tool on this tick.
         /// </summary>
         UseTool,
 
         /// <summary>
-        ///     The farmer will release the current tool on this tick.
+        ///     The Farmer will release the current tool on this tick.
         /// </summary>
         ReleaseTool,
 
         CheckForMoreClicks,
 
+        /// <summary>
+        ///     The Farmer is engaged in some ongoing activity (mining, chopping, watering, hoeing).
+        /// </summary>
         PendingComplete,
 
         /// <summary>
-        ///     The farmer is using the slingshot.
+        ///     The Farmer is using the slingshot.
         /// </summary>
         UsingSlingshot,
 
         /// <summary>
-        ///     The farmer will perform an action on this tick.
+        ///     The Farmer will perform an action on this tick.
         /// </summary>
         DoAction,
 
         FinishAction,
 
         /// <summary>
-        ///     The farmer is moving while the mouse left button is being held.
+        ///     The Farmer is moving while the mouse left button is being held.
         /// </summary>
         KeepMoving,
     }

@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="ToolsPatcher.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -37,6 +37,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 postfix: new HarmonyMethod(typeof(ToolsPatcher), nameof(ToolsPatcher.AfterDoDoneFishing)));
 
             harmony.Patch(
+               AccessTools.Method(typeof(MilkPail), "doFinish"),
+               postfix: new HarmonyMethod(typeof(ToolsPatcher), nameof(ToolsPatcher.AfterMilkPailDoFinish)));
+
+            harmony.Patch(
+               AccessTools.Method(typeof(Shears), "doFinish"),
+               postfix: new HarmonyMethod(typeof(ToolsPatcher), nameof(ToolsPatcher.AfterShearsDoFinish)));
+
+            harmony.Patch(
                 AccessTools.Method(typeof(Wand), nameof(Wand.DoFunction)),
                 postfix: new HarmonyMethod(typeof(ToolsPatcher), nameof(ToolsPatcher.AfterWandDoFunction)));
 
@@ -55,6 +63,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
+        ///     A method called via Harmony after <see cref="MilkPail"/>.doFinish. It switchs the
+        ///     Farmer's equipped tool to the one that they had equipped before this one was autoselected.
+        /// </summary>
+        private static void AfterMilkPailDoFinish()
+        {
+            ClickToMoveManager.GetOrCreate(Game1.currentLocation).SwitchBackToLastTool();
+        }
+
+        /// <summary>
+        ///     A method called via Harmony after <see cref="Shears"/>.doFinish. It switchs the
+        ///     Farmer's equipped tool to the one that they had equipped before this one was autoselected.
+        /// </summary>
+        private static void AfterShearsDoFinish()
+        {
+            ClickToMoveManager.GetOrCreate(Game1.currentLocation).SwitchBackToLastTool();
+        }
+
+        /// <summary>
         ///     A method called via Harmony after <see cref="Wand.DoFunction"/>. It unequips the
         ///     <see cref="Wand"/>.
         /// </summary>
@@ -64,7 +90,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Wand.DoFunction"/>.
+        ///     A method called via Harmony to modify <see cref="Wand.DoFunction"/>. It unequips the
+        ///     Wand after use.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileWandDoFunction(IEnumerable<CodeInstruction> instructions)
