@@ -132,7 +132,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     For some reason the patch generates invalid code when I attempt to insert directly
         ///     the code wraped in this method, causing either one of these two exceptions:
         ///     "System.InvalidProgramException: JIT Compiler encountered an internal limitation."
-        ///     or a "System.InvalidProgramException: Common Language Runtime detected an invalid program."
+        ///     or a "System.InvalidProgramException: Common Language Runtime detected an invalid program.".
         /// </summary>
         /// <param name="gameLocation">
         ///     The <see cref="GameLocation"/> where the object is being placed.

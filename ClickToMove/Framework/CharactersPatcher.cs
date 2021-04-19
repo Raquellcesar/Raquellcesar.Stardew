@@ -210,6 +210,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     A method called via Harmony to modify the delegate in <see cref="Horse.checkAction"/>.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
+        /// <param name="ilGenerator">Generates MSIL instructions.</param>
         private static IEnumerable<CodeInstruction> TranspileHorseDelegateCheckAction(
             IEnumerable<CodeInstruction> instructions,
             ILGenerator ilGenerator)

@@ -31,11 +31,6 @@ namespace Raquellcesar.Stardew.Common.DataStructures
         protected const int InitialHeapSize = 10;
 
         /// <summary>
-        ///     The comparer used for comparisons between objects.
-        /// </summary>
-        protected readonly IComparer<T> Comparer;
-
-        /// <summary>
         ///     An internal dictionary that maps elements to their position in the heap, allowing
         ///     the search for one of its elements to be performed in O(1) time.
         /// </summary>
@@ -109,6 +104,11 @@ namespace Raquellcesar.Stardew.Common.DataStructures
             this.indexes = new Dictionary<T, int>(new ObjectReferenceComparer<T>());
             this.count = 0;
         }
+
+        /// <summary>
+        ///     Gets or sets the comparer used for comparisons between objects.
+        /// </summary>
+        public IComparer<T> Comparer { get; protected set; }
 
         /// <inheritdoc/>
         public int Count => this.count;

@@ -49,23 +49,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         public ClickToMove ClickToMove { get; }
 
         /// <summary>
-        ///     Gets the node corresponding to the player position.
+        ///     Gets the node corresponding to the player's position.
         /// </summary>
-        public AStarNode FarmerNode =>
-            this.GetNode(
-                (int)Math.Floor(Game1.player.position.X / Game1.tileSize),
-                (int)Math.Floor(Game1.player.position.Y / Game1.tileSize));
-
-        /// <summary>
-        ///     Gets the node corresponding to the player position considering an offset of half tile.
-        /// </summary>
-        public AStarNode FarmerNodeOffset
+        public AStarNode FarmerNode
         {
             get
             {
-                float playerTileX = (Game1.player.position.X + (Game1.tileSize / 2)) / Game1.tileSize;
-                float playerTileY = (Game1.player.position.Y + (Game1.tileSize / 2)) / Game1.tileSize;
-                return this.GetNode((int)playerTileX, (int)playerTileY);
+                Point playerTile = Game1.player.getTileLocationPoint();
+                return this.GetNode(playerTile.X, playerTile.Y);
             }
         }
 
@@ -222,72 +213,93 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return null;
         }
 
-        public AStarNode GetNearestLandNodePerpendicularToWaterSource(AStarNode nodeClicked)
+        /// <summary>
+        ///     Gets the water source node that neighbours land that is on the same column or row as
+        ///     the given water source node or the Farmer and is closest to the clicked node.
+        /// </summary>
+        /// <param name="waterSourceNode">The water source node clicked.</param>
+        /// <returns>
+        ///     The water source node that neighbours land that is on the same column or row as the
+        ///     given water source node or the Farmer and is closest to the clicked node.
+        /// </returns>
+        public AStarNode GetClosestCoastNode(AStarNode waterSourceNode)
         {
-            AStarNode result = nodeClicked;
+            int distanceX = this.FarmerNode.X - waterSourceNode.X;
+            int distanceY = this.FarmerNode.Y - waterSourceNode.Y;
 
-            AStarNode node;
-            if (this.FarmerNodeOffset.X == nodeClicked.X
-                || (this.FarmerNodeOffset.Y != nodeClicked.Y && Math.Abs(nodeClicked.X - this.FarmerNodeOffset.X)
-                    > Math.Abs(nodeClicked.Y - this.FarmerNodeOffset.Y)))
+            int deltaX = Math.Sign(distanceX);
+            int deltaY = Math.Sign(distanceY);
+
+            int tile1X = waterSourceNode.X + deltaX;
+            int tile1Y = waterSourceNode.Y;
+            int tile2X = waterSourceNode.X;
+            int tile2Y = waterSourceNode.Y + deltaY;
+            AStarNode coastNode1 = waterSourceNode;
+            AStarNode coastNode2 = waterSourceNode;
+            for (int i = 0; i < Math.Abs(distanceX) + Math.Abs(distanceY); i++)
             {
-                if (nodeClicked.Y > this.FarmerNodeOffset.Y)
+                // Go through the tiles in the same row as the clicked node, then the tiles in the
+                // same column as the Farmer.
+                if (distanceX != 0)
                 {
-                    for (int i = nodeClicked.Y; i >= this.FarmerNodeOffset.Y; i--)
+                    if (tile1X != this.FarmerNode.X)
                     {
-                        node = this.GetNode(nodeClicked.X, i);
-                        if (node is not null && node.TileClear && !node.IsWateringCanFillingSource())
+                        AStarNode node = this.GetNode(tile1X, tile1Y);
+                        if (node is not null && node.TileClear)
                         {
-                            return result;
+                            return coastNode1;
                         }
 
-                        result = node;
+                        coastNode1 = node;
+
+                        tile1X += deltaX;
                     }
-                }
-                else
-                {
-                    for (int i = nodeClicked.Y; i <= this.FarmerNodeOffset.Y; i++)
+                    else
                     {
-                        node = this.GetNode(nodeClicked.X, i);
-                        if (node is not null && node.TileClear && !node.IsWateringCanFillingSource())
+                        AStarNode node = this.GetNode(tile1X, tile1Y);
+                        if (node is not null && node.TileClear)
                         {
-                            return result;
+                            return coastNode1;
                         }
 
-                        result = node;
+                        coastNode1 = node;
+
+                        tile1Y += deltaY;
                     }
                 }
-            }
-            else if (nodeClicked.X > this.FarmerNodeOffset.X)
-            {
-                for (int i = nodeClicked.X; i >= this.FarmerNodeOffset.X; i--)
+
+                // Go through the tiles in the same column as the clicked node, then the tiles in
+                // the same row as the Farmer.
+                if (distanceY != 0)
                 {
-                    node = this.GetNode(i, nodeClicked.Y);
-                    if (node is not null && node.TileClear && !node.IsWateringCanFillingSource())
+                    if (tile2Y != this.FarmerNode.Y)
                     {
-                        return result;
-                    }
+                        AStarNode node = this.GetNode(tile2X, tile2Y);
+                        if (node is not null && node.TileClear)
+                        {
+                            return coastNode2;
+                        }
 
-                    result = node;
+                        coastNode2 = node;
+
+                        tile2Y += deltaY;
+                    }
+                    else
+                    {
+                        AStarNode node = this.GetNode(tile2X, tile2Y);
+                        if (node is not null && node.TileClear)
+                        {
+                            return coastNode2;
+                        }
+
+                        coastNode2 = node;
+
+                        tile2X += deltaX;
+                    }
                 }
             }
-            else
-            {
-                for (int i = nodeClicked.X; i <= this.FarmerNodeOffset.X; i++)
-                {
-                    node = this.GetNode(i, nodeClicked.Y);
-                    if (node is not null && node.TileClear && !node.IsWateringCanFillingSource())
-                    {
-                        return result;
-                    }
 
-                    result = node;
-                }
-            }
-
-            node = this.GetNodeNearestWaterSource(nodeClicked) ?? this.GetNodeNearestWaterSource(this.FarmerNodeOffset);
-
-            return node;
+            return null;
         }
 
         public Point GetNearestTileNextToBuilding(Building building)
@@ -384,13 +396,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Gets the node for the tile with coordinates (x, y).
+        ///     Gets the node for the tile with coordinates ( <paramref name="tileX"/>, <paramref name="tileY"/>).
         /// </summary>
         /// <param name="tileX">The x tile coordinate.</param>
         /// <param name="tileY">The y tile coordinate.</param>
         /// <returns>
-        ///     Returns the node at the tile with coordinates (x, y), if that tile exists in the map
-        ///     for the game location associated to the graph. Otherwise, returns <see langword="null"/>.
+        ///     Returns the node at the tile with coordinates ( <paramref name="tileX"/>, <paramref
+        ///     name="tileY"/>), if that tile exists in the map for the game location associated to
+        ///     the graph. Otherwise, returns <see langword="null"/>.
         /// </returns>
         public AStarNode GetNode(int tileX, int tileY)
         {
@@ -407,25 +420,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             {
                 AStarNode goalNode = this.GetNode(node.X + i, node.Y);
 
-                if (goalNode is not null && goalNode.TileClear && !goalNode.IsWateringCanFillingSource())
+                if (goalNode is not null && goalNode.TileClear)
                 {
                     list.Add(goalNode);
                 }
 
                 goalNode = this.GetNode(node.X - i, node.Y);
-                if (goalNode is not null && goalNode.TileClear && !goalNode.IsWateringCanFillingSource())
+                if (goalNode is not null && goalNode.TileClear)
                 {
                     list.Add(goalNode);
                 }
 
                 goalNode = this.GetNode(node.X, node.Y + i);
-                if (goalNode is not null && goalNode.TileClear && !goalNode.IsWateringCanFillingSource())
+                if (goalNode is not null && goalNode.TileClear)
                 {
                     list.Add(goalNode);
                 }
 
                 goalNode = this.GetNode(node.X, node.Y - i);
-                if (goalNode is not null && goalNode.TileClear && !goalNode.IsWateringCanFillingSource())
+                if (goalNode is not null && goalNode.TileClear)
                 {
                     list.Add(goalNode);
                 }
@@ -505,7 +518,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             if (this.FarmerNode is not null)
             {
-                this.FarmerNodeOffset?.SetBubbleIdRecursively(0);
+                this.FarmerNode?.SetBubbleIdRecursively(0);
             }
         }
 
@@ -559,7 +572,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             {
                 tileNode.FakeTileClear = true;
 
-                AStarPath path = this.FindPathWithBubbleCheck(this.FarmerNodeOffset, tileNode);
+                AStarPath path = this.FindPathWithBubbleCheck(this.FarmerNode, tileNode);
 
                 if (path is not null && path.Count > 0)
                 {

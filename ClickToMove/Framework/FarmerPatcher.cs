@@ -98,8 +98,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     accessing items.
         /// </summary>
         /// <param name="__instance">The <see cref="Farmer"/> instance.</param>
-        /// <param name="___currentToolIndex">The private field <see cref="Farmer.currentToolIndex"/>.</param>
-        /// <param name="____itemStowed">The private field <see cref="Farmer._itemStowed"/>.</param>
+        /// <param name="___currentToolIndex">The private field <see cref="Farmer"/>.currentToolIndex.</param>
+        /// <param name="____itemStowed">The private field <see cref="Farmer"/>._itemStowed.</param>
         /// <param name="__result">A reference to the result of the original method.</param>
         /// <returns>
         ///     Returns <see langword="false"/>, terminating prefixes and skipping the execution of
@@ -207,7 +207,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Farmer.performSickAnimation"/>. It
+        ///     A method called via Harmony before <see cref="Farmer"/>.performSickAnimation. It
         ///     replaces the original method, so we can register the beginning of the animation and
         ///     invoke a callback when the animation ends (see <see cref="OnFinishSickAnim"/>).
         /// </summary>

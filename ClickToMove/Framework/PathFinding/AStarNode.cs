@@ -188,33 +188,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public bool ContainsCinema()
         {
-            if (this.Graph.GameLocation is Town
-                && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater"))
-            {
-                switch (this.X)
-                {
-                    case >= 47 and <= 58 when this.Y >= 17 && this.Y <= 19:
-                    case 47 when this.Y == 20:
-                    case >= 55 and <= 58 when this.Y == 20:
-                        return true;
-                }
-            }
-
-            return false;
-        }
-
-        public bool ContainsCinemaDoor()
-        {
-            return this.Graph.GameLocation is Town
-                   && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater")
-                   && (this.X == 52 || this.X == 53) && (this.Y == 18 || this.Y == 19);
-        }
-
-        public bool ContainsCinemaTicketOffice()
-        {
-            return this.Graph.GameLocation is Town
-                   && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater") && this.X >= 54
-                   && this.X <= 56 && (this.Y == 19 || this.Y == 20);
+            return
+                this.Graph.GameLocation is Town
+                && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater")
+                && ((this.X >= 47 && this.X <= 58 && this.Y >= 17 && this.Y <= 19)
+                    || ((this.X == 47 || (this.X >= 55 && this.X <= 58)) && this.Y == 20));
         }
 
         /// <summary>
@@ -988,43 +966,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
 
             return true;
-        }
-
-        public bool IsWateringCanFillingSource()
-        {
-            if (this.IsWater() && !this.IsTilePassable())
-            {
-                return true;
-            }
-
-            if (this.Graph.GameLocation is BuildableGameLocation buildableGameLocation)
-            {
-                Building building = buildableGameLocation.getBuildingAt(new Vector2(this.X, this.Y));
-                if (building is not null && (building is FishPond || building.buildingType.Value == "Well")
-                                         && building.daysOfConstructionLeft.Value <= 0)
-                {
-                    return true;
-                }
-            }
-
-            if (this.Graph.GameLocation is Submarine && this.X >= 9 && this.X <= 20 && this.Y >= 7 && this.Y <= 11)
-            {
-                return true;
-            }
-
-            if (this.Graph.GameLocation.name.Value == "Greenhouse"
-                && ((this.X == 9 && this.Y == 7) || (this.X == 10 && this.Y == 7)))
-            {
-                return true;
-            }
-
-            if (this.Graph.GameLocation.name.Value == "Railroad" && this.X >= 14 && this.X <= 16 && this.Y >= 55
-                && this.Y <= 56)
-            {
-                return true;
-            }
-
-            return false;
         }
 
         public bool SetBubbleIdRecursively(int bubbleId, bool two = false)

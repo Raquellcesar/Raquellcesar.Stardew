@@ -9,6 +9,10 @@
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
+    using System.Collections.Generic;
+    using System.Reflection;
+    using System.Reflection.Emit;
+
     using Harmony;
 
     using StardewModdingAPI;
@@ -28,8 +32,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static IReflectedField<int> fishingGameShowResultsTimerField;
 
         /// <summary>
-        ///     A reference to the private field <see cref="FishingGame"/>.timerToStart. To be
-        ///     used when updating the <see cref="FishingGame"/> state (see <see
+        ///     A reference to the private field <see cref="FishingGame"/>.timerToStart. To be used
+        ///     when updating the <see cref="FishingGame"/> state (see <see
         ///     cref="ClickToMoveManager.OnLeftClick"/> and <see cref="ClickToMoveManager.OnLeftClickRelease"/>).
         /// </summary>
         private static IReflectedField<int> fishingGameTimerToStartField;
@@ -61,6 +65,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             harmony.Patch(
                 AccessTools.Method(typeof(FishingGame), nameof(FishingGame.releaseLeftClick)),
                 new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.BeforeReleaseLeftClick)));
+
+            harmony.Patch(
+                AccessTools.Method(typeof(Slots), nameof(Slots.receiveLeftClick)),
+                transpiler: new HarmonyMethod(typeof(MinigamesPatcher), nameof(MinigamesPatcher.TranspileSlotsReceiveLeftClick)));
         }
 
         /// <summary>
@@ -99,6 +107,45 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static bool BeforeReleaseLeftClick()
         {
             return false;
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify <see cref="Slots.receiveLeftClick"/>. When the
+        ///     player leaves the minigame, it sets <see cref="ClickToMoveManager.IgnoreClick"/> so
+        ///     the current click and subsequent click release can be ignored.
+        /// </summary>
+        /// <param name="instructions">The method instructions to transpile.</param>
+        private static IEnumerable<CodeInstruction> TranspileSlotsReceiveLeftClick(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            /*
+             * Code to include just before the method ends:
+             *     ClickToMoveManager.IgnoreClick = true;
+             */
+
+            MethodInfo setIgnoreClick = AccessTools.Property(typeof(ClickToMoveManager), nameof(ClickToMoveManager.IgnoreClick)).GetSetMethod();
+
+            bool found = false;
+
+            foreach (CodeInstruction instruction in instructions)
+            {
+                if (instruction.opcode == OpCodes.Ret)
+                {
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_1);
+                    yield return new CodeInstruction(OpCodes.Call, setIgnoreClick);
+
+                    found = true;
+                }
+
+                yield return instruction;
+            }
+
+            if (!found)
+            {
+                ClickToMoveManager.Monitor.Log(
+                    $"Failed to patch {nameof(Slots)}.OnClickDone.\nThe point of injection was not found.",
+                    LogLevel.Error);
+            }
         }
     }
 }

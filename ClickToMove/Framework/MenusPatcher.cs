@@ -1,11 +1,11 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="MenusPatcher.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -78,6 +78,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     A method called via Harmony before <see cref="DayTimeMoneyBox.receiveLeftClick"/>.
+        ///     It skips the original method if the mouse left button is being held. Otherwise, if
+        ///     the screen buttons are clicked, it sets <see cref="ClickToMoveManager.IgnoreClick"/>
+        ///     so the current click and subsequent click release can be ignored.
+        /// </summary>
         private static bool BeforeDayTimeMoneyBoxReceiveLeftClick(DayTimeMoneyBox __instance, int x, int y)
         {
             if (Game1.currentLocation is not null && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickHoldActive)
@@ -89,12 +95,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 && !Game1.dialogueUp && !Game1.eventUp && Game1.farmEvent is null)
             {
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
-                ClickToMoveManager.OnScreenButtonClicked = true;
+                ClickToMoveManager.IgnoreClick = true;
             }
             else if (Game1.options.zoomButtons && (__instance.zoomInButton.containsPoint(x, y) || __instance.zoomOutButton.containsPoint(x, y)))
             {
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
-                ClickToMoveManager.OnScreenButtonClicked = true;
+                ClickToMoveManager.IgnoreClick = true;
             }
 
             return true;
@@ -124,7 +130,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     if (button.containsPoint(x, y))
                     {
-                        ClickToMoveManager.OnScreenButtonClicked = true;
+                        ClickToMoveManager.IgnoreClick = true;
 
                         int toolIndex = Convert.ToInt32(button.name);
 
@@ -148,7 +154,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if (button.containsPoint(x, y))
                 {
-                    ClickToMoveManager.OnScreenButtonClicked = true;
+                    ClickToMoveManager.IgnoreClick = true;
 
                     int toolIndex = Convert.ToInt32(button.name);
 

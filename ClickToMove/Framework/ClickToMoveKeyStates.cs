@@ -11,6 +11,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using Raquellcesar.Stardew.Common;
 
+    using StardewValley;
+
     /// <summary>
     ///     This class keeps the simulated state (relative to the previous game tick) of the keys
     ///     relevante to the implementation of the path finding functionality.
@@ -213,6 +215,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.UseToolButtonPressed = useTool && !this.UseToolButtonHeld;
             this.UseToolButtonReleased = !useTool && this.UseToolButtonHeld;
             this.UseToolButtonHeld = useTool;
+            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMoveKeyStates.SetUseTool({useTool}) - UseToolButtonHeld: {UseToolButtonHeld}; UseToolButtonPressed: {UseToolButtonPressed}; UseToolButtonReleased: {UseToolButtonReleased}");
         }
 
         /// <summary>

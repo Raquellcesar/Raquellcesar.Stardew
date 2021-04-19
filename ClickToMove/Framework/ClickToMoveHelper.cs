@@ -102,46 +102,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Checks if there is any piece of furniture occupying a given position in this <see cref="GameLocation"/>.
-        /// </summary>
-        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="x">The x coordinate of the position to check. In absolute coordinates.</param>
-        /// <param name="y">The y coordinate of the position to check. In absolute coordinates.</param>
-        /// <returns>
-        ///     Returns <see langword="true"/> if there is some furniture occupying the given
-        ///     position. Returns <see langword="false"/> otherwise.
-        /// </returns>
-        public static bool ContainsFurniture(this GameLocation gameLocation, int x, int y)
-        {
-            return gameLocation.furniture.Any(
-                furniture => furniture.getBoundingBox(furniture.tileLocation.Value).Contains(x, y));
-        }
-
-        /// <summary>
-        ///     Checks if there is any piece of furniture occupying a given position in this <see
-        ///     cref="GameLocation"/>. Ignores the walkable tiles in beds.
-        /// </summary>
-        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="x">The x coordinate of the position to check. In absolute coordinates.</param>
-        /// <param name="y">The y coordinate of the position to check. In absolute coordinates.</param>
-        /// <returns>
-        ///     Returns <see langword="true"/> if there is some furniture occupying the given
-        ///     position. Returns <see langword="false"/> otherwise.
-        /// </returns>
-        public static bool ContainsFurnitureNoBed(this GameLocation gameLocation, int x, int y)
-        {
-            foreach (Furniture furniture in gameLocation.furniture)
-            {
-                if (furniture.getBoundingBox(furniture.tileLocation.Value).Contains(x, y))
-                {
-                    return furniture is not BedFurniture bed || bed.Occupies(x, y);
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         ///     Checks if a point is within the bounding box of this <see cref="Prop"/>.
         /// </summary>
         /// <param name="prop">The <see cref="Prop"/> instance.</param>
@@ -367,20 +327,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return result;
         }
 
-        /// <summary>
-        ///     Checks whether this <see cref="Farmer"/> has the given tool in their inventory.
-        /// </summary>
-        /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
-        /// <param name="toolName">The tool name.</param>
-        /// <returns>
-        ///     Returns <see langword="true"/> if this <see cref="Farmer"/> has the given tool in
-        ///     their inventory. Return <see langword="false"/> otherwise.
-        /// </returns>
-        /*public static bool HasTool(this Farmer farmer, string toolName)
-        {
-            return farmer.items.Any(item => item?.Name.Contains(toolName) == true);
-        }*/
-
         public static bool HoeSelectedAndTileHoeable(GameLocation gameLocation, Point tile)
         {
             if (Game1.player.CurrentTool is Hoe
@@ -405,6 +351,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     or MineCart
                     or PlaneFlyBy
                     or RobotBlastoff
+                    or Slots
                     or TargetGame;
             }
 
@@ -465,7 +412,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            /*return gameLocation.IsStumpAt(tile.X, tile.Y) || gameLocation.IsBoulderAt(tile.X, tile.Y);*/
             return gameLocation.IsStumpOrBoulderAt(tile.X, tile.Y);
         }
 
@@ -493,6 +439,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return bushType.Name == "DestroyableBush" || bushType.BaseType?.Name == "DestroyableBush";
         }
 
+        /// <summary>
+        ///     Checks if this <see cref="RockCrab"/> is hiding in its shell.
+        /// </summary>
+        /// <param name="rockCrab">The <see cref="RockCrab"/> instance.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this <see cref="RockCrab"/> is hiding in its shell.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         public static bool IsHidingInShell(this RockCrab rockCrab)
         {
             if (rockCrab.Sprite.currentFrame % 4 == 0)
@@ -734,57 +688,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 && forest.log.occupiesTile(tileX, tileY);
         }
 
-        public static bool IsWater(this GameLocation location, Point tile)
-        {
-            if (location is Submarine && tile.X >= 9 && tile.X <= 20 && tile.Y >= 7 && tile.Y <= 11)
-            {
-                return true;
-            }
-
-            if (location.doesTileHaveProperty(tile.X, tile.Y, "Water", "Back") is null)
-            {
-                return location.doesTileHaveProperty(tile.X, tile.Y, "WaterSource", "Back") is not null;
-            }
-
-            return true;
-        }
-
-        public static bool IsWateringCanFillingSource(this GameLocation gameLocation, Point tile)
-        {
-            if (gameLocation.IsWater(tile) && !gameLocation.IsTilePassable(tile.X, tile.Y))
-            {
-                return true;
-            }
-
-            if (gameLocation is BuildableGameLocation buildableGameLocation)
-            {
-                Building building = buildableGameLocation.getBuildingAt(new Vector2(tile.X, tile.Y));
-                if (building is not null && (building is FishPond || building.buildingType.Equals("Well"))
-                                     && building.daysOfConstructionLeft.Value <= 0)
-                {
-                    return true;
-                }
-            }
-
-            if (gameLocation is Submarine && tile.X >= 9 && tile.X <= 20 && tile.Y >= 7 && tile.Y <= 11)
-            {
-                return true;
-            }
-
-            if (gameLocation.name.Value == "Greenhouse"
-                && ((tile.X == 9 && tile.Y == 7) || (tile.X == 10 && tile.Y == 7)))
-            {
-                return true;
-            }
-
-            if (gameLocation.name.Value == "Railroad" && tile.X >= 14 && tile.X <= 16 && tile.Y >= 55 && tile.Y <= 56)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
         public static bool IsWizardBuilding(this GameLocation gameLocation, Vector2 tile)
         {
             if (gameLocation is BuildableGameLocation buildableGameLocation)
@@ -870,6 +773,51 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
+        ///     This <see cref="Farmer"/> equips a heavy hitter <see cref="Tool"/> from their inventory.
+        /// </summary>
+        /// <param name="farmer">This <see cref="Farmer"/> instance.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if an heavy hitter tool was found and selected in the farmer's
+        ///     inventory; <see langword="false"/>, otherwise.
+        /// </returns>
+        public static bool SelectHeavyHitter(this Farmer farmer)
+        {
+            for (int i = 0; i < farmer.items.Count; i++)
+            {
+                if (farmer.items[i] is not null && farmer.items[i] is Tool tool && tool.isHeavyHitter())
+                {
+                    farmer.CurrentToolIndex = i;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     This <see cref="Farmer"/> equips a <see cref="MeleeWeapon"/> from their inventory.
+        /// </summary>
+        /// <remarks>The scythe is <see cref="MeleeWeapon"/> in the game but is ignored by this method.</remarks>
+        /// <param name="farmer">This <see cref="Farmer"/> instance.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if a melee weapon was found and selected in the farmer's
+        ///     inventory; <see langword="false"/>, otherwise.
+        /// </returns>
+        public static bool SelectMeleeWeapon(this Farmer farmer)
+        {
+            for (int i = 0; i < farmer.items.Count; i++)
+            {
+                if (farmer.items[i] is not null && farmer.items[i] is MeleeWeapon meleeWeapon && !meleeWeapon.isScythe())
+                {
+                    farmer.CurrentToolIndex = i;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         ///     This <see cref="Farmer"/> selects a tool by name.
         /// </summary>
         /// <param name="farmer">This <see cref="Farmer"/> instance.</param>
@@ -890,7 +838,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (farmer.items[i] is not null && farmer.items[i] is Tool && farmer.items[i].Name.Contains(toolName))
                 {
                     farmer.CurrentToolIndex = i;
-
                     return true;
                 }
             }

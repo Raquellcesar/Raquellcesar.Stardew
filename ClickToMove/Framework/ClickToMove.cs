@@ -11,7 +11,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using System;
     using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
 
     using Microsoft.Xna.Framework;
 
@@ -156,8 +155,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private SObject forageItem;
 
-        //private ResourceClump forestLog;
-
         private Fence gateClickedOn;
 
         private AStarNode gateNode;
@@ -174,8 +171,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Contains the path last computed by the A* algorithm.
         /// </summary>
         private AStarPath path;
-
-        //private bool pendingFurnitureAction;
 
         private bool performActionFromNeighbourTile;
 
@@ -197,8 +192,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private int stuckCount;
 
-        private Monster targetMonster;
-
+        /// <summary>
+        ///     The tool to select at the end of the path.
+        /// </summary>
         private string toolToSelect;
 
         /// <summary>
@@ -210,7 +206,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private bool warping;
 
-        private bool waterSourceAndFishingRodSelected;
+        private bool waterSourceSelected;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="ClickToMove"/> class.
@@ -387,8 +383,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld({x}, {y})");
 
-            if (ClickToMoveManager.JustClosedActiveMenu
-                || ClickToMoveManager.OnScreenButtonClicked
+            if (ClickToMoveManager.IgnoreClick
                 || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
                 || Game1.currentMinigame is FishingGame
                 || DateTime.Now.Ticks - ClickToMove.startTime < ClickToMove.TicksBeforeClickHoldKicksIn)
@@ -425,7 +420,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                     return;
                 }
-                else if (this.waterSourceAndFishingRodSelected
+                else if (this.waterSourceSelected
                          && Game1.player.CurrentTool is FishingRod
                          && this.phase == ClickToMovePhase.Complete)
                 {
@@ -506,10 +501,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             this.ClickHoldActive = false;
 
-            if (ClickToMoveManager.JustClosedActiveMenu || ClickToMoveManager.OnScreenButtonClicked)
+            if (ClickToMoveManager.IgnoreClick)
             {
-                ClickToMoveManager.JustClosedActiveMenu = false;
-                ClickToMoveManager.OnScreenButtonClicked = false;
+                ClickToMoveManager.IgnoreClick = false;
             }
             else if (!ClickToMoveHelper.InMiniGameWhereWeDontWantClicks())
             {
@@ -593,13 +587,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.endTileIsActionable = false;
             this.performActionFromNeighbourTile = false;
             this.warping = false;
-            this.waterSourceAndFishingRodSelected = false;
+            this.waterSourceSelected = false;
 
             this.actionableBuilding = null;
             this.clickedOnHorse = null;
             this.crabPot = null;
             this.forageItem = null;
-            //this.forestLog = null;
             this.gateClickedOn = null;
             this.gateNode = null;
             this.TargetFarmAnimal = null;
@@ -637,7 +630,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (Game1.player.CurrentTool is FishingRod or Slingshot)
                 {
                     this.Reset();
-
                     ClickToMove.startTime = DateTime.Now.Ticks;
                 }
             }
@@ -800,6 +792,46 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
+        ///     Checks whether the player interacted with the Movie Theater.
+        /// </summary>
+        /// <param name="node">The node clicked.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the player clicked the Movie Theater's doors or
+        ///     ticket office. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool CheckCinema(AStarNode node)
+        {
+            if (this.Graph.GameLocation is Town
+                && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater"))
+            {
+                // Node contains the cinema door.
+                if ((node.X == 52 || node.X == 53) && (node.Y == 18 || node.Y == 19))
+                {
+                    this.SelectDifferentEndNode(node.X, 19);
+
+                    this.endTileIsActionable = true;
+                    this.clickedCinemaDoor = true;
+
+                    return true;
+                }
+
+                // Node contains the cinema ticket office.
+                if (node.X >= 54 && node.X <= 56 && (node.Y == 19 || node.Y == 20))
+                {
+                    this.SelectDifferentEndNode(node.Y, 20);
+
+                    this.endTileIsActionable = true;
+                    this.performActionFromNeighbourTile = true;
+                    this.clickedCinemaTicketBooth = true;
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         ///     Checks for queueable clicks, i.e. clicks that trigger actions that can be queued. An
         ///     example of this situation is when the player waters several tiles in succession.
         /// </summary>
@@ -918,6 +950,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        /// <summary>
+        ///     Checks if there is a monster near the Farmer to attack.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is a monster near the Farmer to attack.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         private bool CheckToAttackMonsters()
         {
             if (Game1.player.stamina <= 0)
@@ -943,65 +982,64 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return false;
             }
 
-            if (this.phase != ClickToMovePhase.FollowingPath && this.phase != ClickToMovePhase.OnFinalTile
-                                                             && !Game1.player.UsingTool
-                                                             && Game1.player.CurrentTool is not null
-                                                             && Game1.player.CurrentTool.isHeavyHitter())
+            if (this.phase != ClickToMovePhase.FollowingPath
+                && this.phase != ClickToMovePhase.OnFinalTile
+                && !Game1.player.UsingTool)
             {
                 Rectangle boundingBox = Game1.player.GetBoundingBox();
+                Point playerPosition = boundingBox.Center;
                 boundingBox.Inflate(Game1.tileSize, Game1.tileSize);
 
-                Point playerPosition = Game1.player.GetBoundingBox().Center;
-
-                this.targetMonster = null;
+                Monster targetMonster = null;
                 float minimumDistance = float.MaxValue;
                 foreach (NPC character in this.GameLocation.characters)
                 {
-                    if (character is Monster monster)
+                    // Ignore knocked down mummies. Ignore armored bugs if the Farmer isn't holding
+                    // a weapon with the Bug Killer enchant.
+                    if (character is Monster monster
+                        && !(monster is Mummy mummy && mummy.reviveTimer > 0)
+                        && !(monster is Bug bug && bug.isArmoredBug && !(Game1.player.CurrentTool is MeleeWeapon meleeWeapon && meleeWeapon.hasEnchantmentOfType<BugKillerEnchantment>())))
                     {
-                        Point monsterPosition = monster.GetBoundingBox().Center;
-                        float distance = ClickToMoveHelper.Distance(monsterPosition, playerPosition);
+                        float distance = ClickToMoveHelper.Distance(monster.GetBoundingBox().Center, playerPosition);
 
-                        if (distance < minimumDistance && boundingBox.Intersects(monster.GetBoundingBox())
-                                                       && !this.IsObjectBlockingMonster(monster))
+                        if (distance < minimumDistance
+                            && boundingBox.Intersects(monster.GetBoundingBox())
+                            && !this.IsObjectBlockingMonster(monster))
                         {
                             minimumDistance = distance;
-                            this.targetMonster = monster;
+                            targetMonster = monster;
                         }
                     }
                 }
 
-                if (this.targetMonster is not null)
+                if (targetMonster is not null)
                 {
-                    Point nearestMonsterPosition = this.targetMonster.GetBoundingBox().Center;
-                    WalkDirection walkDirection = WalkDirection.GetFacingWalkDirection(
+                    Game1.player.faceDirection(WalkDirection.GetFacingDirection(
                         playerPosition,
-                        nearestMonsterPosition);
+                        targetMonster.GetBoundingBox().Center));
 
-                    if (Game1.player.FacingDirection != walkDirection.Value)
-                    {
-                        Game1.player.faceDirection(walkDirection.Value);
-                    }
-
-                    if (this.targetMonster is RockCrab rockCrab && rockCrab.IsHidingInShell()
-                                                                && !(Game1.player.CurrentTool is Pickaxe))
+                    if (targetMonster is RockCrab rockCrab
+                        && rockCrab.IsHidingInShell()
+                        && Game1.player.CurrentTool is not Pickaxe)
                     {
                         Game1.player.SelectTool("Pickaxe");
                     }
-                    else if (ClickToMove.LastMeleeWeapon is not null
-                             && ClickToMove.LastMeleeWeapon != Game1.player.CurrentTool)
+                    else if (Game1.player.CurrentTool is not MeleeWeapon)
                     {
-                        this.lastToolIndexList.Clear();
-
-                        Game1.player.SelectTool(ClickToMove.LastMeleeWeapon.Name);
+                        if (ClickToMove.LastMeleeWeapon is not null)
+                        {
+                            this.lastToolIndexList.Clear();
+                            Game1.player.SelectTool(ClickToMove.LastMeleeWeapon.Name);
+                        }
+                        else if (!Game1.player.SelectMeleeWeapon() && !Game1.player.CurrentTool.isHeavyHitter())
+                        {
+                            Game1.player.SelectHeavyHitter();
+                        }
                     }
 
                     this.justUsedWeapon = true;
-
                     this.ClickKeyStates.SetUseTool(true);
-
                     this.invalidTarget.X = this.invalidTarget.Y = -1;
-
                     return true;
                 }
             }
@@ -1102,6 +1140,67 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
+        ///     If the Farmer has the watering can or the fishing rod equipped, checks whether they
+        ///     can use the tool on the clicked tile. If that's the case, the clicked tile is set to
+        ///     the land tile nearest to the clicked tile.
+        /// </summary>
+        /// <param name="node">The node associated to the clicked tile.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the Farmer has the watering can or the fishing rod
+        ///     equipped and they can use the tool on the clicked tile. Returns <see
+        ///     langword="false"/> otherwise.
+        /// </returns>
+        private bool CheckWaterSource(AStarNode node)
+        {
+            if (Game1.player.CurrentTool is WateringCan && this.GameLocation.CanRefillWateringCanOnTile(node.X, node.Y))
+            {
+                if (this.Graph.GetClosestCoastNode(node) is AStarNode landNode)
+                {
+                    this.clickedNode = landNode;
+                    this.clickedTile.X = this.clickedNode.X;
+                    this.clickedTile.Y = this.clickedNode.Y;
+                }
+
+                this.endNodeToBeActioned = true;
+                this.performActionFromNeighbourTile = true;
+                this.waterSourceSelected = true;
+
+                return true;
+            }
+
+            if (Game1.player.CurrentTool is FishingRod
+                && this.GameLocation.canFishHere()
+                && this.GameLocation.isTileFishable(node.X, node.Y))
+            {
+                if (this.Graph.GetClosestCoastNode(node) is AStarNode landNode)
+                {
+                    if (Vector2.Distance(
+                            Game1.player.OffsetPositionOnMap(),
+                            landNode.NodeCenterOnMap) < (2.5f + Game1.player.GetFishingAddedDistance()) * Game1.tileSize)
+                    {
+                        // The Farmer can cast the fishing rod from where they are.
+                        this.clickedNode = this.startNode;
+                    }
+                    else
+                    {
+                        this.clickedNode = landNode;
+                    }
+
+                    this.clickedTile.X = this.clickedNode.X;
+                    this.clickedTile.Y = this.clickedNode.Y;
+                }
+
+                this.endNodeToBeActioned = true;
+                this.performActionFromNeighbourTile = true;
+                this.waterSourceSelected = true;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         ///     Makes the farmer's face the clicked point.
         /// </summary>
         /// <param name="faceClickPoint">
@@ -1162,7 +1261,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             if (this.path.Count > 0)
             {
-                AStarNode farmerNode = this.Graph.FarmerNodeOffset;
+                AStarNode farmerNode = this.Graph.FarmerNode;
 
                 if (farmerNode is null)
                 {
@@ -1226,7 +1325,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                                     this.Reset();
                                 }
-                                else if (this.Graph.FarmerNodeOffset.GetNpc() is Horse horse)
+                                else if (this.Graph.FarmerNode.GetNpc() is Horse horse)
                                 {
                                     horse.checkAction(Game1.player, this.GameLocation);
                                 }
@@ -1302,8 +1401,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             while (true)
             {
                 ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.HandleClick({x}, {y}, {tryCount})");
-
-                /*ClickToMove.startTime = DateTime.Now.Ticks;*/
 
                 this.interactionAtCursor = InteractionType.None;
 
@@ -1462,8 +1559,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 else if (this.GameLocation is Town town
                          && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater"))
                 {
-                    if (this.clickedTile.X >= 48 && this.clickedTile.X <= 51
-                                                 && (this.clickedTile.Y == 18 || this.clickedTile.Y == 19))
+                    if (this.clickedTile.X >= 48
+                        && this.clickedTile.X <= 51
+                        && (this.clickedTile.Y == 18 || this.clickedTile.Y == 19))
                     {
                         town.checkAction(new Location(this.clickedTile.X, 19), Game1.viewport, Game1.player);
 
@@ -1471,9 +1569,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         return;
                     }
                 }
-                else if (this.GameLocation is Beach beach && !beach.bridgeFixed
-                                                          && (this.clickedTile.X == 58 || this.clickedTile.X == 59)
-                                                          && (this.clickedTile.Y == 11 || this.clickedTile.Y == 12))
+                else if (this.GameLocation is Beach beach
+                         && !beach.bridgeFixed
+                         && (this.clickedTile.X == 58 || this.clickedTile.X == 59)
+                         && (this.clickedTile.Y == 11 || this.clickedTile.Y == 12))
                 {
                     beach.checkAction(new Location(58, 13), Game1.viewport, Game1.player);
                 }
@@ -1523,7 +1622,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                this.startNode = this.finalNode = this.Graph.FarmerNodeOffset;
+                this.startNode = this.finalNode = this.Graph.FarmerNode;
 
                 if (this.startNode is null)
                 {
@@ -1709,12 +1808,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         return;
                     }
 
-                    if (this.waterSourceAndFishingRodSelected)
+                    if (this.waterSourceSelected)
                     {
                         this.FaceTileClicked(true);
-
                         this.phase = ClickToMovePhase.UseTool;
-
                         return;
                     }
 
@@ -1814,8 +1911,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            if (ClickToMoveManager.JustClosedActiveMenu
-                || ClickToMoveManager.OnScreenButtonClicked)
+            if (ClickToMoveManager.IgnoreClick)
             {
                 return true;
             }
@@ -1823,26 +1919,51 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Checks whether there's an object that can block the Farmer at the given tile coordinates.
+        /// </summary>
+        /// <param name="tileX">The x tile coordinate.</param>
+        /// <param name="tileY">The y tile coordinate.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's an object that can block the Farmer at the
+        ///     given tile coordinates. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool IsBlockingObject(int tileX, int tileY)
+        {
+            return (this.GameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object)
+                    && @object is not null
+                    && @object.ParentSheetIndex >= ObjectId.GlassShards
+                    && @object.ParentSheetIndex <= ObjectId.GoldenRelic)
+                   || (this.Graph.GetNode(tileX, tileY)?.ContainsStumpOrBoulder() ?? false);
+        }
+
+        /// <summary>
+        ///     Checks whether there's any blocking object between the Farmer and the given monster.
+        /// </summary>
+        /// <param name="monster">The monster near the Farmer.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's a blocking object between the Farmer and
+        ///     the given monster. Returns <see langword="false"/> otherwise.
+        /// </returns>
         private bool IsObjectBlockingMonster(Monster monster)
         {
-            int tileX = Game1.player.getTileX();
-            if (Math.Abs(tileX - monster.getTileX()) == 2)
+            Point playerTile = Game1.player.getTileLocationPoint();
+            Point monsterTile = monster.getTileLocationPoint();
+
+            int distanceX = monsterTile.X - playerTile.X;
+            int distanceY = monsterTile.Y - playerTile.Y;
+
+            if (Math.Abs(distanceX) == 2 || Math.Abs(distanceY) == 2)
             {
-                tileX = tileX < monster.getTileX() ? tileX + 1 : tileX - 1;
+                return this.IsBlockingObject(playerTile.X + Math.Sign(distanceX), playerTile.Y + Math.Sign(distanceY));
+            }
+            else if (Math.Abs(distanceX) == 1 && Math.Abs(distanceY) == 1)
+            {
+                return this.IsBlockingObject(playerTile.X + Math.Sign(distanceX), 0)
+                    && this.IsBlockingObject(0, playerTile.Y + Math.Sign(distanceY));
             }
 
-            int tileY = Game1.player.getTileY();
-            if (Math.Abs(tileY - monster.getTileY()) == 2)
-            {
-                tileY = tileY <= monster.getTileY() ? tileY + 1 : tileY - 1;
-            }
-
-            this.GameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object);
-
-            return (@object is not null
-                    && ((@object.ParentSheetIndex >= ObjectId.GlassShards && @object.ParentSheetIndex <= ObjectId.GoldenRelic)
-                        || @object.Name == "Stone" || @object.Name == "Boulder"))
-                   || (this.Graph.GetNode(tileX, tileY)?.ContainsStumpOrBoulder() ?? false);
+            return false;
         }
 
         /// <summary>
@@ -1977,24 +2098,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return !tileClear;
             }
 
-            if (node.ContainsCinemaTicketOffice())
+            if (this.CheckCinema(node))
             {
-                this.SelectDifferentEndNode(node.Y, 20);
-
-                this.endTileIsActionable = true;
-                this.performActionFromNeighbourTile = true;
-                this.clickedCinemaTicketBooth = true;
-
-                return true;
-            }
-
-            if (node.ContainsCinemaDoor())
-            {
-                this.SelectDifferentEndNode(node.X, 19);
-
-                this.endTileIsActionable = true;
-                this.clickedCinemaDoor = true;
-
                 return true;
             }
 
@@ -2173,22 +2278,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            /*if (this.GameLocation is Forest forest)
-            {
-                if (forest.log is not null && forest.log.getBoundingBox(forest.log.tile).Contains(
-                        this.clickedNode.X * Game1.tileSize,
-                        this.clickedNode.Y * Game1.tileSize))
-                {
-                    this.forestLog = forest.log;
-                    this.performActionFromNeighbourTile = true;
-                    this.endNodeToBeActioned = true;
-
-                    this.AutoSelectTool("Axe");
-
-                    return true;
-                }
-            }*/
-
             if (this.GameLocation.IsTreeLogAt(this.clickedNode.X, this.clickedNode.Y))
             {
                 this.performActionFromNeighbourTile = true;
@@ -2355,21 +2444,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 this.performActionFromNeighbourTile = true;
                 return true;
-
-                /*if ((this.TargetFarmAnimal.type.Value.Contains("Cow")
-                     || this.TargetFarmAnimal.type.Value.Contains("Goat")) && Game1.player.CurrentTool is MilkPail)
-                {
-                    return true;
-                }
-
-                if (this.TargetFarmAnimal.type.Value.Contains("Sheep") && Game1.player.CurrentTool is Shears)
-                {
-                    return true;
-                }
-
-                this.performActionFromNeighbourTile = true;
-
-                return true;*/
             }
 
             if (Game1.player.ActiveObject is not null
@@ -2548,8 +2622,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                                                && giantCrop.tile.Y + 1 == node.Y)
                                 {
                                     Point point = ClickToMoveHelper.GetNextPointOut(
-                                        this.Graph.FarmerNodeOffset.X,
-                                        this.Graph.FarmerNodeOffset.Y,
+                                        this.Graph.FarmerNode.X,
+                                        this.Graph.FarmerNode.Y,
                                         node.X,
                                         node.Y);
 
@@ -2724,47 +2798,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     Game1.player.CurrentToolIndex = -1;
                 }
 
-                if (this.GameLocation.IsWateringCanFillingSource(this.clickedTile)
-                    && (Game1.player.CurrentTool is WateringCan || Game1.player.CurrentTool is FishingRod))
+                if (CheckWaterSource(node))
                 {
-                    if (Game1.player.CurrentTool is FishingRod && this.GameLocation is Town
-                                                               && this.clickedNode.X >= 50 && this.clickedNode.X <= 53
-                                                               && this.clickedNode.Y >= 103
-                                                               && this.clickedNode.Y <= 105)
-                    {
-                        this.clickedNode = this.Graph.GetNode(52, this.clickedNode.Y);
-                    }
-                    else
-                    {
-                        AStarNode landNode = this.Graph.GetNearestLandNodePerpendicularToWaterSource(this.clickedNode);
-
-                        float fishingDistance = 2.5f;
-
-                        if (Game1.player.CurrentTool is FishingRod)
-                        {
-                            fishingDistance += Game1.player.GetFishingAddedDistance();
-                        }
-
-                        if (landNode is not null && Game1.player.CurrentTool is FishingRod && Vector2.Distance(
-                                Game1.player.OffsetPositionOnMap(),
-                                landNode.NodeCenterOnMap) < Game1.tileSize * fishingDistance)
-                        {
-                            this.FaceTileClicked();
-
-                            this.clickedNode = this.startNode;
-                        }
-                        else if (landNode is not null)
-                        {
-                            this.clickedNode = landNode;
-                        }
-                    }
-
-                    this.clickedTile = new Point(this.clickedNode.X, this.clickedNode.Y);
-
-                    this.waterSourceAndFishingRodSelected = true;
-                    this.endNodeToBeActioned = true;
-                    this.performActionFromNeighbourTile = true;
-
                     return true;
                 }
 
@@ -2832,7 +2867,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (Game1.player.CurrentTool is FishingRod && this.GameLocation is Town && this.clickedNode.X >= 50
                 && this.clickedNode.X <= 53 && this.clickedNode.Y >= 103 && this.clickedNode.Y <= 105)
             {
-                this.waterSourceAndFishingRodSelected = true;
+                this.waterSourceSelected = true;
 
                 this.clickedNode = this.Graph.GetNode(52, this.clickedNode.Y);
                 this.clickedTile = new Point(this.clickedNode.X, this.clickedNode.Y);
@@ -3004,7 +3039,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                         if (Game1.player.CurrentTool is not null
                             && (Game1.player.CurrentTool is FishingRod
-                                || (Game1.player.CurrentTool is WateringCan && this.waterSourceAndFishingRodSelected)))
+                                || (Game1.player.CurrentTool is WateringCan && this.waterSourceSelected)))
                         {
                             Game1.player.faceDirection(
                                 WalkDirection.GetFacingDirection(
@@ -3039,7 +3074,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         this.FaceTileClicked(true);
                     }
 
-                    if (Game1.player.CurrentTool is not FishingRod || this.waterSourceAndFishingRodSelected)
+                    if (Game1.player.CurrentTool is not FishingRod || this.waterSourceSelected)
                     {
                         this.GrabTile = this.clickedTile;
                         if (!this.GameLocation.IsChoppableOrMinable(this.clickedTile))
@@ -3367,13 +3402,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if (this.GameLocation is SlimeHutch && this.clickedNode.X == 16 && this.clickedNode.Y >= 6
-                    && this.clickedNode.Y <= 9)
-                {
-                    return true;
-                }
-
-                if (this.GameLocation.IsWateringCanFillingSource(this.clickedTile))
+                if ((this.GameLocation is SlimeHutch
+                     && this.clickedNode.X == 16 && this.clickedNode.Y >= 6
+                     && this.clickedNode.Y <= 9)
+                    || this.GameLocation.CanRefillWateringCanOnTile(this.clickedTile.X, this.clickedTile.Y))
                 {
                     return true;
                 }

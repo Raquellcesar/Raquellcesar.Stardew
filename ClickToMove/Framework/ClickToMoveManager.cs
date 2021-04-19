@@ -53,21 +53,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static Texture2D targetTexture;
 
         /// <summary>
-        ///     Gets the mod configuration.
-        /// </summary>
-        internal static ModConfig Config { get; private set; }
-
-        /// <summary>
         ///     Gets the helper for writing mods.
         /// </summary>
         public static IModHelper Helper { get; private set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether an active menu was closed in this tick. Used
-        ///     to prevent processing of the left mouse click in this tick and also the release of
-        ///     the left mouse button on the next tick.
+        ///     Gets or sets a value indicating whether the current click should be ignored. Used to
+        ///     prevent processing of the left mouse click in this tick and also the release of the
+        ///     left mouse button on the next tick.
         /// </summary>
-        public static bool JustClosedActiveMenu { get; set; }
+        public static bool IgnoreClick { get; set; }
 
         /// <summary>
         ///     Gets the monitor for monitoring and logging.
@@ -75,43 +70,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public static IMonitor Monitor { get; private set; }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether an onscreen menu was clicked in this tick.
-        ///     Used to prevent processing of the left mouse click in this tick and also the release
-        ///     of the left mouse button on the next tick.
-        /// </summary>
-        public static bool OnScreenButtonClicked { get; set; }
-
-        /// <summary>
         ///     Gets the reflection helper, which simplifies access to private game code.
         /// </summary>
         public static IReflectionHelper Reflection { get; private set; }
 
         /// <summary>
-        ///     Adds the <see cref="GameLocation"/> and associated <see cref="ClickToMove"/> object
-        ///     if the game location doesn't exist, or updates the associated object if it does exist.
+        ///     Gets the mod configuration.
         /// </summary>
-        /// <param name="location">
-        ///     <see cref="GameLocation"/> to add or update. If it's null, nothing is done.
-        /// </param>
-        /// <param name="clickToMove">
-        ///     <see cref="ClickToMove"/> object to associate with the game location.
-        /// </param>
-        internal static void AddOrUpdate(GameLocation location, ClickToMove clickToMove)
-        {
-            if (location is not null)
-            {
-                // If we found the key we should just update, if no we should create a new entry.
-                if (ClickToMoveManager.PathFindingControllers.TryGetValue(location, out ClickToMove _))
-                {
-                    ClickToMoveManager.PathFindingControllers.Remove(location);
-                    ClickToMoveManager.PathFindingControllers.Add(location, clickToMove);
-                }
-                else
-                {
-                    ClickToMoveManager.PathFindingControllers.Add(location, clickToMove);
-                }
-            }
-        }
+        internal static ModConfig Config { get; private set; }
 
         /// <summary>
         ///     Draw the current click to move target.
@@ -184,40 +150,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Gets the <see cref="ClickToMove"/> object associated to a given <see cref="GameLocation"/>.
-        /// </summary>
-        /// <param name="gameLocation">
-        ///     The <see cref="GameLocation"/> for which to get the <see cref="ClickToMove"/> object.
-        /// </param>
-        /// <returns>
-        ///     The <see cref="ClickToMove"/> associated to the given <see cref="GameLocation"/>.
-        ///     Returns <see langword="null"/> if the game location is null.
-        /// </returns>
-        internal static ClickToMove GetOrCreate(GameLocation gameLocation)
-        {
-            return gameLocation is not null
-                       ? ClickToMoveManager.PathFindingControllers.GetValue(gameLocation, ClickToMoveManager.CreateClickToMove)
-                       : null;
-        }
-
-        /// <summary>
-        ///     Initializes the class helpers.
-        /// </summary>
-        /// <param name="config">The mod configuration.</param>
-        /// <param name="monitor">The monitor for monitoring and logging.</param>
-        /// <param name="helper">The helper for writing mods.</param>
-        internal static void Init(ModConfig config, IMonitor monitor, IModHelper helper)
-        {
-            ClickToMoveManager.Config = config;
-            ClickToMoveManager.Monitor = monitor;
-            ClickToMoveManager.Helper = helper;
-            ClickToMoveManager.Reflection = helper.Reflection;
-
-            ClickToMoveManager.targetTexture =
-                ClickToMoveManager.Helper.Content.Load<Texture2D>("assets/clickTarget.png");
-        }
-
-        /// <summary>
         ///     Method called when the simulated left click is pressed in this <see cref="FishingGame"/>.
         /// </summary>
         /// <param name="fishingGame">The <see cref="FishingGame"/> instance.</param>
@@ -267,6 +199,113 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         break;
                 }
             }
+        }
+
+        /// <summary>
+        ///     Updates the state of the current minigame.
+        /// </summary>
+        /// <param name="currentMouseState">The current <see cref="MouseState"/>.</param>
+        public static void UpdateMinigameInput(MouseState currentMouseState)
+        {
+            GameLocation location = Game1.currentLocation;
+
+            if (location is not null)
+            {
+                if (Game1.currentMinigame is FishingGame fishingGame && fishingGame.gameDone)
+                {
+                    return;
+                }
+
+                ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(location);
+
+                if (currentMouseState.LeftButton == ButtonState.Pressed
+                    && Game1.oldMouseState.LeftButton == ButtonState.Released)
+                {
+                    clickToMove.OnClick(
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
+                }
+                else if (currentMouseState.LeftButton == ButtonState.Pressed
+                         && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
+                {
+                    clickToMove.OnClickHeld(
+                        Game1.getMouseX() + Game1.viewport.X,
+                        Game1.getMouseY() + Game1.viewport.Y);
+                }
+                else if (currentMouseState.LeftButton == ButtonState.Released
+                         && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
+                {
+                    clickToMove.OnClickRelease();
+                }
+
+                clickToMove.Update();
+
+                if (Game1.currentMinigame is FishingGame fishingGame2)
+                {
+                    fishingGame2.ReceiveClickToMoveKeyStates(clickToMove);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Adds the <see cref="GameLocation"/> and associated <see cref="ClickToMove"/> object
+        ///     if the game location doesn't exist, or updates the associated object if it does exist.
+        /// </summary>
+        /// <param name="location">
+        ///     <see cref="GameLocation"/> to add or update. If it's null, nothing is done.
+        /// </param>
+        /// <param name="clickToMove">
+        ///     <see cref="ClickToMove"/> object to associate with the game location.
+        /// </param>
+        internal static void AddOrUpdate(GameLocation location, ClickToMove clickToMove)
+        {
+            if (location is not null)
+            {
+                // If we found the key we should just update, if no we should create a new entry.
+                if (ClickToMoveManager.PathFindingControllers.TryGetValue(location, out ClickToMove _))
+                {
+                    ClickToMoveManager.PathFindingControllers.Remove(location);
+                    ClickToMoveManager.PathFindingControllers.Add(location, clickToMove);
+                }
+                else
+                {
+                    ClickToMoveManager.PathFindingControllers.Add(location, clickToMove);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Gets the <see cref="ClickToMove"/> object associated to a given <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="gameLocation">
+        ///     The <see cref="GameLocation"/> for which to get the <see cref="ClickToMove"/> object.
+        /// </param>
+        /// <returns>
+        ///     The <see cref="ClickToMove"/> associated to the given <see cref="GameLocation"/>.
+        ///     Returns <see langword="null"/> if the game location is null.
+        /// </returns>
+        internal static ClickToMove GetOrCreate(GameLocation gameLocation)
+        {
+            return gameLocation is not null
+                       ? ClickToMoveManager.PathFindingControllers.GetValue(gameLocation, ClickToMoveManager.CreateClickToMove)
+                       : null;
+        }
+
+        /// <summary>
+        ///     Initializes the class helpers.
+        /// </summary>
+        /// <param name="config">The mod configuration.</param>
+        /// <param name="monitor">The monitor for monitoring and logging.</param>
+        /// <param name="helper">The helper for writing mods.</param>
+        internal static void Init(ModConfig config, IMonitor monitor, IModHelper helper)
+        {
+            ClickToMoveManager.Config = config;
+            ClickToMoveManager.Monitor = monitor;
+            ClickToMoveManager.Helper = helper;
+            ClickToMoveManager.Reflection = helper.Reflection;
+
+            ClickToMoveManager.targetTexture =
+                ClickToMoveManager.Helper.Content.Load<Texture2D>("assets/clickTarget.png");
         }
 
         /// <summary>
@@ -333,52 +372,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (clickKeyStates.UseToolButtonReleased)
             {
                 ClickToMoveManager.OnLeftClickRelease(clickToMove.GameLocation, clickToMove.ClickPoint.X, clickToMove.ClickPoint.Y);
-            }
-        }
-
-        /// <summary>
-        ///     Updates the state of the current minigame.
-        /// </summary>
-        /// <param name="currentMouseState">The current <see cref="MouseState"/>.</param>
-        public static void UpdateMinigameInput(MouseState currentMouseState)
-        {
-            GameLocation location = Game1.currentLocation;
-
-            if (location is not null)
-            {
-                if (Game1.currentMinigame is FishingGame fishingGame && fishingGame.gameDone)
-                {
-                    return;
-                }
-
-                ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(location);
-
-                if (currentMouseState.LeftButton == ButtonState.Pressed
-                    && Game1.oldMouseState.LeftButton == ButtonState.Released)
-                {
-                    clickToMove.OnClick(
-                        Game1.getMouseX() + Game1.viewport.X,
-                        Game1.getMouseY() + Game1.viewport.Y);
-                }
-                else if (currentMouseState.LeftButton == ButtonState.Pressed
-                         && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
-                {
-                    clickToMove.OnClickHeld(
-                        Game1.getMouseX() + Game1.viewport.X,
-                        Game1.getMouseY() + Game1.viewport.Y);
-                }
-                else if (currentMouseState.LeftButton == ButtonState.Released
-                         && Game1.oldMouseState.LeftButton == ButtonState.Pressed)
-                {
-                    clickToMove.OnClickRelease();
-                }
-
-                clickToMove.Update();
-
-                if (Game1.currentMinigame is FishingGame fishingGame2)
-                {
-                    fishingGame2.ReceiveClickToMoveKeyStates(clickToMove);
-                }
             }
         }
 

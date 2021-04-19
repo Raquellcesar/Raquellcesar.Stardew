@@ -61,7 +61,7 @@ namespace Raquellcesar.Stardew.Common
         ///     screen, so it should be simple and avoid characters that might not be available in the sprite font.
         /// </param>
         /// <param name="detailedVerb">
-        ///     A more detailed form of <see cref="verb" /> if applicable. This is displayed in the log, so
+        ///     A more detailed form of <paramref name="verb"/> if applicable. This is displayed in the log, so
         ///     it can be more technical and isn't constrained by the sprite font.
         /// </param>
         /// <param name="action">The action to invoke.</param>

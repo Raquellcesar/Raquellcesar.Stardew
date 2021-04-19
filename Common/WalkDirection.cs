@@ -150,6 +150,21 @@ namespace Raquellcesar.Stardew.Common
         }
 
         /// <summary>
+        ///     Finds the facing direction when getting from a start point to a target point.
+        /// </summary>
+        /// <remarks>
+        ///     This only works correctly if the int values used for the walk directions are in sync
+        ///     with the values used for facing directions in game.
+        /// </remarks>
+        /// <param name="startPosition">The start position.</param>
+        /// <param name="targetPosition">The target position.</param>
+        /// <returns>The <see langword="int"/> representing the facing direction when going from start to target.</returns>
+        public static int GetFacingDirection(Point startPosition, Point targetPosition)
+        {
+            return WalkDirection.GetFacingWalkDirection(startPosition, targetPosition).Value;
+        }
+
+        /// <summary>
         ///     Finds the <see cref="WalkDirection"/> when getting from a start point to a target point.
         ///     It doesn't consider diagonal directions.
         /// </summary>
@@ -353,17 +368,17 @@ namespace Raquellcesar.Stardew.Common
         /// <returns>The <see cref="WalkDirection"/> when following the given direction.</returns>
         private static WalkDirection GetFacingWalkDirectionForAngle(float angle)
         {
-            if (angle >= -3.0 * Math.PI / 4.0 && angle <= -Math.PI / 4.0)
+            if (angle >= -3 * Math.PI / 4 && angle <= -Math.PI / 4)
             {
                 return WalkDirection.Up;
             }
 
-            if (angle >= -Math.PI / 4.0 && angle <= Math.PI / 4.0)
+            if (angle >= -Math.PI / 4 && angle <= Math.PI / 4)
             {
                 return WalkDirection.Right;
             }
 
-            if (angle >= Math.PI / 4.0 && angle <= 3.0 * Math.PI / 4.0)
+            if (angle >= Math.PI / 4 && angle <= 3 * Math.PI / 4)
             {
                 return WalkDirection.Down;
             }
