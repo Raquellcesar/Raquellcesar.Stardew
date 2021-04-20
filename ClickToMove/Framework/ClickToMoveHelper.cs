@@ -160,11 +160,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return gameLocation is Desert desert && desert.IsTravelingMerchantHere() && desert.GetDesertMerchantBounds().Contains(tileX, tileY);
         }
 
-        public static int CountNonNullItems(this Chest chest)
-        {
-            return chest.items.Count(item => item is not null);
-        }
-
         /// <summary>
         ///     Gets the Euclidean distance between two points.
         /// </summary>

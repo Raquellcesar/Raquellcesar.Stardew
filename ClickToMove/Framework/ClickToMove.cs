@@ -104,8 +104,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private Building actionableBuilding;
 
+        /// <summary>
+        ///     Whether the player clicked the Cinema's door.
+        /// </summary>
         private bool clickedCinemaDoor;
 
+        /// <summary>
+        ///     Whether the player clicked the Cinema's ticket office.
+        /// </summary>
         private bool clickedCinemaTicketBooth;
 
         /// <summary>
@@ -121,7 +127,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     The <see cref="Horse"/> clicked at the end of the path.
         /// </summary>
-        private Horse clickedOnHorse;
+        private Horse clickedHorse;
 
         /// <summary>
         ///     The backing field for <see cref="ClickedTile"/>.
@@ -590,7 +596,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.waterSourceSelected = false;
 
             this.actionableBuilding = null;
-            this.clickedOnHorse = null;
+            this.clickedHorse = null;
             this.crabPot = null;
             this.forageItem = null;
             this.gateClickedOn = null;
@@ -799,7 +805,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Returns <see langword="true"/> if the player clicked the Movie Theater's doors or
         ///     ticket office. Returns <see langword="false"/> otherwise.
         /// </returns>
-        private bool CheckCinema(AStarNode node)
+        private bool CheckCinemaInteraction(AStarNode node)
         {
             if (this.Graph.GameLocation is Town
                 && Utility.doesMasterPlayerHaveMailReceivedButNotMailForTomorrow("ccMovieTheater"))
@@ -843,19 +849,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </returns>
         private bool CheckForQueueableClicks(int x, int y)
         {
-            if (this.queueingClicks)
+            if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
             {
-                if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
+                if (this.queueingClicks
+                    && this.AddToClickQueue(x, y)
+                    && this.phase == ClickToMovePhase.None)
                 {
-                    if (this.AddToClickQueue(x, y)
-                        && this.phase == ClickToMovePhase.None)
-                    {
-                        this.waitingToFinishWatering = true;
-                    }
-
-                    return true;
+                    this.waitingToFinishWatering = true;
                 }
 
+                return true;
+            }
+
+            if (this.queueingClicks)
+            {
                 Vector2 tile = new Vector2(x / Game1.tileSize, y / Game1.tileSize);
 
                 this.GameLocation.terrainFeatures.TryGetValue(tile, out TerrainFeature terrainFeature);
@@ -929,13 +936,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (this.clickQueue.Count > 0)
             {
-                if (Game1.player.CurrentTool is WateringCan { WaterLeft: <= 0 })
+                /*if (Game1.player.CurrentTool is WateringCan { WaterLeft: <= 0 })
                 {
                     Game1.player.doEmote(4);
                     Game1.showRedMessage(Game1.content.LoadString("Strings\\StringsFromCSFiles:WateringCan.cs.14335"));
                     this.clickQueue.Clear();
                     return;
-                }
+                }*/
 
                 ClickQueueItem clickQueueItem = this.clickQueue.Dequeue();
 
@@ -1142,7 +1149,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     If the Farmer has the watering can or the fishing rod equipped, checks whether they
         ///     can use the tool on the clicked tile. If that's the case, the clicked tile is set to
-        ///     the land tile nearest to the clicked tile.
+        ///     a water source tile that neighbours a land tile.
         /// </summary>
         /// <param name="node">The node associated to the clicked tile.</param>
         /// <returns>
@@ -1154,7 +1161,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             if (Game1.player.CurrentTool is WateringCan && this.GameLocation.CanRefillWateringCanOnTile(node.X, node.Y))
             {
-                if (this.Graph.GetClosestCoastNode(node) is AStarNode landNode)
+                if (this.Graph.GetCoastNode(node) is AStarNode landNode)
                 {
                     this.clickedNode = landNode;
                     this.clickedTile.X = this.clickedNode.X;
@@ -1172,7 +1179,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 && this.GameLocation.canFishHere()
                 && this.GameLocation.isTileFishable(node.X, node.Y))
             {
-                if (this.Graph.GetClosestCoastNode(node) is AStarNode landNode)
+                if (this.Graph.GetCoastNode(node) is AStarNode landNode)
                 {
                     if (Vector2.Distance(
                             Game1.player.OffsetPositionOnMap(),
@@ -1319,9 +1326,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                 {
                                     this.Reset();
                                 }
-                                else if (this.clickedOnHorse is not null)
+                                else if (this.clickedHorse is not null)
                                 {
-                                    this.clickedOnHorse.checkAction(Game1.player, this.GameLocation);
+                                    this.clickedHorse.checkAction(Game1.player, this.GameLocation);
 
                                     this.Reset();
                                 }
@@ -1420,28 +1427,17 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (this.queueingClicks)
-                {
-                    this.queueingClicks = false;
-                    this.clickQueue.Clear();
-                }
-
-                if (Game1.player.CurrentTool is WateringCan && Game1.player.UsingTool)
-                {
-                    return;
-                }
-
-                if (!Game1.player.CanMove && Game1.player.UsingTool && Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter())
-                {
-                    Game1.player.Halt();
-
-                    this.ClickKeyStates.SetUseTool(false);
-                    this.enableCheckToAttackMonsters = false;
-                    this.justUsedWeapon = false;
-                }
-
                 if (!Game1.player.CanMove)
                 {
+                    if (Game1.player.UsingTool && Game1.player.CurrentTool is not null && Game1.player.CurrentTool.isHeavyHitter())
+                    {
+                        Game1.player.Halt();
+
+                        this.ClickKeyStates.SetUseTool(false);
+                        this.enableCheckToAttackMonsters = false;
+                        this.justUsedWeapon = false;
+                    }
+
                     if (Game1.eventUp)
                     {
                         if ((Game1.currentSeason == "winter" && Game1.dayOfMonth == 8) || Game1.currentMinigame is FishingGame)
@@ -1511,8 +1507,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (this.GameLocation is DecoratableLocation decoratableLocation)
                 {
-                    // There's no furniture clicked. If the Farmer is holding some furniture, let
-                    // the game handle the click.
+                    // If the Farmer is holding some furniture, let the game handle the click.
                     if (Game1.player.ActiveObject is Furniture)
                     {
                         this.phase = ClickToMovePhase.UseTool;
@@ -1644,9 +1639,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     this.endNodeOccupied = false;
                 }
 
-                if (this.clickedOnHorse is not null && Game1.player.CurrentItem is Hat)
+                if (this.clickedHorse is not null && Game1.player.CurrentItem is Hat)
                 {
-                    this.clickedOnHorse.checkAction(Game1.player, this.GameLocation);
+                    this.clickedHorse.checkAction(Game1.player, this.GameLocation);
 
                     this.Reset();
                     return;
@@ -2098,7 +2093,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return !tileClear;
             }
 
-            if (this.CheckCinema(node))
+            if (this.CheckCinemaInteraction(node))
             {
                 return true;
             }
@@ -2226,10 +2221,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return true;
                 }
 
-                Chest chest = node.GetChest();
-                if (chest is not null)
+                if (node.GetChest() is Chest chest)
                 {
-                    if (chest.CountNonNullItems() == 0)
+                    if (chest.isEmpty()/*CountNonNullItems() == 0*/)
                     {
                         this.performActionFromNeighbourTile = true;
                         this.endNodeToBeActioned = true;
@@ -2317,7 +2311,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             NPC npc = node.GetNpc();
             if (npc is Horse horse)
             {
-                this.clickedOnHorse = horse;
+                this.clickedHorse = horse;
 
                 if (!(Game1.player.CurrentItem is Hat))
                 {
@@ -2367,7 +2361,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (npc is Horse horse2)
                 {
-                    this.clickedOnHorse = horse2;
+                    this.clickedHorse = horse2;
 
                     if (!(Game1.player.CurrentItem is Hat))
                     {
@@ -2396,7 +2390,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (npc is Horse horse3)
                 {
-                    this.clickedOnHorse = horse3;
+                    this.clickedHorse = horse3;
 
                     if (!(Game1.player.CurrentItem is Hat))
                     {
@@ -2414,7 +2408,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             if (this.GameLocation is Farm && node.Y == 13 && (node.X == 71 || node.X == 72)
-                && this.clickedOnHorse is null)
+                && this.clickedHorse is null)
             {
                 this.SelectDifferentEndNode(node.X, node.Y + 1);
 
@@ -2447,7 +2441,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
 
             if (Game1.player.ActiveObject is not null
-                && (!(Game1.player.ActiveObject is Wallpaper) || this.GameLocation is DecoratableLocation)
+                && (Game1.player.ActiveObject is not Wallpaper || this.GameLocation is DecoratableLocation)
                 && (Game1.player.ActiveObject.bigCraftable.Value
                     || ClickToMove.ActionableObjectIds.Contains(Game1.player.ActiveObject.ParentSheetIndex)
                     || (Game1.player.ActiveObject is Wallpaper
@@ -2710,8 +2704,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                TerrainFeature someTree = node.GetTree();
-                if (someTree is not null)
+                if (node.GetTree() is TerrainFeature someTree)
                 {
                     if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Edibility > SObject.inedible)
                     {
@@ -2798,7 +2791,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     Game1.player.CurrentToolIndex = -1;
                 }
 
-                if (CheckWaterSource(node))
+                if (this.CheckWaterSource(node))
                 {
                     return true;
                 }
@@ -2995,11 +2988,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return this.endNodeToBeActioned;
         }
 
+        /// <summary>
+        ///     Method called when the Farmer has completed the eventual interaction at the end of the path.
+        /// </summary>
         private void OnClickToMoveComplete()
         {
             if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival)
                 && !Game1.player.UsingTool
-                && this.clickedOnHorse is null
+                && this.clickedHorse is null
                 && !this.warping
                 && !this.IgnoreWarps
                 && this.GameLocation.WarpIfInRange(this.ClickVector))
@@ -3147,16 +3143,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            if (this.clickedOnHorse is not null)
+            if (this.clickedHorse is not null)
             {
-                this.clickedOnHorse.checkAction(Game1.player, this.GameLocation);
+                this.clickedHorse.checkAction(Game1.player, this.GameLocation);
 
                 this.Reset();
 
                 return false;
             }
 
-            if (Game1.player.mount is not null && this.clickedOnHorse is null)
+            if (Game1.player.mount is not null && this.clickedHorse is null)
             {
                 Game1.player.mount.SetCheckActionEnabled(false);
             }

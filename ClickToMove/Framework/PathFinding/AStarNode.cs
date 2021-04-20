@@ -226,10 +226,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                                  && !Game1.player.TemporaryPassableTiles.Intersects(tileRectangle));
         }
 
+        /// <summary>
+        ///     Checks if there is a <see cref="Fence"/> at the tile corresponding to this node.
+        /// </summary>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there's a <see cref="Fence"/> at the tile corresponding to this node.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
         public bool ContainsFence()
         {
-            this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
-            return @object is Fence;
+            return this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object) && @object is Fence;
         }
 
         public bool ContainsGate()

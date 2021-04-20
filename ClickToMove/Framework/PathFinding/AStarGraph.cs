@@ -214,92 +214,50 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Gets the water source node that neighbours land that is on the same column or row as
-        ///     the given water source node or the Farmer and is closest to the clicked node.
+        ///     Gets a water source node that neighbours land and is on the same column or row as
+        ///     the given water source node. It favours directions towards the Farmer.
         /// </summary>
         /// <param name="waterSourceNode">The water source node clicked.</param>
         /// <returns>
-        ///     The water source node that neighbours land that is on the same column or row as the
-        ///     given water source node or the Farmer and is closest to the clicked node.
+        ///     The nearest water source node that neighbours land and is on the same column or row
+        ///     as the given water source, favouring the directions towards the Farmer.
         /// </returns>
-        public AStarNode GetClosestCoastNode(AStarNode waterSourceNode)
+        public AStarNode GetCoastNode(AStarNode waterSourceNode)
         {
             int distanceX = this.FarmerNode.X - waterSourceNode.X;
             int distanceY = this.FarmerNode.Y - waterSourceNode.Y;
 
-            int deltaX = Math.Sign(distanceX);
-            int deltaY = Math.Sign(distanceY);
-
-            int tile1X = waterSourceNode.X + deltaX;
-            int tile1Y = waterSourceNode.Y;
-            int tile2X = waterSourceNode.X;
-            int tile2Y = waterSourceNode.Y + deltaY;
-            AStarNode coastNode1 = waterSourceNode;
-            AStarNode coastNode2 = waterSourceNode;
-            for (int i = 0; i < Math.Abs(distanceX) + Math.Abs(distanceY); i++)
+            AStarNode coastNode = waterSourceNode;
+            if (distanceX == 0 || (distanceY != 0 && Math.Abs(distanceX) > Math.Abs(distanceY)))
             {
-                // Go through the tiles in the same row as the clicked node, then the tiles in the
-                // same column as the Farmer.
-                if (distanceX != 0)
+                int deltaY = Math.Sign(distanceY);
+                for (int tileY = waterSourceNode.Y + deltaY; tileY != this.FarmerNode.Y + deltaY; tileY += deltaY)
                 {
-                    if (tile1X != this.FarmerNode.X)
+                    AStarNode node = this.GetNode(waterSourceNode.X, tileY);
+                    if (node is not null && node.TileClear)
                     {
-                        AStarNode node = this.GetNode(tile1X, tile1Y);
-                        if (node is not null && node.TileClear)
-                        {
-                            return coastNode1;
-                        }
-
-                        coastNode1 = node;
-
-                        tile1X += deltaX;
+                        return coastNode;
                     }
-                    else
-                    {
-                        AStarNode node = this.GetNode(tile1X, tile1Y);
-                        if (node is not null && node.TileClear)
-                        {
-                            return coastNode1;
-                        }
 
-                        coastNode1 = node;
-
-                        tile1Y += deltaY;
-                    }
+                    coastNode = node;
                 }
-
-                // Go through the tiles in the same column as the clicked node, then the tiles in
-                // the same row as the Farmer.
-                if (distanceY != 0)
+            }
+            else
+            {
+                int deltaX = Math.Sign(distanceY);
+                for (int tileX = waterSourceNode.X + deltaX; tileX != this.FarmerNode.X + deltaX; tileX += deltaX)
                 {
-                    if (tile2Y != this.FarmerNode.Y)
+                    AStarNode node = this.GetNode(tileX, waterSourceNode.Y);
+                    if (node is not null && node.TileClear)
                     {
-                        AStarNode node = this.GetNode(tile2X, tile2Y);
-                        if (node is not null && node.TileClear)
-                        {
-                            return coastNode2;
-                        }
-
-                        coastNode2 = node;
-
-                        tile2Y += deltaY;
+                        return coastNode;
                     }
-                    else
-                    {
-                        AStarNode node = this.GetNode(tile2X, tile2Y);
-                        if (node is not null && node.TileClear)
-                        {
-                            return coastNode2;
-                        }
 
-                        coastNode2 = node;
-
-                        tile2X += deltaX;
-                    }
+                    coastNode = node;
                 }
             }
 
-            return null;
+            return this.GetNodeNearestWaterSource(waterSourceNode);
         }
 
         public Point GetNearestTileNextToBuilding(Building building)
@@ -412,35 +370,44 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                        : null;
         }
 
-        public AStarNode GetNodeNearestWaterSource(AStarNode node)
+        /// <summary>
+        ///     Gets the water source node nearest to the given node that neighbours land and is on
+        ///     the same column or row as the given water source node.
+        /// </summary>
+        /// <param name="waterSourceNode">The water source node clicked.</param>
+        /// <returns>
+        ///     The nearest water source node that neighbours land and is on the same column or row
+        ///     as the given water source.
+        /// </returns>
+        public AStarNode GetNodeNearestWaterSource(AStarNode waterSourceNode)
         {
+            // Search for a land node in the same row or column than the given node.
             List<AStarNode> list = new List<AStarNode>();
-
             for (int i = 1; i < 30; i++)
             {
-                AStarNode goalNode = this.GetNode(node.X + i, node.Y);
+                AStarNode coastNode = this.GetNode(waterSourceNode.X + i, waterSourceNode.Y);
 
-                if (goalNode is not null && goalNode.TileClear)
+                if (coastNode is not null && coastNode.TileClear)
                 {
-                    list.Add(goalNode);
+                    list.Add(coastNode);
                 }
 
-                goalNode = this.GetNode(node.X - i, node.Y);
-                if (goalNode is not null && goalNode.TileClear)
+                coastNode = this.GetNode(waterSourceNode.X - i, waterSourceNode.Y);
+                if (coastNode is not null && coastNode.TileClear)
                 {
-                    list.Add(goalNode);
+                    list.Add(coastNode);
                 }
 
-                goalNode = this.GetNode(node.X, node.Y + i);
-                if (goalNode is not null && goalNode.TileClear)
+                coastNode = this.GetNode(waterSourceNode.X, waterSourceNode.Y + i);
+                if (coastNode is not null && coastNode.TileClear)
                 {
-                    list.Add(goalNode);
+                    list.Add(coastNode);
                 }
 
-                goalNode = this.GetNode(node.X, node.Y - i);
-                if (goalNode is not null && goalNode.TileClear)
+                coastNode = this.GetNode(waterSourceNode.X, waterSourceNode.Y - i);
+                if (coastNode is not null && coastNode.TileClear)
                 {
-                    list.Add(goalNode);
+                    list.Add(coastNode);
                 }
 
                 if (list.Count > 0)
@@ -454,6 +421,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 return null;
             }
 
+            // Find the land node closest to the Farmer.
             int minIndex = 0;
             float minDistance = float.MaxValue;
             for (int i = 1; i < list.Count; i++)
@@ -466,16 +434,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 }
             }
 
-            int x = node.X;
-            int y = node.Y;
-
-            if (list[minIndex].X != node.X)
+            // Get the water source node that neighbours the found land node.
+            int x = waterSourceNode.X;
+            int y = waterSourceNode.Y;
+            if (list[minIndex].X != waterSourceNode.X)
             {
-                x = list[minIndex].X <= node.X ? list[minIndex].X + 1 : list[minIndex].X - 1;
+                x = list[minIndex].X <= waterSourceNode.X ? list[minIndex].X + 1 : list[minIndex].X - 1;
             }
             else
             {
-                y = list[minIndex].Y <= node.Y ? list[minIndex].Y + 1 : list[minIndex].Y - 1;
+                y = list[minIndex].Y <= waterSourceNode.Y ? list[minIndex].Y + 1 : list[minIndex].Y - 1;
             }
 
             return this.GetNode(x, y);
