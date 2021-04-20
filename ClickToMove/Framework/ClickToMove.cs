@@ -387,7 +387,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="y">The clicked y absolute coordinate.</param>
         public void OnClickHeld(int x, int y)
         {
-            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld({x}, {y})");
+            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld({x}, {y}) - DateTime.Now.Ticks - ClickToMove.startTime = {DateTime.Now.Ticks - ClickToMove.startTime}");
 
             if (ClickToMoveManager.IgnoreClick
                 || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
