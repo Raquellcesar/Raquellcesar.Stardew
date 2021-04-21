@@ -1159,40 +1159,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </returns>
         private bool CheckWaterSource(AStarNode node)
         {
-            if (Game1.player.CurrentTool is WateringCan && this.GameLocation.CanRefillWateringCanOnTile(node.X, node.Y))
+            if ((Game1.player.CurrentTool is WateringCan && this.GameLocation.CanRefillWateringCanOnTile(node.X, node.Y))
+                || (Game1.player.CurrentTool is FishingRod && this.GameLocation.canFishHere() && this.GameLocation.isTileFishable(node.X, node.Y)))
             {
                 if (this.Graph.GetCoastNode(node) is AStarNode landNode)
                 {
                     this.clickedNode = landNode;
-                    this.clickedTile.X = this.clickedNode.X;
-                    this.clickedTile.Y = this.clickedNode.Y;
-                }
-
-                this.endNodeToBeActioned = true;
-                this.performActionFromNeighbourTile = true;
-                this.waterSourceSelected = true;
-
-                return true;
-            }
-
-            if (Game1.player.CurrentTool is FishingRod
-                && this.GameLocation.canFishHere()
-                && this.GameLocation.isTileFishable(node.X, node.Y))
-            {
-                if (this.Graph.GetCoastNode(node) is AStarNode landNode)
-                {
-                    if (Vector2.Distance(
-                            Game1.player.OffsetPositionOnMap(),
-                            landNode.NodeCenterOnMap) < (2.5f + Game1.player.GetFishingAddedDistance()) * Game1.tileSize)
-                    {
-                        // The Farmer can cast the fishing rod from where they are.
-                        this.clickedNode = this.startNode;
-                    }
-                    else
-                    {
-                        this.clickedNode = landNode;
-                    }
-
                     this.clickedTile.X = this.clickedNode.X;
                     this.clickedTile.Y = this.clickedNode.Y;
                 }
@@ -2931,7 +2903,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.endNodeToBeActioned = true;
             }
 
-            if (this.interactionAtCursor == InteractionType.Action || this.interactionAtCursor == InteractionType.Speech)
+            if (this.GameLocation.isActionableTile(node.X, node.Y, Game1.player) || this.GameLocation.isActionableTile(node.X, node.Y + 1, Game1.player) || this.interactionAtCursor == InteractionType.Speech)
             {
                 AStarNode gateNode = this.Graph.GetNode(this.clickedNode.X, this.clickedNode.Y + 1);
 
@@ -3157,7 +3129,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.player.mount.SetCheckActionEnabled(false);
             }
 
-            if (this.interactionAtCursor == InteractionType.Action && this.GameLocation.name.Value == "Blacksmith"
+            if (/*this.interactionAtCursor == InteractionType.Action && */this.GameLocation.name.Value == "Blacksmith"
                                                      && this.clickedTile.X == 3
                                                      && (this.clickedTile.Y == 12 || this.clickedTile.Y == 13 || this.clickedTile.Y == 14))
             {
@@ -3276,11 +3248,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="tileY">The tile y coordinate.</param>
         private void SetInteractionAtCursor(int tileX, int tileY)
         {
-            if (this.GameLocation.isActionableTile(tileX, tileY, Game1.player)
+            /*if (this.GameLocation.isActionableTile(tileX, tileY, Game1.player)
                 || this.GameLocation.isActionableTile(tileX, tileY + 1, Game1.player))
             {
                 this.interactionAtCursor = InteractionType.Action;
-            }
+            }*/
 
             Vector2 tileVector = new Vector2(tileX, tileY);
 

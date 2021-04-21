@@ -244,7 +244,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             }
             else
             {
-                int deltaX = Math.Sign(distanceY);
+                int deltaX = Math.Sign(distanceX);
                 for (int tileX = waterSourceNode.X + deltaX; tileX != this.FarmerNode.X + deltaX; tileX += deltaX)
                 {
                     AStarNode node = this.GetNode(tileX, waterSourceNode.Y);

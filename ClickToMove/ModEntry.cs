@@ -52,8 +52,8 @@ namespace Raquellcesar.Stardew.ClickToMove
             LocationsPatcher.Hook(harmony);
             MenusPatcher.Hook(harmony);
             MinigamesPatcher.Hook(harmony);
-            NpcPatcher.Hook(harmony);
             ObjectsPatcher.Hook(harmony);
+            SGamePatcher.Hook(harmony);
             ShedPatcher.Hook(harmony);
             ToolsPatcher.Hook(harmony);
             UtilityPatcher.Hook(harmony);
