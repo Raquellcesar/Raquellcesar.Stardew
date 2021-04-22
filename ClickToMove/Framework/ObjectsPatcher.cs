@@ -1,11 +1,11 @@
-﻿// ----------------------------------------------------------------------- ------------------------------------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="ObjectsPatcher.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// ------------------------------------------------------------------------------------------------ -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
@@ -201,13 +201,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return false;
             }
 
-            if (item is Furniture furniture && (!gameLocation.CanPlaceThisFurnitureHere(furniture) || !gameLocation.CanFreePlaceFurniture()))
+            int tileX = x / Game1.tileSize;
+            int tileY = y / Game1.tileSize;
+
+            if (item is Furniture furniture
+                && (!gameLocation.CanPlaceThisFurnitureHere(furniture)
+                    || (!gameLocation.CanFreePlaceFurniture() && !furniture.IsCloseEnoughToFarmer(farmer, tileX, tileY))))
             {
                 return false;
             }
-
-            int tileX = x / Game1.tileSize;
-            int tileY = y / Game1.tileSize;
 
             if (gameLocation.getObjectAtTile(tileX, tileY) is Fence fence && fence.CanRepairWithThisItem(item))
             {

@@ -12,6 +12,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.CompilerServices;
 
     using Microsoft.Xna.Framework;
 
@@ -39,8 +40,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         ///     Initializes a new instance of the <see cref="AStarNode"/> class.
         /// </summary>
         /// <param name="graph">The <see cref="AStarGraph"/> to which this node belongs.</param>
-        /// <param name="tileX">The x tile coordinate.</param>
-        /// <param name="tileY">The y tile coordinate.</param>
+        /// <param name="tileX">The tile x coordinate.</param>
+        /// <param name="tileY">The tile y coordinate.</param>
         public AStarNode(AStarGraph graph, int tileX, int tileY)
         {
             this.Graph = graph;
@@ -110,12 +111,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             new Rectangle(this.X * Game1.tileSize, this.Y * Game1.tileSize, Game1.tileSize, Game1.tileSize);
 
         /// <summary>
-        ///     Gets or sets the x tile coordinate.
+        ///     Gets or sets the tile x coordinate.
         /// </summary>
         public int X { get; set; }
 
         /// <summary>
-        ///     Gets or sets the y tile coordinate.
+        ///     Gets or sets the tile y coordinate.
         /// </summary>
         public int Y { get; set; }
 
@@ -331,18 +332,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         }
 
         /// <summary>
-        ///     Checks for the existence of a stump at the world location represented by this node.
-        /// </summary>
-        /// <returns>
-        ///     Returns <see langword="true"/> if there is a stump at the location represented by
-        ///     this node. Returns <see langword="false"/> otherwise.
-        /// </returns>
-        public bool ContainsStump()
-        {
-            return this.Graph.GameLocation.IsStumpAt(this.X, this.Y);
-        }
-
-        /// <summary>
         ///     Checks for the existence of a stump or boulder at the world location represented by
         ///     this node.
         /// </summary>
@@ -352,68 +341,39 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public bool ContainsStumpOrBoulder()
         {
-            /*switch (this.Graph.GameLocation)
-            {
-                case Woods woods:
-                    if (woods.stumps.Any(stump => stump.occupiesTile(this.X, this.Y)))
-                    {
-                        return true;
-                    }
-
-                    break;
-                case Forest forest:
-                    if (forest.log is not null && forest.log.occupiesTile(this.X, this.Y))
-                    {
-                        return true;
-                    }
-
-                    break;
-                default:
-                    if (this.Graph.GameLocation.resourceClumps.Any(resourceClump => resourceClump.occupiesTile(this.X, this.Y)))
-                    {
-                        return true;
-                    }
-
-                    break;
-            }
-
-            this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject value);
-
-            return value is not null && value.Name == "Boulder";*/
             return this.Graph.GameLocation.IsStumpOrBoulderAt(this.X, this.Y);
         }
 
-        public bool ContainsStumpOrHollowLog()
+        /// <summary>
+        ///     Gets the coordinates of the neighbour of a given node closest to this node.
+        /// </summary>
+        /// <param name="node">The node whose neighbours we want to check.</param>
+        /// <returns>
+        ///     Returns the coordinates of the neighbour of <paramref name="node"/> closest to this node.
+        /// </returns>
+        public Point GetNearestNeighbour(AStarNode node)
         {
-            switch (this.Graph.GameLocation)
+            Point neighbour = new Point(node.X, node.Y);
+
+            if (this.X < node.X)
             {
-                case Woods woods:
-                    if (woods.stumps.Any(t => t.occupiesTile(this.X, this.Y)))
-                    {
-                        return true;
-                    }
-
-                    break;
-                case Forest forest:
-                    if (forest.log is not null && forest.log.occupiesTile(this.X, this.Y))
-                    {
-                        return true;
-                    }
-
-                    break;
-                default:
-                    if (this.Graph.GameLocation.resourceClumps.Any(
-                            resourceClump => resourceClump.occupiesTile(this.X, this.Y)
-                                             && (resourceClump.parentSheetIndex.Value == ResourceClump.hollowLogIndex
-                                                 || resourceClump.parentSheetIndex.Value == ResourceClump.stumpIndex)))
-                    {
-                        return true;
-                    }
-
-                    break;
+                neighbour.X--;
+            }
+            else if (this.X > node.X)
+            {
+                neighbour.X++;
             }
 
-            return false;
+            if (this.Y < node.Y)
+            {
+                neighbour.Y--;
+            }
+            else if (this.Y > node.Y)
+            {
+                neighbour.Y++;
+            }
+
+            return neighbour;
         }
 
         /// <summary>
@@ -617,7 +577,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
         public AStarNode GetNeighbourPassable()
         {
-            foreach (WalkDirection walkDirection in WalkDirection.SimpleDirections)
+            foreach (WalkDirection walkDirection in WalkDirection.CardinalDirections)
             {
                 AStarNode neighbour = this.Graph.GetNode(this.X + walkDirection.X, this.Y + walkDirection.Y);
 
@@ -647,7 +607,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 return this.GetNeighboursInternal(WalkDirection.Directions, canWalkOnTile);
             }
 
-            return this.GetNeighboursInternal(WalkDirection.SimpleDirections, canWalkOnTile);
+            return this.GetNeighboursInternal(WalkDirection.CardinalDirections, canWalkOnTile);
         }
 
         public NPC GetNpc()
@@ -683,32 +643,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
             return this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object)
                 ? @object
                 : null;
-        }
-
-        public int GetObjectParentSheetIndex()
-        {
-            this.Graph.GameLocation.objects.TryGetValue(new Vector2(this.X, this.Y), out SObject @object);
-
-            return @object?.ParentSheetIndex ?? -1;
-        }
-
-        public TerrainFeature GetTree()
-        {
-            this.Graph.GameLocation.terrainFeatures.TryGetValue(
-                new Vector2(this.X, this.Y),
-                out TerrainFeature terrainFeature);
-
-            if (terrainFeature is Tree tree)
-            {
-                return tree;
-            }
-
-            if (terrainFeature is FruitTree fruitTree)
-            {
-                return fruitTree;
-            }
-
-            return null;
         }
 
         public Warp GetWarp(bool ignoreWarps)
@@ -994,7 +928,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                     this.BubbleId = bubbleId;
                 }
 
-                foreach (WalkDirection walkDirection in WalkDirection.SimpleDirections)
+                foreach (WalkDirection walkDirection in WalkDirection.CardinalDirections)
                 {
                     AStarNode node = this.Graph.GetNode(this.X + walkDirection.X, this.Y + walkDirection.Y);
                     node?.SetBubbleIdRecursively(bubbleId, two);

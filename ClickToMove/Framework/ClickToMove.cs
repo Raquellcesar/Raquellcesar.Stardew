@@ -11,6 +11,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     using Microsoft.Xna.Framework;
 
@@ -153,7 +154,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private bool endNodeOccupied;
 
-        private bool endNodeToBeActioned;
+        private bool useToolOnEndNode;
 
         private bool endTileIsActionable;
 
@@ -363,19 +364,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             ClickToMove.startTime = DateTime.Now.Ticks;
 
-            if (this.GameLocation is DecoratableLocation)
+            if (this.GameLocation.GetFurniture(x, y) is Furniture furniture)
             {
-                if (this.GameLocation.GetFurniture(x, y) is Furniture furniture)
-                {
-                    // We need to wait to see it the player will be holding the click.
-                    this.Furniture = furniture;
-                    this.pickedFurniture = false;
-                    this.DeferredClick = new Point(x, y);
-                    return;
-                }
-
-                this.Furniture = null;
+                // We need to wait to see it the player will be holding the click.
+                this.Furniture = furniture;
+                this.pickedFurniture = false;
+                this.DeferredClick = new Point(x, y);
+                return;
             }
+
+            this.Furniture = null;
 
             this.HandleClick(x, y);
         }
@@ -589,7 +587,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.clickedCinemaDoor = false;
             this.clickedCinemaTicketBooth = false;
             this.endNodeOccupied = false;
-            this.endNodeToBeActioned = false;
+            this.useToolOnEndNode = false;
             this.endTileIsActionable = false;
             this.performActionFromNeighbourTile = false;
             this.warping = false;
@@ -710,7 +708,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="x">The clicked x absolute coordinate.</param>
         /// <param name="y">The clicked y absolute coordinate.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the click was successfuly added to the queue;
+        ///     Returns <see langword="true"/> if the click wasn't already in the queue and was added to the queue;
         ///     returns <see langword="false"/> otherwise.
         /// </returns>
         private bool AddToClickQueue(int x, int y)
@@ -1162,14 +1160,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if ((Game1.player.CurrentTool is WateringCan && this.GameLocation.CanRefillWateringCanOnTile(node.X, node.Y))
                 || (Game1.player.CurrentTool is FishingRod && this.GameLocation.canFishHere() && this.GameLocation.isTileFishable(node.X, node.Y)))
             {
-                if (this.Graph.GetCoastNode(node) is AStarNode landNode)
+                if (this.Graph.GetNearestCoastNode(node) is AStarNode landNode)
                 {
                     this.clickedNode = landNode;
                     this.clickedTile.X = this.clickedNode.X;
                     this.clickedTile.Y = this.clickedNode.Y;
                 }
 
-                this.endNodeToBeActioned = true;
+                this.useToolOnEndNode = true;
                 this.performActionFromNeighbourTile = true;
                 this.waterSourceSelected = true;
 
@@ -1477,20 +1475,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 this.tryCount = tryCount;
 
-                if (this.GameLocation is DecoratableLocation decoratableLocation)
+                // If the Farmer is holding some furniture, let the game handle the click.
+                if (Game1.player.ActiveObject is Furniture)
                 {
-                    // If the Farmer is holding some furniture, let the game handle the click.
-                    if (Game1.player.ActiveObject is Furniture)
-                    {
-                        this.phase = ClickToMovePhase.UseTool;
-                        return;
-                    }
+                    this.phase = ClickToMovePhase.UseTool;
+                    return;
+                }
 
-                    if (Game1.player.ActiveObject is Wallpaper wallpaper && wallpaper.CanBePlaced(decoratableLocation, this.clickedTile.X, this.clickedTile.Y))
-                    {
-                        this.ClickKeyStates.ActionButtonPressed = true;
-                        return;
-                    }
+                if (this.GameLocation is DecoratableLocation decoratableLocation
+                    && Game1.player.ActiveObject is Wallpaper wallpaper
+                    && wallpaper.CanBePlaced(decoratableLocation, this.clickedTile.X, this.clickedTile.Y))
+                {
+                    this.ClickKeyStates.ActionButtonPressed = true;
+                    return;
                 }
 
                 if (Game1.player.isRidingHorse()
@@ -1601,7 +1598,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     Game1.player.CurrentToolIndex = -1;
                 }
 
-                if (this.NodeBlocked(this.clickedNode))
+                if (this.CheckEndNode(this.clickedNode))
                 {
                     this.endNodeOccupied = true;
                     this.clickedNode.FakeTileClear = true;
@@ -1628,7 +1625,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     return;
                 }
 
-                if (!Game1.player.isRidingHorse() && Game1.player.mount is null && !this.performActionFromNeighbourTile && !this.endNodeToBeActioned)
+                if (!Game1.player.isRidingHorse() && Game1.player.mount is null && !this.performActionFromNeighbourTile && !this.useToolOnEndNode)
                 {
                     foreach (NPC npc in this.GameLocation.characters)
                     {
@@ -1648,7 +1645,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if (this.clickedNode is not null && this.endNodeOccupied && !this.endNodeToBeActioned
+                if (this.clickedNode is not null && this.endNodeOccupied && !this.useToolOnEndNode
                     && !this.performActionFromNeighbourTile && !this.endTileIsActionable
                     && !this.clickedNode.ContainsSomeKindOfWarp() && this.clickedNode.ContainsBuilding())
                 {
@@ -1758,7 +1755,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 if (this.startNode.IsSameNode(this.clickedNode)
-                    && (this.endNodeToBeActioned || this.performActionFromNeighbourTile))
+                    && (this.useToolOnEndNode || this.performActionFromNeighbourTile))
                 {
                     AStarNode neighbour = this.startNode.GetNeighbourPassable();
 
@@ -1992,7 +1989,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if (distanceToGoal < Game1.player.getMovementSpeed()
                     || this.stuckCount >= ClickToMove.MaxStuckCount
-                    || (this.endNodeToBeActioned && distanceToGoal < Game1.tileSize)
+                    || (this.useToolOnEndNode && distanceToGoal < Game1.tileSize)
                     || (this.endNodeOccupied && distanceToGoal < Game1.tileSize + 2))
                 {
                     this.OnReachEndOfPath();
@@ -2009,14 +2006,179 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Checks if a node is occupied by something.
+        ///     Selects the tool to be used for the interaction with the given object at the end of the path.
+        /// </summary>
+        /// <param name="object">The object to interact with.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the tool to interact with the <paramref name="object"/> was chosen. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool AutoSelectToolForObject(SObject @object)
+        {
+            switch (@object.Name)
+            {
+                case "House Plant":
+                    this.AutoSelectTool("Pickaxe");
+                    this.useToolOnEndNode = true;
+                    return true;
+                case "Stone" or "Boulder":
+                    this.AutoSelectTool("Pickaxe");
+                    return true;
+                case "Twig":
+                    this.AutoSelectTool("Axe");
+                    return true;
+                case "Weeds":
+                    this.AutoSelectTool("Scythe");
+                    return true;
+            }
+
+            if (@object.ParentSheetIndex == ObjectId.ArtifactSpot)
+            {
+                this.AutoSelectTool("Hoe");
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Checks for the existence of something to chop or mine at the world location represented by the given node.
         /// </summary>
         /// <param name="node">The node to check.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the node is occupied by something. Returns <see
+        ///     Returns <see langword="true"/> if there is something to chop or mine at the location represented by
+        ///     the <paramref name="node"/>. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool CheckForChoppableorMinable(AStarNode node)
+        {
+            switch (this.Graph.GameLocation)
+            {
+                case Woods woods:
+                    if (woods.stumps.Any(t => t.occupiesTile(node.X, node.Y)))
+                    {
+                        this.AutoSelectTool("Axe");
+                        return true;
+                    }
+
+                    break;
+                case Forest forest:
+                    if (forest.log is not null && forest.log.occupiesTile(node.X, node.Y))
+                    {
+                        this.AutoSelectTool("Axe");
+                        return true;
+                    }
+
+                    break;
+                default:
+                    foreach (ResourceClump resourceClump in this.Graph.GameLocation.resourceClumps)
+                    {
+                        if (resourceClump.occupiesTile(node.X, node.Y))
+                        {
+                            if (resourceClump.parentSheetIndex.Value == ResourceClump.hollowLogIndex
+                                || resourceClump.parentSheetIndex.Value == ResourceClump.stumpIndex)
+                            {
+                                this.AutoSelectTool("Axe");
+                            }
+
+                            if (resourceClump is GiantCrop giantCrop)
+                            {
+                                if (giantCrop.tile.X + 1 == node.X
+                                    && giantCrop.tile.Y + 1 == node.Y)
+                                {
+                                    Point point = this.Graph.FarmerNode.GetNearestNeighbour(node);
+                                    this.SelectDifferentEndNode(point.X, point.Y);
+                                }
+
+                                this.AutoSelectTool("Axe");
+                            }
+                            else
+                            {
+                                this.AutoSelectTool("Pickaxe");
+                            }
+
+                            return true;
+                        }
+                    }
+
+                    break;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Checks if there's a building interaction available at the world location represented by the given node.
+        /// </summary>
+        /// <param name="node">The node to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if there is a building at the location represented by
+        ///     the <paramref name="node"/>. Returns <see langword="false"/> otherwise.
+        /// </returns>
+        private bool CheckForBuildingInteraction(AStarNode node)
+        {
+            if (node.GetBuilding() is Building building)
+            {
+                if (building.buildingType.Value == "Shipping Bin")
+                {
+                    this.performActionFromNeighbourTile = true;
+                    return true;
+                }
+
+                if (building.buildingType.Value == "Mill")
+                {
+                    if (Game1.player.ActiveObject is not null
+                        && (Game1.player.ActiveObject.parentSheetIndex == ObjectId.Beet
+                            || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.Wheat))
+                    {
+                        this.useToolOnEndNode = true;
+                    }
+
+                    this.performActionFromNeighbourTile = true;
+                    return true;
+                }
+
+                if (building is Barn barn)
+                {
+                    int animalDoorTileX = barn.tileX.Value + barn.animalDoor.X;
+                    int animalDoorTileY = barn.tileY.Value + barn.animalDoor.Y;
+
+                    if ((this.clickedNode.X == animalDoorTileX || this.clickedNode.X == animalDoorTileX + 1)
+                        && (this.clickedNode.Y == animalDoorTileY || this.clickedNode.Y == animalDoorTileY - 1))
+                    {
+                        if (this.clickedNode.Y == animalDoorTileY - 1)
+                        {
+                            this.SelectDifferentEndNode(this.clickedNode.X, this.clickedNode.Y + 1);
+                        }
+
+                        this.performActionFromNeighbourTile = true;
+                        return true;
+                    }
+                }
+                else if (building is FishPond fishPond
+                         && Game1.player.CurrentTool is not FishingRod
+                         && Game1.player.CurrentTool is not WateringCan)
+                {
+                    this.actionableBuilding = fishPond;
+
+                    Point nearestTile = this.Graph.GetNearestTileNextToBuilding(fishPond);
+                    this.SelectDifferentEndNode(nearestTile.X, nearestTile.Y);
+
+                    this.performActionFromNeighbourTile = true;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Checks for available interactions at the path's end node.
+        /// </summary>
+        /// <param name="node">The node to check.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if the node is blocked. Returns <see
         ///     langword="false"/> otherwise.
         /// </returns>
-        private bool NodeBlocked(AStarNode node)
+        private bool CheckEndNode(AStarNode node)
         {
             this.toolToSelect = null;
 
@@ -2028,8 +2190,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     && node.Y == Game1.CurrentEvent.playerControlTargetTile.Y)
                 {
                     this.clickedHaleyBracelet = true;
-                    this.endNodeToBeActioned = true;
-
+                    this.useToolOnEndNode = true;
                     return true;
                 }
 
@@ -2050,7 +2211,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
 
                     this.performActionFromNeighbourTile = true;
-
                     return true;
                 }
             }
@@ -2059,7 +2219,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 bool tileClear = node.TileClear;
 
-                this.endNodeToBeActioned = true;
+                this.useToolOnEndNode = true;
                 this.performActionFromNeighbourTile = !tileClear;
 
                 return !tileClear;
@@ -2073,13 +2233,137 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.GameLocation is CommunityCenter && node.X == 14 && node.Y == 5)
             {
                 this.performActionFromNeighbourTile = true;
-
                 return true;
             }
 
-            if (this.GameLocation.terrainFeatures.TryGetValue(
-                    new Vector2(node.X, node.Y),
-                    out TerrainFeature terrainFeature) && terrainFeature is HoeDirt dirt)
+            if (this.GameLocation is FarmHouse { upgradeLevel: 2 } && this.clickedNode.X == 16 && this.clickedNode.Y == 4)
+            {
+                this.SelectDifferentEndNode(this.clickedNode.X, this.clickedNode.Y + 1);
+                this.performActionFromNeighbourTile = true;
+                return true;
+            }
+
+            Vector2 tileVector = new Vector2(node.X, node.Y);
+
+            this.GameLocation.terrainFeatures.TryGetValue(tileVector, out TerrainFeature terrainFeature);
+
+            if (terrainFeature is null)
+            {
+                this.GameLocation.Objects.TryGetValue(tileVector, out SObject @object);
+
+                if (@object is not null)
+                {
+                    if (@object.readyForHarvest.Value
+                        || (@object.Name.Contains("Table") && @object.heldObject.Value is not null)
+                        || @object.IsSpawnedObject
+                        || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
+                    {
+                        this.queueingClicks = true;
+
+                        this.forageItem = this.GameLocation.getObjectAt(
+                            this.clickPoint.X,
+                            this.clickPoint.Y);
+
+                        this.performActionFromNeighbourTile = true;
+                        return true;
+                    }
+
+                    /*if ((@object.ParentSheetIndex == ObjectId.Torch || @object.ParentSheetIndex == ObjectId.SpiritTorch)
+                        && (Game1.player.CurrentTool is Pickaxe || Game1.player.CurrentTool is Axe))
+                    {
+                        this.useToolOnEndNode = true;
+                        return true;
+                    }*/
+
+                    if (@object.Category == SObject.BigCraftableCategory)
+                    {
+                        if (@object.ParentSheetIndex
+                            is BigCraftableId.FeedHopper
+                            or BigCraftableId.Incubator
+                            or BigCraftableId.Cask
+                            or BigCraftableId.MiniFridge
+                            or BigCraftableId.Workbench)
+                        {
+                            if (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
+                            {
+                                this.useToolOnEndNode = true;
+                            }
+
+                            this.performActionFromNeighbourTile = true;
+                            return true;
+                        }
+
+                        if (@object.ParentSheetIndex == ObjectId.DrumBlock
+                            || @object.ParentSheetIndex == ObjectId.FluteBlock)
+                        {
+                            if (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
+                            {
+                                this.useToolOnEndNode = true;
+                            }
+
+                            return true;
+                        }
+
+                        if (@object.ParentSheetIndex is >= BigCraftableId.Barrel and <= BigCraftableId.Crate3)
+                        {
+                            if (Game1.player.CurrentTool is null || !Game1.player.CurrentTool.isHeavyHitter())
+                            {
+                                this.AutoSelectTool("Pickaxe");
+                            }
+
+                            this.useToolOnEndNode = true;
+                            return true;
+                        }
+
+                        if (@object is Chest chest)
+                        {
+                            this.performActionFromNeighbourTile = true;
+
+                            if (chest.isEmpty() && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe))
+                            {
+                                this.useToolOnEndNode = true;
+                            }
+
+                            return true;
+                        }
+
+                        if (Game1.player.CurrentTool is not null
+                            && Game1.player.CurrentTool.isHeavyHitter()
+                            && Game1.player.CurrentTool is not MeleeWeapon)
+                        {
+                            this.useToolOnEndNode = true;
+                        }
+
+                        return true;
+                    }
+
+                    if (this.AutoSelectToolForObject(@object))
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (this.CheckForChoppableorMinable(node))
+                    {
+                        return true;
+                    }
+
+                    if (this.CheckForBuildingInteraction(node))
+                    {
+                        return true;
+                    }
+
+                    AStarNode upNode = this.Graph.GetNode(this.clickedNode.X, this.clickedNode.Y - 1);
+                    if (upNode?.GetFurnitureNoRug()?.ParentSheetIndex == FurnitureId.Calendar)
+                    {
+                        this.SelectDifferentEndNode(this.clickedNode.X, this.clickedNode.Y + 1);
+                        this.performActionFromNeighbourTile = true;
+                        return true;
+                    }
+                }
+            }
+            else if (terrainFeature is HoeDirt dirt)
             {
                 if (dirt.crop is Crop crop)
                 {
@@ -2090,20 +2374,26 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             this.AutoSelectTool("Scythe");
                         }
 
-                        this.endNodeToBeActioned = true;
-
+                        this.useToolOnEndNode = true;
                         return true;
                     }
 
-                    if (crop.IsReadyToHarvest())
+                    if (crop.ReadyToHarvest())
                     {
                         this.queueingClicks = true;
-                    }
-                    else if (Game1.player.CurrentTool is Pickaxe)
-                    {
-                        this.endNodeToBeActioned = true;
-                        this.performActionFromNeighbourTile = true;
 
+                        this.forageItem = this.GameLocation.getObjectAt(
+                            this.clickPoint.X,
+                            this.clickPoint.Y);
+
+                        this.performActionFromNeighbourTile = true;
+                        return true;
+                    }
+
+                    if (Game1.player.CurrentTool is Pickaxe)
+                    {
+                        this.useToolOnEndNode = true;
+                        this.performActionFromNeighbourTile = true;
                         return true;
                     }
                 }
@@ -2111,13 +2401,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     if (Game1.player.CurrentTool is Pickaxe)
                     {
-                        this.endNodeToBeActioned = true;
-
+                        this.useToolOnEndNode = true;
                         return true;
                     }
 
-                    if (Game1.player.ActiveObject is not null
-                        && Game1.player.ActiveObject.Category == SObject.SeedsCategory)
+                    if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Category == SObject.SeedsCategory)
                     {
                         this.queueingClicks = true;
                     }
@@ -2136,14 +2424,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
             }
-
-            if (this.GameLocation is FarmHouse { upgradeLevel: 2 } && this.clickedNode.X == 16 && this.clickedNode.Y == 4)
+            else
             {
-                this.SelectDifferentEndNode(this.clickedNode.X, this.clickedNode.Y + 1);
+                if (terrainFeature is Tree or FruitTree)
+                {
+                    /*if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Edibility > SObject.inedible)
+                    {
+                        Game1.player.CurrentToolIndex = -1;
+                    }*/
 
-                this.performActionFromNeighbourTile = true;
+                    if (terrainFeature is Tree tree)
+                    {
+                        this.AutoSelectTool(tree.growthStage.Value <= 1 ? "Scythe" : "Axe");
+                    }
 
-                return true;
+                    return true;
+                }
             }
 
             if (this.Furniture is not null)
@@ -2165,7 +2461,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (this.Furniture.furniture_type.Value == Furniture.lamp)
                 {
                     this.performActionFromNeighbourTile = true;
-                    this.endNodeToBeActioned = false;
+                    this.useToolOnEndNode = false;
 
                     return true;
                 }
@@ -2173,7 +2469,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (this.Furniture.ParentSheetIndex == FurnitureId.SingingStone)
                 {
                     this.performActionFromNeighbourTile = true;
-                    this.endNodeToBeActioned = false;
+                    this.useToolOnEndNode = false;
 
                     this.Furniture.PlaySingingStone();
 
@@ -2188,22 +2484,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (node.ContainsFence())
                 {
                     this.performActionFromNeighbourTile = true;
-                    this.endNodeToBeActioned = true;
-
-                    return true;
-                }
-
-                if (node.GetChest() is Chest chest)
-                {
-                    if (chest.isEmpty()/*CountNonNullItems() == 0*/)
-                    {
-                        this.performActionFromNeighbourTile = true;
-                        this.endNodeToBeActioned = true;
-                    }
-                    else
-                    {
-                        this.performActionFromNeighbourTile = true;
-                    }
+                    this.useToolOnEndNode = true;
 
                     return true;
                 }
@@ -2247,36 +2528,26 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.GameLocation.IsTreeLogAt(this.clickedNode.X, this.clickedNode.Y))
             {
                 this.performActionFromNeighbourTile = true;
-                this.endNodeToBeActioned = true;
+                this.useToolOnEndNode = true;
 
                 this.AutoSelectTool("Axe");
 
                 return true;
             }
 
-            if (node.GetObjectParentSheetIndex() == ObjectId.ArtifactSpot)
-            {
-                this.AutoSelectTool("Hoe");
-
-                return true;
-            }
-
-            if (this.GameLocation is Farm farm && node.X == farm.petBowlPosition.X
-                                                   && node.Y == farm.petBowlPosition.Y)
+            if (this.GameLocation is Farm farm
+                && node.X == farm.petBowlPosition.X
+                && node.Y == farm.petBowlPosition.Y)
             {
                 this.AutoSelectTool("Watering Can");
-
-                this.endNodeToBeActioned = true;
-
+                this.useToolOnEndNode = true;
                 return true;
             }
 
             if (this.GameLocation is SlimeHutch && node.X == 16 && node.Y >= 6 && node.Y <= 9)
             {
                 this.AutoSelectTool("Watering Can");
-
-                this.endNodeToBeActioned = true;
-
+                this.useToolOnEndNode = true;
                 return true;
             }
 
@@ -2295,7 +2566,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            if (this.interactionAtCursor == InteractionType.Harvest || Utility.canGrabSomethingFromHere(
+            if (Utility.canGrabSomethingFromHere(
                     this.clickPoint.X,
                     this.clickPoint.Y,
                     Game1.player))
@@ -2317,7 +2588,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (bedSpot.X == node.X && bedSpot.Y == node.Y)
                 {
-                    this.endNodeToBeActioned = false;
+                    this.useToolOnEndNode = false;
                     this.performActionFromNeighbourTile = false;
 
                     return false;
@@ -2344,7 +2615,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (this.GameLocation is MineShaft && Game1.player.CurrentTool is not null
                                                        && Game1.player.CurrentTool is Pickaxe)
                 {
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
                 }
 
                 return true;
@@ -2373,7 +2644,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (this.GameLocation is MineShaft && Game1.player.CurrentTool is not null
                                                        && Game1.player.CurrentTool is Pickaxe)
                 {
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
                 }
 
                 return true;
@@ -2462,242 +2733,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (!node.TileClear)
             {
-                this.GameLocation.objects.TryGetValue(new Vector2(node.X, node.Y), out SObject nodeObject);
-
-                if (nodeObject is not null)
-                {
-                    if (nodeObject.Category == SObject.BigCraftableCategory)
-                    {
-                        if (nodeObject.ParentSheetIndex == BigCraftableId.FeedHopper
-                            || nodeObject.ParentSheetIndex == BigCraftableId.Incubator
-                            || nodeObject.ParentSheetIndex == BigCraftableId.Cask)
-                        {
-                            if (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe)
-                            {
-                                this.endNodeToBeActioned = true;
-                            }
-
-                            this.performActionFromNeighbourTile = true;
-
-                            return true;
-                        }
-
-                        if (nodeObject.ParentSheetIndex == BigCraftableId.Cask
-                            || nodeObject.ParentSheetIndex == BigCraftableId.MiniFridge
-                            || nodeObject.ParentSheetIndex == BigCraftableId.Workbench)
-                        {
-                            this.performActionFromNeighbourTile = true;
-
-                            if (Game1.player.CurrentTool is not null
-                                && Game1.player.CurrentTool.isHeavyHitter()
-                                && !(Game1.player.CurrentTool is MeleeWeapon))
-                            {
-                                this.endNodeToBeActioned = true;
-                            }
-
-                            return true;
-                        }
-
-                        if (nodeObject.ParentSheetIndex >= BigCraftableId.Barrel
-                            && nodeObject.ParentSheetIndex <= BigCraftableId.Crate3)
-                        {
-                            if (Game1.player.CurrentTool is null || !Game1.player.CurrentTool.isHeavyHitter())
-                            {
-                                this.AutoSelectTool("Pickaxe");
-                            }
-
-                            this.endNodeToBeActioned = true;
-
-                            return true;
-                        }
-
-                        if (Game1.player.CurrentTool is not null
-                            && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe
-                                                                || Game1.player.CurrentTool is Hoe))
-                        {
-                            this.endNodeToBeActioned = true;
-                        }
-
-                        if (nodeObject.Name.Contains("Chest"))
-                        {
-                            this.performActionFromNeighbourTile = true;
-                        }
-
-                        return true;
-                    }
-
-                    if (nodeObject.Name == "Stone" || nodeObject.Name == "Boulder")
-                    {
-                        this.AutoSelectTool("Pickaxe");
-
-                        return true;
-                    }
-
-                    if (nodeObject.Name == "Weeds")
-                    {
-                        this.AutoSelectTool("Scythe");
-
-                        return true;
-                    }
-
-                    if (nodeObject.Name == "Twig")
-                    {
-                        this.AutoSelectTool("Axe");
-
-                        return true;
-                    }
-
-                    if (nodeObject.Name == "House Plant")
-                    {
-                        this.AutoSelectTool("Pickaxe");
-
-                        this.endNodeToBeActioned = true;
-
-                        return true;
-                    }
-
-                    if (nodeObject.ParentSheetIndex == ObjectId.DrumBlock
-                        || nodeObject.ParentSheetIndex == ObjectId.FluteBlock)
-                    {
-                        if (Game1.player.CurrentTool is not null
-                            && (Game1.player.CurrentTool is Axe || Game1.player.CurrentTool is Pickaxe
-                                                                || Game1.player.CurrentTool is Hoe))
-                        {
-                            this.endNodeToBeActioned = true;
-                        }
-
-                        return true;
-                    }
-                }
-                else
-                {
-                    if (node.ContainsStumpOrBoulder())
-                    {
-                        if (node.ContainsStumpOrHollowLog())
-                        {
-                            this.AutoSelectTool("Axe");
-                        }
-                        else
-                        {
-                            GiantCrop giantCrop = node.GetGiantCrop();
-
-                            if (giantCrop is not null)
-                            {
-                                if (giantCrop.width.Value == 3 && giantCrop.height.Value == 3
-                                                               && giantCrop.tile.X + 1 == node.X
-                                                               && giantCrop.tile.Y + 1 == node.Y)
-                                {
-                                    Point point = ClickToMoveHelper.GetNextPointOut(
-                                        this.Graph.FarmerNode.X,
-                                        this.Graph.FarmerNode.Y,
-                                        node.X,
-                                        node.Y);
-
-                                    this.SelectDifferentEndNode(point.X, point.Y);
-                                }
-
-                                this.AutoSelectTool("Axe");
-                            }
-                            else
-                            {
-                                this.AutoSelectTool("Pickaxe");
-                            }
-                        }
-
-                        return true;
-                    }
-
-                    Building building = this.clickedNode.GetBuilding();
-
-                    if (building is not null && building.buildingType.Value == "Shipping Bin")
-                    {
-                        this.performActionFromNeighbourTile = true;
-
-                        return true;
-                    }
-
-                    if (building is not null && building.buildingType.Value == "Mill")
-                    {
-                        if (Game1.player.ActiveObject is not null
-                            && (Game1.player.ActiveObject.parentSheetIndex == ObjectId.Beet
-                                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.Wheat))
-                        {
-                            this.performActionFromNeighbourTile = true;
-                            this.endNodeToBeActioned = true;
-
-                            return true;
-                        }
-
-                        this.performActionFromNeighbourTile = true;
-
-                        return true;
-                    }
-
-                    if (building is Barn barn)
-                    {
-                        int doorTileX = barn.tileX.Value + barn.animalDoor.X;
-                        int doorTileY = barn.tileY.Value + barn.animalDoor.Y;
-
-                        if ((this.clickedNode.X == doorTileX || this.clickedNode.X == doorTileX + 1)
-                            && (this.clickedNode.Y == doorTileY || this.clickedNode.Y == doorTileY - 1))
-                        {
-                            if (this.clickedNode.Y == doorTileY - 1)
-                            {
-                                this.SelectDifferentEndNode(this.clickedNode.X, this.clickedNode.Y + 1);
-                            }
-
-                            this.performActionFromNeighbourTile = true;
-
-                            return true;
-                        }
-                    }
-                    else if (building is FishPond fishPond
-                             && !(Game1.player.CurrentTool is FishingRod || Game1.player.CurrentTool is WateringCan))
-                    {
-                        this.actionableBuilding = fishPond;
-
-                        Point nearestTile = this.Graph.GetNearestTileNextToBuilding(fishPond);
-
-                        this.SelectDifferentEndNode(nearestTile.X, nearestTile.Y);
-
-                        this.performActionFromNeighbourTile = true;
-
-                        return true;
-                    }
-
-                    AStarNode upNode = this.Graph.GetNode(this.clickedNode.X, this.clickedNode.Y - 1);
-                    if (upNode?.GetFurnitureNoRug()?.ParentSheetIndex == FurnitureId.Calendar)
-                    {
-                        this.SelectDifferentEndNode(this.clickedNode.X, this.clickedNode.Y + 1);
-
-                        this.performActionFromNeighbourTile = true;
-
-                        return true;
-                    }
-                }
-
-                if (node.GetTree() is TerrainFeature someTree)
-                {
-                    if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Edibility > SObject.inedible)
-                    {
-                        Game1.player.CurrentToolIndex = -1;
-                    }
-
-                    if (someTree is Tree tree)
-                    {
-                        this.AutoSelectTool(tree.growthStage.Value <= 1 ? "Scythe" : "Axe");
-                    }
-
-                    return true;
-                }
-
-                if (node.ContainsStump())
-                {
-                    this.AutoSelectTool("Axe");
-
-                    return true;
-                }
-
                 if (node.ContainsBoulder())
                 {
                     this.AutoSelectTool("Pickaxe");
@@ -2708,7 +2743,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (this.GameLocation is Town && node.X == 108 && node.Y == 41)
                 {
                     this.performActionFromNeighbourTile = true;
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
                     this.endTileIsActionable = true;
 
                     return true;
@@ -2717,7 +2752,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (this.GameLocation is Town && node.X == 100 && node.Y == 66)
                 {
                     this.performActionFromNeighbourTile = true;
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
 
                     return true;
                 }
@@ -2729,7 +2764,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             this.GameLocation,
                             this.clickedTile))
                     {
-                        this.endNodeToBeActioned = true;
+                        this.useToolOnEndNode = true;
                         this.performActionFromNeighbourTile = true;
 
                         return true;
@@ -2742,7 +2777,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (this.GameLocation.IsOreAt(this.clickedTile) && this.AutoSelectTool("Copper Pan"))
                 {
-                    AStarNode nearestNode = this.Graph.GetNodeNearestWaterSource(this.clickedNode);
+                    AStarNode nearestNode = this.Graph.GetCoastNodeNearestWaterSource(this.clickedNode);
 
                     if (nearestNode is not null)
                     {
@@ -2752,7 +2787,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         Vector2 nodeCenter = nearestNode.NodeCenterOnMap;
                         this.clickPoint = new Point((int)nodeCenter.X, (int)nodeCenter.Y);
 
-                        this.endNodeToBeActioned = true;
+                        this.useToolOnEndNode = true;
 
                         return true;
                     }
@@ -2802,7 +2837,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                              && Game1.player.CurrentTool is MeleeWeapon meleeWeapon
                                              && meleeWeapon.type.Value != MeleeWeapon.club)
                 {
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
 
                     return true;
                 }
@@ -2811,22 +2846,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                                 && (Game1.player.CurrentTool is Pickaxe
                                                     || Game1.player.CurrentTool is Axe))
                 {
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
 
                     return true;
                 }
-            }
-
-            this.GameLocation.objects.TryGetValue(new Vector2(node.X, node.Y), out SObject @object);
-
-            if (@object is not null
-                && (@object.ParentSheetIndex == ObjectId.Torch
-                    || @object.ParentSheetIndex == ObjectId.SpiritTorch) && Game1.player.CurrentTool is not null
-                && (Game1.player.CurrentTool is Pickaxe || Game1.player.CurrentTool is Axe))
-            {
-                this.endNodeToBeActioned = true;
-
-                return true;
             }
 
             if (Game1.player.CurrentTool is FishingRod && this.GameLocation is Town && this.clickedNode.X >= 50
@@ -2837,7 +2860,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 this.clickedNode = this.Graph.GetNode(52, this.clickedNode.Y);
                 this.clickedTile = new Point(this.clickedNode.X, this.clickedNode.Y);
 
-                this.endNodeToBeActioned = true;
+                this.useToolOnEndNode = true;
 
                 return true;
             }
@@ -2864,22 +2887,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.player.mount is null)
             {
-                this.endNodeToBeActioned = ClickToMoveHelper.HoeSelectedAndTileHoeable(this.GameLocation, this.clickedTile);
+                this.useToolOnEndNode = ClickToMoveHelper.HoeSelectedAndTileHoeable(this.GameLocation, this.clickedTile);
 
-                if (this.endNodeToBeActioned)
+                if (this.useToolOnEndNode)
                 {
                     this.performActionFromNeighbourTile = true;
                 }
             }
 
-            if (!this.endNodeToBeActioned)
+            if (!this.useToolOnEndNode)
             {
-                this.endNodeToBeActioned = this.WateringCanActionAtEndNode();
+                this.useToolOnEndNode = this.WateringCanActionAtEndNode();
             }
 
-            if (!this.endNodeToBeActioned && Game1.player.ActiveObject is not null)
+            if (!this.useToolOnEndNode && Game1.player.ActiveObject is not null)
             {
-                this.endNodeToBeActioned = Game1.player.ActiveObject.isPlaceable()
+                this.useToolOnEndNode = Game1.player.ActiveObject.isPlaceable()
                                            && Game1.player.ActiveObject.canBePlacedHere(
                                                this.GameLocation,
                                                new Vector2(this.clickedTile.X, this.clickedTile.Y));
@@ -2888,7 +2911,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (crop is not null && (Game1.player.ActiveObject.parentSheetIndex == ObjectId.BasicFertilizer
                                          || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.QualityFertilizer))
                 {
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
                 }
 
                 if (crop is not null && crop.raisedSeeds.Value)
@@ -2900,7 +2923,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (node.ContainsTree() && (Game1.player.CurrentTool is Hoe || Game1.player.CurrentTool is Axe
                                                                         || Game1.player.CurrentTool is Pickaxe))
             {
-                this.endNodeToBeActioned = true;
+                this.useToolOnEndNode = true;
             }
 
             if (this.GameLocation.isActionableTile(node.X, node.Y, Game1.player) || this.GameLocation.isActionableTile(node.X, node.Y + 1, Game1.player) || this.interactionAtCursor == InteractionType.Speech)
@@ -2925,7 +2948,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                                                && Game1.player.CurrentTool is not null)
                 {
                     this.endTileIsActionable = true;
-                    this.endNodeToBeActioned = true;
+                    this.useToolOnEndNode = true;
                     this.performActionFromNeighbourTile = true;
                 }
                 else
@@ -2936,12 +2959,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (node.GetWarp(this.IgnoreWarps) is not null)
             {
-                this.endNodeToBeActioned = false;
+                this.useToolOnEndNode = false;
 
                 return false;
             }
 
-            if (!this.endNodeToBeActioned)
+            if (!this.useToolOnEndNode)
             {
                 AStarNode shippingBinNode = this.Graph.GetNode(node.X, node.Y + 1);
 
@@ -2957,7 +2980,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            return this.endNodeToBeActioned;
+            return this.useToolOnEndNode;
         }
 
         /// <summary>
@@ -2989,7 +3012,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (this.endNodeOccupied)
             {
                 WalkDirection walkDirection;
-                if (this.endNodeToBeActioned)
+                if (this.useToolOnEndNode)
                 {
                     if (Game1.currentMinigame is FishingGame)
                     {
@@ -3035,7 +3058,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 this.ClickKeyStates.SetMovement(walkDirection);
 
-                if (this.endNodeToBeActioned || !this.PerformAction())
+                if (this.useToolOnEndNode || !this.PerformAction())
                 {
                     if (Game1.player.CurrentTool is WateringCan)
                     {
@@ -3063,7 +3086,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
             }
-            else if (this.endNodeToBeActioned)
+            else if (this.useToolOnEndNode)
             {
                 this.ClickKeyStates.SetUseTool(true);
             }
@@ -3127,17 +3150,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (Game1.player.mount is not null && this.clickedHorse is null)
             {
                 Game1.player.mount.SetCheckActionEnabled(false);
-            }
-
-            if (/*this.interactionAtCursor == InteractionType.Action && */this.GameLocation.name.Value == "Blacksmith"
-                                                     && this.clickedTile.X == 3
-                                                     && (this.clickedTile.Y == 12 || this.clickedTile.Y == 13 || this.clickedTile.Y == 14))
-            {
-                this.GameLocation.performAction("Blacksmith", Game1.player, new Location(3, 14));
-
-                Game1.player.Halt();
-
-                return false;
             }
 
             if (this.GameLocation.isActionableTile(this.clickedTile.X, this.clickedTile.Y, Game1.player)
@@ -3248,12 +3260,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="tileY">The tile y coordinate.</param>
         private void SetInteractionAtCursor(int tileX, int tileY)
         {
-            /*if (this.GameLocation.isActionableTile(tileX, tileY, Game1.player)
-                || this.GameLocation.isActionableTile(tileX, tileY + 1, Game1.player))
-            {
-                this.interactionAtCursor = InteractionType.Action;
-            }*/
-
             Vector2 tileVector = new Vector2(tileX, tileY);
 
             if (Game1.currentLocation.isCharacterAtTile(tileVector) is NPC character && !character.IsMonster && !character.IsInvisible)
@@ -3292,25 +3298,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     {
                         this.interactionAtCursor = InteractionType.Speech;
                     }
-                }
-            }
-
-            if (Game1.player.IsLocalPlayer)
-            {
-                if (this.GameLocation.Objects.TryGetValue(tileVector, out SObject @object))
-                {
-                    if (@object.readyForHarvest.Value
-                        || (@object.Name.Contains("Table") && @object.heldObject.Value is not null)
-                        || @object.IsSpawnedObject
-                        || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
-                    {
-                        this.interactionAtCursor = InteractionType.Harvest;
-                    }
-                }
-                else if (this.GameLocation.terrainFeatures.TryGetValue(tileVector, out TerrainFeature terrainFeature)
-                         && terrainFeature is HoeDirt dirt && dirt.readyForHarvest())
-                {
-                    this.interactionAtCursor = InteractionType.Harvest;
                 }
             }
         }
@@ -3364,7 +3351,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         new Vector2(this.clickedNode.X, this.clickedNode.Y),
                         out TerrainFeature terrainFeature);
 
-                    if (terrainFeature is HoeDirt dirt && dirt.state.Value != 1)
+                    if (terrainFeature is HoeDirt dirt && dirt.state.Value != HoeDirt.watered)
                     {
                         return true;
                     }

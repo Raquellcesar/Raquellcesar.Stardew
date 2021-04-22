@@ -94,7 +94,7 @@ namespace Raquellcesar.Stardew.Common
         /// <summary>
         ///     The vertical and horizontal directions.
         /// </summary>
-        public static readonly WalkDirection[] SimpleDirections =
+        public static readonly WalkDirection[] CardinalDirections =
             {
                 WalkDirection.Up, WalkDirection.Right, WalkDirection.Down, WalkDirection.Left,
             };
