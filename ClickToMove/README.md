@@ -8,9 +8,6 @@ PC version of the game the behaviour you have in the mobile version when using t
 * [Install](#install)
 * [Use](#use)
 * [Compatibility](#compatibility)
-* [Troubleshooting](#troubleshooting)
-  * [In-game overlay](#in-game-overlay)
-  * [Console command](#console-command)
 * [FAQs](#faqs)
 * [See also](#see-also)
 
