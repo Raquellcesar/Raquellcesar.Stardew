@@ -941,7 +941,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         Game1.player.FireTool();
                     }
 
-                    ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> Game1.UpdateControlInput - pressUseToolButton: Game1.player.CurrentTool is {Game1.player.CurrentTool}");
                     Game1.pressUseToolButton();
 
                     if (Game1.player.UsingTool)
@@ -962,7 +961,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (useToolButtonReleased && Game1.player.canReleaseTool && Game1.player.UsingTool
                     && Game1.player.CurrentTool is not null)
                 {
-                    ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> Game1.UpdateControlInput - EndUsingTool: Game1.player.CurrentTool is {Game1.player.CurrentTool}");
                     Game1.player.EndUsingTool();
                 }
                 else if (switchToolButtonPressed && !Game1.player.UsingTool && !Game1.dialogueUp

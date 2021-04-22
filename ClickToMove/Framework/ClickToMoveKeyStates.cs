@@ -215,7 +215,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.UseToolButtonPressed = useTool && !this.UseToolButtonHeld;
             this.UseToolButtonReleased = !useTool && this.UseToolButtonHeld;
             this.UseToolButtonHeld = useTool;
-            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMoveKeyStates.SetUseTool({useTool}) - UseToolButtonHeld: {this.UseToolButtonHeld}; UseToolButtonPressed: {this.UseToolButtonPressed}; UseToolButtonReleased: {this.UseToolButtonReleased}");
         }
 
         /// <summary>

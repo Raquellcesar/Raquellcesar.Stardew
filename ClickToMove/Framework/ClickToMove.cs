@@ -58,14 +58,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private const int MaxTries = 2;
 
         /// <summary>
-        ///     The time we need to wait before checking gor monsters to attack again (500 ms).
+        ///     The time we need to wait before checking gor monsters to attack again measured in number of game ticks (aproximately 500 ms).
         /// </summary>
-        private const int MinimumTicksBetweenMonsterChecks = 5000000;
+        private const int MinimumTicksBetweenMonsterChecks = 30;
 
         /// <summary>
-        ///     The time the mouse left button must be pressed before we condider it held (350 ms).
+        ///     The time the mouse left button must be pressed before we condider it held measured in number of game ticks (aproximately 350 ms).
         /// </summary>
-        private const int TicksBeforeClickHoldKicksIn = 3500000;
+        private const int TicksBeforeClickHoldKicksIn = 21;
 
         /// <summary>
         ///     All actionable objects.
@@ -362,7 +362,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return;
             }
 
-            ClickToMove.startTime = DateTime.Now.Ticks;
+            ClickToMove.startTime = Game1.ticks;
 
             if (this.GameLocation.GetFurniture(x, y) is Furniture furniture)
             {
@@ -385,12 +385,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="y">The clicked y absolute coordinate.</param>
         public void OnClickHeld(int x, int y)
         {
-            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld({x}, {y}) - DateTime.Now.Ticks - ClickToMove.startTime = {DateTime.Now.Ticks - ClickToMove.startTime}");
+            ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld({x}, {y}) - Game1.ticks - ClickToMove.startTime = {Game1.ticks - ClickToMove.startTime}");
 
             if (ClickToMoveManager.IgnoreClick
                 || ClickToMoveHelper.InMiniGameWhereWeDontWantClicks()
                 || Game1.currentMinigame is FishingGame
-                || DateTime.Now.Ticks - ClickToMove.startTime < ClickToMove.TicksBeforeClickHoldKicksIn)
+                || Game1.ticks - ClickToMove.startTime < ClickToMove.TicksBeforeClickHoldKicksIn)
             {
                 ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld not running");
                 return;
@@ -634,7 +634,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (Game1.player.CurrentTool is FishingRod or Slingshot)
                 {
                     this.Reset();
-                    ClickToMove.startTime = DateTime.Now.Ticks;
+                    ClickToMove.startTime = Game1.ticks;
                 }
             }
         }
@@ -971,7 +971,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (!this.enableCheckToAttackMonsters)
             {
-                if (DateTime.Now.Ticks < ClickToMove.MinimumTicksBetweenMonsterChecks)
+                if (Game1.ticks < ClickToMove.MinimumTicksBetweenMonsterChecks)
                 {
                     return false;
                 }

@@ -45,7 +45,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     The last time the click to move target frame animation was updated.
         /// </summary>
-        private static long greenSquareLastUpdateTicks = DateTime.Now.Ticks;
+        private static int greenSquareLastUpdateTicks = Game1.ticks;
 
         /// <summary>
         ///     The texture to use for signaling path destinations.
@@ -103,10 +103,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             (clickToMove.ClickedTile.X * Game1.tileSize) - Game1.viewport.X,
                             (clickToMove.ClickedTile.Y * Game1.tileSize) - Game1.viewport.Y);
 
-                        long ticks = DateTime.Now.Ticks;
+                        int ticks = Game1.ticks;
 
                         // Update frame every 125 ms.
-                        if (ticks - ClickToMoveManager.greenSquareLastUpdateTicks > 1250000)
+                        if (ticks - ClickToMoveManager.greenSquareLastUpdateTicks > 7)
                         {
                             ClickToMoveManager.greenSquareLastUpdateTicks = ticks;
 
