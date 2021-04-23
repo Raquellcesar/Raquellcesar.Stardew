@@ -47,10 +47,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return true;
             }
 
-            PropertyValue value = null;
+            PropertyValue action = null;
             gameLocation.map.GetLayer("Buildings").PickTile(npc.nextPositionPoint(), Game1.viewport.Size)?.Properties
-                .TryGetValue("Action", out value);
-            return value is not null;
+                .TryGetValue("Action", out action);
+            return action is not null;
         }
 
         /// <summary>

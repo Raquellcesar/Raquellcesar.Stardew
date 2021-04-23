@@ -7,24 +7,28 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+
+using Harmony;
+
+using StardewModdingAPI;
+
+using StardewValley;
+using StardewValley.Locations;
+using StardewValley.Menus;
+using StardewValley.Tools;
+
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Reflection.Emit;
-    using Harmony;
-    using StardewModdingAPI;
-    using StardewValley;
-    using StardewValley.Locations;
-    using StardewValley.Menus;
-    using StardewValley.Tools;
-
     /// <summary>
     ///     Encapsulates Harmony patches for Menus in the game.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "StyleCop.CSharp.NamingRules",
         "SA1313:Parameter names should begin with lower-case letter",
         Justification = "Harmony naming rules.")]
@@ -61,7 +65,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="Toolbar.update"/> This method equips
+        ///     A method called via Harmony after <see cref="Toolbar.update" /> This method equips
         ///     the farmer with a tool previously chosen, when the farmer was using another tool.
         /// </summary>
         private static void AfterToolbarUpdate()
@@ -74,9 +78,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="DayTimeMoneyBox.receiveLeftClick"/>.
+        ///     A method called via Harmony before <see cref="DayTimeMoneyBox.receiveLeftClick" />.
         ///     It skips the original method if the mouse left button is being held. Otherwise, if
-        ///     the screen buttons are clicked, it sets <see cref="ClickToMoveManager.IgnoreClick"/>
+        ///     the screen buttons are clicked, it sets <see cref="ClickToMoveManager.IgnoreClick" />
         ///     so the current click and subsequent click release can be ignored.
         /// </summary>
         private static bool BeforeDayTimeMoneyBoxReceiveLeftClick(DayTimeMoneyBox __instance, int x, int y)
@@ -108,14 +112,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Toolbar.receiveLeftClick"/> that
+        ///     A method called via Harmony before <see cref="Toolbar.receiveLeftClick" /> that
         ///     replaces it. This method allows the user to deselect an equipped object so that the
         ///     farmer doesn't have any equipped tool or active object. It also allows deferred
         ///     selection of items. If the farmer selects an item while using a tool, that item will
         ///     be later equipped when the toolbar updates.
         /// </summary>
         /// <returns>
-        ///     Returns <see langword="false"/>, terminating prefixes and skipping the execution of the original
+        ///     Returns <see langword="false" />, terminating prefixes and skipping the execution of the original
         ///     method, effectively replacing the original method.
         /// </returns>
         private static bool BeforeToolbarReceiveLeftClick(int x, int y, List<ClickableComponent> ___buttons)
@@ -199,8 +203,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="NumberSelectionMenu.receiveLeftClick"/>. It sets
-        ///     <see cref="Game1.player.canMove"/> to <see langword="true"/> when exiting the menu by clicking
+        ///     A method called via Harmony to modify <see cref="NumberSelectionMenu.receiveLeftClick" />. It sets
+        ///     <see cref="Game1.player.canMove" /> to <see langword="true" /> when exiting the menu by clicking
         ///     the ok button.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>

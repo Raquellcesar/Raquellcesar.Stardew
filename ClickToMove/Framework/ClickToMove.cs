@@ -1114,11 +1114,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         {
             if (this.TargetNpc is not null && (this.clickedTile.X != -1 || this.clickedTile.Y != -1))
             {
-                if (this.TargetNpc.currentLocation != this.GameLocation)
-                {
-                    this.Reset();
-                }
-                else if (this.TargetNpc.AtWarpOrDoor(this.GameLocation))
+                if (this.TargetNpc.currentLocation != this.GameLocation
+                    || this.TargetNpc.AtWarpOrDoor(this.GameLocation))
                 {
                     this.Reset();
                 }
@@ -1592,11 +1589,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     return;
                 }
-
-                /*if (this.clickedNode.ContainsSomeKindOfWarp() && Game1.player.CurrentTool is FishingRod)
-                {
-                    Game1.player.CurrentToolIndex = -1;
-                }*/
 
                 if (this.CheckEndNode(this.clickedNode))
                 {
@@ -2426,19 +2418,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if (terrainFeature is Tree or FruitTree)
                 {
-                    // If a tree is tapped while the Farmer is holding something that can be consumed, the game makes
-                    // the Farmer consume the item, so we need to unselect it.
-                    if (Game1.player.ActiveObject is not null && Game1.player.ActiveObject.Edibility > SObject.inedible)
+                    if (terrainFeature.isPassable())
                     {
-                        Game1.player.CurrentToolIndex = -1;
+                        // The Farmer is removing a tree seed from the ground.
+                        if (Game1.player.CurrentTool is Hoe or Axe or Pickaxe)
+                        {
+                            this.useToolOnEndNode = true;
+                            return true;
+                        }
                     }
-
-                    if (terrainFeature is Tree tree)
+                    else
                     {
-                        this.AutoSelectTool(tree.growthStage.Value <= 1 ? "Scythe" : "Axe");
-                    }
+                        if (terrainFeature is Tree tree)
+                        {
+                            this.AutoSelectTool(tree.growthStage.Value <= 1 ? "Scythe" : "Axe");
+                        }
 
-                    return true;
+                        return true;
+                    }
                 }
             }
 
@@ -2447,7 +2444,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 if (this.Furniture.ParentSheetIndex is FurnitureId.Catalogue or FurnitureId.FurnitureCatalogue or FurnitureId.SamsBoombox || this.Furniture.furniture_type.Value is Furniture.fireplace or Furniture.torch || this.Furniture is StorageFurniture or TV || this.Furniture.GetSeatCapacity() > 0)
                 {
                     this.performActionFromNeighbourTile = true;
-
                     return true;
                 }
 
@@ -2455,19 +2451,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.performActionFromNeighbourTile = true;
                     this.useToolOnEndNode = false;
-
                     return true;
                 }
 
                 if (this.Furniture.ParentSheetIndex == FurnitureId.SingingStone)
                 {
-                    this.performActionFromNeighbourTile = true;
-                    this.useToolOnEndNode = false;
-
                     this.Furniture.PlaySingingStone();
 
+                    this.performActionFromNeighbourTile = true;
+                    this.useToolOnEndNode = false;
                     this.clickedTile.X = this.clickedTile.Y = -1;
-
                     return true;
                 }
             }
@@ -2549,7 +2542,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 this.clickedHorse = horse;
 
-                if (!(Game1.player.CurrentItem is Hat))
+                if (Game1.player.CurrentItem is not Hat)
                 {
                     Game1.player.CurrentToolIndex = -1;
                 }
@@ -2599,7 +2592,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.clickedHorse = horse2;
 
-                    if (!(Game1.player.CurrentItem is Hat))
+                    if (Game1.player.CurrentItem is not Hat)
                     {
                         Game1.player.CurrentToolIndex = -1;
                     }
@@ -2628,7 +2621,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.clickedHorse = horse3;
 
-                    if (!(Game1.player.CurrentItem is Hat))
+                    if (Game1.player.CurrentItem is not Hat)
                     {
                         Game1.player.CurrentToolIndex = -1;
                     }
@@ -2786,11 +2779,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                 }
 
-                if (Game1.isActionAtCurrentCursorTile && Game1.player.CurrentTool is FishingRod)
-                {
-                    Game1.player.CurrentToolIndex = -1;
-                }
-
                 if (this.CheckWaterSource(node))
                 {
                     return true;
@@ -2901,11 +2889,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     this.performActionFromNeighbourTile = true;
                 }
-            }
-
-            if (node.ContainsTree() && (Game1.player.CurrentTool is Hoe or Axe or Pickaxe))
-            {
-                this.useToolOnEndNode = true;
             }
 
             if (this.GameLocation.isActionableTile(node.X, node.Y, Game1.player) || this.GameLocation.isActionableTile(node.X, node.Y + 1, Game1.player) || this.interactionAtCursor == InteractionType.Speech)

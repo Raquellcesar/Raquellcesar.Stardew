@@ -1,35 +1,39 @@
-﻿// -----------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="CharactersPatcher.cs" company="Raquellcesar">
 //     Copyright (c) 2021 Raquellcesar. All rights reserved.
 //
 //     Use of this source code is governed by an MIT-style license that can be found in the LICENSE
 //     file in the project root or at https://opensource.org/licenses/MIT.
 // </copyright>
-// -----------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+
+using Harmony;
+
+using StardewModdingAPI;
+
+using StardewValley;
+using StardewValley.Characters;
 
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Reflection.Emit;
-    using System.Runtime.CompilerServices;
-
-    using Harmony;
-
-    using StardewModdingAPI;
-
-    using StardewValley;
-    using StardewValley.Characters;
-
     /// <summary>
-    ///     Encapsulates Harmony patches for the <see cref="Character"/> classes.
+    ///     Encapsulates Harmony patches for the <see cref="Character" /> classes.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
+    [SuppressMessage(
+        "StyleCop.CSharp.NamingRules", 
+        "SA1313:Parameter names should begin with lower-case letter",
+        Justification = "Harmony naming rules.")]
     internal static class CharactersPatcher
     {
         /// <summary>
-        ///     Associates new properties to <see cref="Horse"/> objects at runtime.
+        ///     Associates new properties to <see cref="Horse" /> objects at runtime.
         /// </summary>
         private static readonly ConditionalWeakTable<Horse, HorseData> HorsesData =
             new ConditionalWeakTable<Horse, HorseData>();
@@ -49,7 +53,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             harmony.Patch(
                 AccessTools.Method(typeof(Child), nameof(Child.checkAction)),
-                transpiler: new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.TranspileChildCheckAction)));
+                transpiler: new HarmonyMethod(typeof(CharactersPatcher),
+                    nameof(CharactersPatcher.TranspileChildCheckAction)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(Horse), nameof(Horse.checkAction)),
@@ -57,16 +62,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             harmony.Patch(
                 AccessTools.Method(typeof(Horse), nameof(Horse.checkAction)),
-                transpiler: new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.TranspileHorseCheckAction)));
+                transpiler: new HarmonyMethod(typeof(CharactersPatcher),
+                    nameof(CharactersPatcher.TranspileHorseCheckAction)));
         }
 
         /// <summary>
         ///     Gets if an horse should allow action checking.
         /// </summary>
-        /// <param name="horse">The <see cref="Horse"/> instance.</param>
+        /// <param name="horse">The <see cref="Horse" /> instance.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if this horse can check for action. Returns <see
-        ///     langword="false"/> otherwise.
+        ///     Returns <see langword="true" /> if this horse can check for action. Returns
+        ///     <see
+        ///         langword="false" />
+        ///     otherwise.
         /// </returns>
         public static bool IsCheckActionEnabled(this Horse horse)
         {
@@ -76,7 +84,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <summary>
         ///     Sets whether an horse allows action checking.
         /// </summary>
-        /// <param name="horse">The <see cref="Horse"/> instance.</param>
+        /// <param name="horse">The <see cref="Horse" /> instance.</param>
         /// <param name="value">Determines whether the horse can check action.</param>
         public static void SetCheckActionEnabled(this Horse horse, bool value)
         {
@@ -87,14 +95,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Horse.checkAction"/>. It checks if the
+        ///     A method called via Harmony before <see cref="Horse.checkAction" />. It checks if the
         ///     horse has check action enabled.
         /// </summary>
-        /// <param name="__instance">The <see cref="Horse"/> instance.</param>
+        /// <param name="__instance">The <see cref="Horse" /> instance.</param>
         /// <param name="__result">A reference to the result of the original method.</param>
         /// <returns>
-        ///     Returns <see langword="false"/> to terminate prefixes and skip the execution of the
-        ///     original method, <see langword="true"/> otherwise.
+        ///     Returns <see langword="false" /> to terminate prefixes and skip the execution of the
+        ///     original method, <see langword="true" /> otherwise.
         /// </returns>
         private static bool BeforeHorseCheckAction(
             Horse __instance,
@@ -113,14 +121,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Child.checkAction"/>.
+        ///     A method called via Harmony to modify <see cref="Child.checkAction" />. It checks if CurrentToolIndex is
+        ///     greater than zero before accessing items.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileChildCheckAction(
             IEnumerable<CodeInstruction> instructions)
         {
-            // Check if CurrentToolIndex is greater than zero before accessing items.
-
             /*
              * Relevant CIL code:
              *      if (base.Age >= 3 && who.items.Count > who.CurrentToolIndex && who.items[who.CurrentToolIndex] != null && who.Items[who.CurrentToolIndex] is Hat)
@@ -143,8 +150,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             for (int i = 0; i < codeInstructions.Count; i++)
             {
-                if (!found && codeInstructions[i].opcode == OpCodes.Blt
-                           && codeInstructions[i - 1].opcode == OpCodes.Ldc_I4_3)
+                if (!found
+                    && codeInstructions[i].opcode == OpCodes.Blt
+                    && codeInstructions[i - 1].opcode == OpCodes.Ldc_I4_3)
                 {
                     yield return codeInstructions[i];
 
@@ -172,7 +180,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Horse.checkAction"/>.
+        ///     A method called via Harmony to modify <see cref="Horse.checkAction" />.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileHorseCheckAction(
@@ -182,8 +190,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             // Find the delegate method to transpile.
             int index = codeInstructions.FindIndex(
-                    0,
-                    ins => ins.opcode == OpCodes.Ldftn && ins.operand is MethodInfo);
+                0,
+                ins => ins.opcode == OpCodes.Ldftn && ins.operand is MethodInfo);
 
             if (index < 0)
             {
@@ -195,8 +203,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 // Patch the delegate.
                 CharactersPatcher.harmony.Patch(
-                    (MethodInfo)codeInstructions[index].operand,
-                    transpiler: new HarmonyMethod(typeof(CharactersPatcher), nameof(CharactersPatcher.TranspileHorseDelegateCheckAction)));
+                    (MethodInfo) codeInstructions[index].operand,
+                    transpiler: new HarmonyMethod(typeof(CharactersPatcher),
+                        nameof(CharactersPatcher.TranspileHorseDelegateCheckAction)));
             }
 
             // Return the original method untouched.
@@ -207,7 +216,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify the delegate in <see cref="Horse.checkAction"/>.
+        ///     A method called via Harmony to modify the delegate in <see cref="Horse.checkAction" />. It checks if
+        ///     CurrentToolIndex is greater than zero before accessing items.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         /// <param name="ilGenerator">Generates MSIL instructions.</param>
@@ -222,8 +232,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             for (int i = 0; i < codeInstructions.Count; i++)
             {
-                /* Check if CurrentToolIndex is greater than zero before accessing items. */
-
                 /*
                  * Relevant CIL code:
                  *      else if (this.who.items.Count > this.who.CurrentToolIndex && this.who.items[this.who.CurrentToolIndex] != null && this.who.Items[this.who.CurrentToolIndex] is Hat)
@@ -241,21 +249,24 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                  *      this.who.CurrentToolIndex >= 0
                  */
 
-                if (!found1 && codeInstructions[i].opcode == OpCodes.Ldarg_0
-                            && i + 7 < codeInstructions.Count
-                            && codeInstructions[i + 2].opcode == OpCodes.Ldfld && codeInstructions[i + 2].operand is FieldInfo { Name: "items" }
-                            && codeInstructions[i + 7].opcode == OpCodes.Ble)
+                if (!found1
+                    && codeInstructions[i].opcode == OpCodes.Ldarg_0
+                    && i + 7 < codeInstructions.Count
+                    && codeInstructions[i + 2].opcode == OpCodes.Ldfld
+                    && codeInstructions[i + 2].operand is FieldInfo {Name: "items"}
+                    && codeInstructions[i + 7].opcode == OpCodes.Ble)
                 {
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
                     yield return new CodeInstruction(OpCodes.Ldfld, codeInstructions[i + 1].operand);
-                    yield return new CodeInstruction(OpCodes.Callvirt, AccessTools.Property(typeof(Farmer), nameof(Farmer.CurrentToolIndex)).GetGetMethod());
+                    yield return new CodeInstruction(OpCodes.Callvirt,
+                        AccessTools.Property(typeof(Farmer), nameof(Farmer.CurrentToolIndex)).GetGetMethod());
                     yield return new CodeInstruction(OpCodes.Ldc_I4_0);
                     yield return new CodeInstruction(OpCodes.Blt, codeInstructions[i + 7].operand);
 
                     found1 = true;
                 }
 
-                // Check if farmer can mount horse on the last else.
+                // Check if the Farmer can mount the horse on the last else.
 
                 /*
                  * Relevant CIL code:
@@ -273,15 +284,22 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                  *      else if (!ClickToMoveManager.GetOrCreate(Game1.currentLocation).PreventMountingHorse)
                  */
 
-                if (found1 && !found2 && codeInstructions[i].opcode == OpCodes.Ldarg_0
-                           && i + 4 < codeInstructions.Count
-                           && codeInstructions[i + 4].opcode == OpCodes.Call && codeInstructions[i + 4].operand is MethodInfo { Name: "set_rider" })
+                if (found1
+                    && !found2
+                    && codeInstructions[i].opcode == OpCodes.Ldarg_0
+                    && i + 4 < codeInstructions.Count
+                    && codeInstructions[i + 4].opcode == OpCodes.Call
+                    && codeInstructions[i + 4].operand is MethodInfo {Name: "set_rider"})
                 {
                     Label jump = ilGenerator.DefineLabel();
 
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod());
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ClickToMoveManager), nameof(ClickToMoveManager.GetOrCreate)));
-                    yield return new CodeInstruction(OpCodes.Callvirt, AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.PreventMountingHorse)).GetGetMethod());
+                    yield return new CodeInstruction(OpCodes.Call,
+                        AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod());
+                    yield return new CodeInstruction(OpCodes.Call,
+                        AccessTools.Method(typeof(ClickToMoveManager), nameof(ClickToMoveManager.GetOrCreate)));
+                    yield return new CodeInstruction(OpCodes.Callvirt,
+                        AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.PreventMountingHorse))
+                            .GetGetMethod());
                     yield return new CodeInstruction(OpCodes.Brfalse_S, jump);
                     yield return new CodeInstruction(OpCodes.Ret);
 
@@ -302,7 +320,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Keeps data about an <see cref="Horse"/> object.
+        ///     Keeps data about an <see cref="Horse" /> object.
         /// </summary>
         internal class HorseData
         {

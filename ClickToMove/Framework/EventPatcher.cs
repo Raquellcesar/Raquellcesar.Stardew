@@ -48,7 +48,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Event"/>.addSpecificTemporarySprite.
+        ///     A method called via Harmony to modify <see cref="Event"/>.addSpecificTemporarySprite. It checks if the
+        ///     Farmer's CurrentToolIndex is -1.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         /// <param name="ilGenerator">Generates MSIL instructions.</param>
@@ -56,8 +57,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             IEnumerable<CodeInstruction> instructions,
             ILGenerator ilGenerator)
         {
-            // Check if the farmer's CurrentToolIndex is -1.
-
             /*
             * Relevant CIL code:
             *     this.drawTool = true;

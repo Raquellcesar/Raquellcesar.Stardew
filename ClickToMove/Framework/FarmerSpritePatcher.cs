@@ -57,12 +57,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         /// <summary>
         ///     A method called via Harmony to modify <see cref="FarmerSprite"/>.animateOnce(<see cref="GameTime"/>).
+        ///     It switches back to the last tool.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileAnimateOnce(IEnumerable<CodeInstruction> instructions)
         {
-            // Switch back to last tool.
-
             /*
             * Relevant CIL code:
             *     if (base.currentAnimationIndex > this.currentAnimationFrames - 1)
