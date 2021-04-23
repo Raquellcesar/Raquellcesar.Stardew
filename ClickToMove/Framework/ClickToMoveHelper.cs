@@ -152,8 +152,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="tileX">The tile x coordinate.</param>
         /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
-        ///     Returns true if the travelling desert shop is occupying the given tile coordinates
-        ///     in the given game location. Returns false otherwise.
+        ///     Returns <see langword="true"/> if the travelling desert shop is occupying the given tile coordinates
+        ///     in the given game location. Returns <see langword="false"/> otherwise.
         /// </returns>
         public static bool ContainsTravellingDesertShop(this GameLocation gameLocation, int tileX, int tileY)
         {
@@ -350,7 +350,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             gameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object);
 
-            return @object is not null && (@object.Name == "Stone" || @object.Name == "Boulder");
+            return @object is not null && (@object.Name is "Stone" or "Boulder");
         }
 
         /// <summary>
@@ -360,18 +360,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="tileX">The tile x coordinate.</param>
         /// <param name="tileY">The tile y coordinate.</param>
         /// <returns>
-        ///     Returns true if this <see cref="ResourceClump"/> is a boulder at the given tile
-        ///     coordinates. Returns false otherwise.
+        ///     Returns <see langword="true"/> if this <see cref="ResourceClump"/> is a boulder at the given tile
+        ///     coordinates. Returns <see langword="false"/> otherwise.
         /// </returns>
         public static bool IsBoulderAt(this ResourceClump resourceClump, int tileX, int tileY)
         {
             return resourceClump.occupiesTile(tileX, tileY)
-                   && (resourceClump.parentSheetIndex.Value == ResourceClump.meteoriteIndex
-                       || resourceClump.parentSheetIndex.Value == ResourceClump.boulderIndex
-                       || resourceClump.parentSheetIndex.Value == ResourceClump.mineRock1Index
-                       || resourceClump.parentSheetIndex.Value == ResourceClump.mineRock2Index
-                       || resourceClump.parentSheetIndex.Value == ResourceClump.mineRock3Index
-                       || resourceClump.parentSheetIndex.Value == ResourceClump.mineRock4Index);
+                   && resourceClump.parentSheetIndex.Value is ResourceClump.meteoriteIndex
+                       or ResourceClump.boulderIndex
+                       or ResourceClump.mineRock1Index
+                       or ResourceClump.mineRock2Index
+                       or ResourceClump.mineRock3Index
+                       or ResourceClump.mineRock4Index;
         }
 
         /// <summary>
@@ -523,7 +523,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             gameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object);
 
-            return @object is not null && (@object.Name == "Stone" || @object.Name == "Boulder");
+            return @object is not null && (@object.Name is "Stone" or "Boulder");
         }
 
         /// <summary>

@@ -303,16 +303,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             if (this.Graph.GameLocation.objects.TryGetValue(key, out SObject @object))
             {
-                if (@object.ParentSheetIndex == BigCraftableId.Scarecrow
-                    || @object.ParentSheetIndex == BigCraftableId.DeluxeScarecrow
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow1
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow2
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow3
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow4
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow5
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow6
-                    || @object.ParentSheetIndex == BigCraftableId.Rarecrow7)
+                if (@object.ParentSheetIndex is BigCraftableId.Scarecrow or BigCraftableId.DeluxeScarecrow or BigCraftableId.Rarecrow or BigCraftableId.Rarecrow1 or BigCraftableId.Rarecrow2 or BigCraftableId.Rarecrow3 or BigCraftableId.Rarecrow4 or BigCraftableId.Rarecrow5 or BigCraftableId.Rarecrow6 or BigCraftableId.Rarecrow7)
                 {
                     return true;
                 }

@@ -934,7 +934,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     && !Game1.dialogueUp
                     && !Game1.menuUp
                     && Game1.farmEvent is null
-                    && (Game1.player.CanMove || Game1.player.CurrentTool is FishingRod || Game1.player.CurrentTool is MeleeWeapon))
+                    && (Game1.player.CanMove || Game1.player.CurrentTool is FishingRod or MeleeWeapon))
                 {
                     if (Game1.player.CurrentTool is not null && (Game1.player.CurrentTool is not MeleeWeapon || Game1.didPlayerJustLeftClick(ignoreNonMouseHeldInput: true)))
                     {

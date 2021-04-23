@@ -95,9 +95,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static void TryToPlaceItemTranspiler()
         {
             if (Game1.player.ActiveObject is null
-                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.CherryBomb
-                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.Bomb
-                || Game1.player.ActiveObject.ParentSheetIndex == ObjectId.MegaBomb)
+                || Game1.player.ActiveObject.ParentSheetIndex is ObjectId.CherryBomb or ObjectId.Bomb or ObjectId.MegaBomb)
             {
                 Game1.player.CurrentToolIndex = -1;
             }

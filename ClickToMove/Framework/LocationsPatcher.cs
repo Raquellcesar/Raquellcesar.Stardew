@@ -180,7 +180,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 int tileIndex = __instance.map.GetLayer("Buildings").Tiles[tileLocation].TileIndex;
 
-                if ((tileIndex == 958 || tileIndex == 1080 || tileIndex == 1081)
+                if ((tileIndex is 958 or 1080 or 1081)
                     && Game1.MasterPlayer.mailReceived.Contains("ccBoilerRoom") && Game1.player.mount is null
                     && !Game1.player.isRidingHorse())
                 {
@@ -217,15 +217,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (__instance.map.GetLayer("Buildings").Tiles[tileLocation] is not null && who.mount is null)
             {
                 int tileIndex = __instance.map.GetLayer("Buildings").Tiles[tileLocation].TileIndex;
-                if ((tileIndex == 958 || tileIndex == 1080 || tileIndex == 1081) && Game1.player.mount is null
-                    && (__instance.currentEvent is null || !__instance.currentEvent.isFestival
-                                                        || !__instance.currentEvent.checkAction(
-                                                            tileLocation,
-                                                            viewport,
-                                                            who)) && !(Game1.player.getTileX() <= 70
-                                                                       && (Game1.CurrentEvent is null
-                                                                           || Game1.CurrentEvent.FestivalName != "Egg Festival"))
-                    && Game1.MasterPlayer.mailReceived.Contains("ccBoilerRoom"))
+                if ((tileIndex is 958 or 1080 or 1081) && Game1.player.mount is null
+                                                       && (__instance.currentEvent is null || !__instance.currentEvent.isFestival
+                                                           || !__instance.currentEvent.checkAction(
+                                                               tileLocation,
+                                                               viewport,
+                                                               who)) && !(Game1.player.getTileX() <= 70
+                                                                          && (Game1.CurrentEvent is null
+                                                                              || Game1.CurrentEvent.FestivalName != "Egg Festival"))
+                                                       && Game1.MasterPlayer.mailReceived.Contains("ccBoilerRoom"))
                 {
                     ClickToMoveManager.GetOrCreate(Game1.currentLocation).PreventMountingHorse = true;
                 }

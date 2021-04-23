@@ -80,7 +80,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// <param name="questionAndAnswer">The string identifying a dialogue answer.</param>
         private static void AfterAnswerDialogueAction(string questionAndAnswer)
         {
-            if (questionAndAnswer == "Eat_Yes" || questionAndAnswer == "Eat_No")
+            if (questionAndAnswer is "Eat_Yes" or "Eat_No")
             {
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
             }
@@ -146,7 +146,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static bool IsTileOccupiedForPlacementTranspiler(GameLocation gameLocation, Vector2 tileLocation, Object toPlace)
         {
             return gameLocation.isTileOccupiedByFarmer(tileLocation) is not null
-                && (toPlace is null || (!toPlace.isPassable() && (toPlace.Category == Object.furnitureCategory || toPlace.Category == 0)));
+                && (toPlace is null || (!toPlace.isPassable() && (toPlace.Category is Object.furnitureCategory or 0)));
         }
 
         /// <summary>

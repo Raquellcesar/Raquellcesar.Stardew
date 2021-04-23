@@ -196,7 +196,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return false;
             }
 
-            if (item == null || item is Tool || Game1.eventUp || farmer.bathingClothes.Value || farmer.onBridge.Value)
+            if (item is null or Tool || Game1.eventUp || farmer.bathingClothes.Value || farmer.onBridge.Value)
             {
                 return false;
             }
