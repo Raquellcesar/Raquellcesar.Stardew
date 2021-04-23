@@ -35,6 +35,12 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <AdditionalFiles Include="..\stylecop.json">
+      <Link>stylecop.json</Link>
+    </AdditionalFiles>
+  </ItemGroup>
+
   <Import Project="..\Common\Common.projitems" Label="Shared" />
   <Import Project="..\_build\common.targets" />
 

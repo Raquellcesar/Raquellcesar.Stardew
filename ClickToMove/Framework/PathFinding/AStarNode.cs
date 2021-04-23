@@ -647,17 +647,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 (this.X * Game1.tileSize) + (Game1.tileSize / 2),
                 (this.Y * Game1.tileSize) + (Game1.tileSize / 2));
             float warpRange = this.Graph.GameLocation.WarpRange();
-            foreach (Warp warp in this.Graph.GameLocation.warps)
-            {
-                Point warpPoint = new Point(warp.X * Game1.tileSize, warp.Y * Game1.tileSize);
-
-                if (ClickToMoveHelper.Distance(warpPoint, nodeCenter) < warpRange)
-                {
-                    return warp;
-                }
-            }
-
-            return null;
+            return this.Graph.GameLocation.warps.FirstOrDefault(
+                warp => ClickToMoveHelper.Distance(
+                    new Point(warp.X * Game1.tileSize, warp.Y * Game1.tileSize),
+                    nodeCenter) < warpRange);
         }
 
         /// <summary>
@@ -780,7 +773,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
 
             if (@object is not null)
             {
-                return @object.isPassable() /* || @object is Fence fence && fence.isGate.Value && !this.graph.GameLocation.IsSoloGate(fence)*/;
+                return @object.isPassable();
             }
 
             // The tile interior.
