@@ -10,8 +10,10 @@
 namespace Raquellcesar.Stardew.Common
 {
     using System;
-
+    
     using Microsoft.Xna.Framework;
+
+    using StardewValley;
 
     /// <summary>
     ///     This class represents the movement directions allowed in the game. Each WalkDirection is
@@ -32,7 +34,7 @@ namespace Raquellcesar.Stardew.Common
         /// <summary>
         ///     The up direction.
         /// </summary>
-        public static readonly WalkDirection Up = new WalkDirection("Up", 0, 0, -1);
+        public static readonly WalkDirection Up = new WalkDirection("Up", Game1.up, 0, -1);
 
         /// <summary>
         ///     The diagonal up right direction.
@@ -42,7 +44,7 @@ namespace Raquellcesar.Stardew.Common
         /// <summary>
         ///     The right direction.
         /// </summary>
-        public static readonly WalkDirection Right = new WalkDirection("Right", 1, 1, 0);
+        public static readonly WalkDirection Right = new WalkDirection("Right", Game1.right, 1, 0);
 
         /// <summary>
         ///     The diagonal down right direction.
@@ -52,7 +54,7 @@ namespace Raquellcesar.Stardew.Common
         /// <summary>
         ///     The down direction.
         /// </summary>
-        public static readonly WalkDirection Down = new WalkDirection("Down", 2, 0, 1);
+        public static readonly WalkDirection Down = new WalkDirection("Down", Game1.down, 0, 1);
 
         /// <summary>
         ///     The diagonal down left direction.
@@ -62,7 +64,7 @@ namespace Raquellcesar.Stardew.Common
         /// <summary>
         ///     The left direction.
         /// </summary>
-        public static readonly WalkDirection Left = new WalkDirection("Left", 3, -1, 0);
+        public static readonly WalkDirection Left = new WalkDirection("Left", Game1.left, -1, 0);
 
         /// <summary>
         ///     The diagonal up left direction.
@@ -151,6 +153,7 @@ namespace Raquellcesar.Stardew.Common
 
         /// <summary>
         ///     Finds the facing direction when getting from a start point to a target point.
+        ///     It doesn't consider diagonal directions.
         /// </summary>
         /// <remarks>
         ///     This only works correctly if the int values used for the walk directions are in sync
@@ -373,12 +376,12 @@ namespace Raquellcesar.Stardew.Common
                 return WalkDirection.Up;
             }
 
-            if (angle >= -Math.PI / 4 && angle <= Math.PI / 4)
+            if (angle > -Math.PI / 4 && angle <= Math.PI / 4)
             {
                 return WalkDirection.Right;
             }
 
-            if (angle >= Math.PI / 4 && angle <= 3 * Math.PI / 4)
+            if (angle > Math.PI / 4 && angle <= 3 * Math.PI / 4)
             {
                 return WalkDirection.Down;
             }

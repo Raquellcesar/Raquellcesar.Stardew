@@ -58,11 +58,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private const int MaxTries = 2;
 
         /// <summary>
-        ///     The time we need to wait before checking gor monsters to attack again measured in number of game ticks (aproximately 500 ms).
-        /// </summary>
-        private const int MinimumTicksBetweenMonsterChecks = 30;
-
-        /// <summary>
         ///     The time the mouse left button must be pressed before we condider it held measured in number of game ticks (aproximately 350 ms).
         /// </summary>
         private const int TicksBeforeClickHoldKicksIn = 21;
@@ -143,11 +138,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private CrabPot crabPot;
 
         private DistanceToTarget distanceToTarget;
-
-        /// <summary>
-        ///     Whether checking for monsters to attack is enabled.
-        /// </summary>
-        private bool enableCheckToAttackMonsters = true;
 
         /// <summary>
         ///     Whether the node at the end of the path is occupied by something.
@@ -957,21 +947,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return false;
             }
 
-            if (!this.enableCheckToAttackMonsters)
-            {
-                if (Game1.ticks < ClickToMove.MinimumTicksBetweenMonsterChecks)
-                {
-                    return false;
-                }
-
-                this.enableCheckToAttackMonsters = true;
-            }
-
             if (this.justUsedWeapon)
             {
                 this.justUsedWeapon = false;
                 this.ClickKeyStates.Reset();
-
                 return false;
             }
 
@@ -980,24 +959,27 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 && !Game1.player.UsingTool)
             {
                 Rectangle boundingBox = Game1.player.GetBoundingBox();
-                Point playerPosition = boundingBox.Center;
                 boundingBox.Inflate(Game1.tileSize, Game1.tileSize);
+                Point playerPosition = boundingBox.Center;
 
                 Monster targetMonster = null;
-                float minimumDistance = float.MaxValue;
+                int minimumDistance = int.MaxValue;
                 foreach (NPC character in this.GameLocation.characters)
                 {
                     // Ignore knocked down mummies. Ignore armored bugs if the Farmer isn't holding
                     // a weapon with the Bug Killer enchant.
                     if (character is Monster monster
                         && !(monster is Mummy mummy && mummy.reviveTimer > 0)
-                        && !(monster is Bug bug && bug.isArmoredBug && !(Game1.player.CurrentTool is MeleeWeapon meleeWeapon && meleeWeapon.hasEnchantmentOfType<BugKillerEnchantment>())))
+                        && !(monster is Bug bug
+                             && bug.isArmoredBug 
+                             && !(Game1.player.CurrentTool is MeleeWeapon meleeWeapon 
+                                  && meleeWeapon.hasEnchantmentOfType<BugKillerEnchantment>()))
+                        && boundingBox.Intersects(monster.GetBoundingBox())
+                        && !this.IsObjectBlockingMonster(monster))
                     {
-                        float distance = ClickToMoveHelper.Distance(monster.GetBoundingBox().Center, playerPosition);
+                        int distance = ClickToMoveHelper.DistanceSquared(playerPosition, monster.GetBoundingBox().Center);
 
-                        if (distance < minimumDistance
-                            && boundingBox.Intersects(monster.GetBoundingBox())
-                            && !this.IsObjectBlockingMonster(monster))
+                        if (distance < minimumDistance)
                         {
                             minimumDistance = distance;
                             targetMonster = monster;
@@ -1389,7 +1371,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         Game1.player.Halt();
 
                         this.ClickKeyStates.SetUseTool(false);
-                        this.enableCheckToAttackMonsters = false;
                         this.justUsedWeapon = false;
                     }
 
@@ -2965,7 +2946,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     {
                         walkDirection = WalkDirection.GetFacingWalkDirection(
                             Game1.player.OffsetPositionOnMap(),
-                            new Vector2(this.clickPoint.X, this.ClickPoint.Y));
+                            this.ClickVector);
 
                         this.FaceTileClicked();
                     }

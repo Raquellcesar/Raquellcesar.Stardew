@@ -172,6 +172,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             double num2 = point1.Y - point2.Y;
             return (float)Math.Sqrt((num1 * num1) + (num2 * num2));
         }
+        
+        /// <summary>
+        ///     Gets the squared Euclidean distance between two points.
+        /// </summary>
+        /// <param name="point1">The first point.</param>
+        /// <param name="point2">The second point.</param>
+        /// <returns>The squared Euclidean distance between the two given points.</returns>
+        public static int DistanceSquared(Point point1, Point point2)
+        {
+            int num1 = point1.X - point2.X;
+            int num2 = point1.Y - point2.Y;
+            return (num1 * num1) + (num2 * num2);
+        }
 
         /// <summary>
         ///     Returns a list of the tiles at the border of this building.
