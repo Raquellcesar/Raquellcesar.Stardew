@@ -211,8 +211,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         private bool waitingToFinishWatering;
 
-        private bool warping;
-
         private bool waterSourceSelected;
 
         /// <summary>
@@ -449,7 +447,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             else
             {
                 if (!Game1.player.CanMove
-                    || this.warping
                     || this.GameLocation.IsChoppableOrMinable(this.clickedTile))
                 {
                     ClickToMoveManager.Monitor.Log($"Tick {Game1.ticks} -> ClickToMove.OnClickHeld - not moving");
@@ -470,14 +467,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 Vector2 mousePosition = new Vector2(x, y);
-
-                if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival) && !Game1.player.UsingTool
-                    && !this.warping && !this.IgnoreWarps && this.GameLocation.WarpIfInRange(mousePosition))
-                {
-                    this.Reset();
-                    this.warping = true;
-                }
-
                 Vector2 playerOffsetPosition = Game1.player.OffsetPositionOnMap();
 
                 float distanceToMouse = Vector2.Distance(playerOffsetPosition, mousePosition);
@@ -588,7 +577,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             this.useToolOnEndNode = false;
             this.endTileIsActionable = false;
             this.performActionFromNeighbourTile = false;
-            this.warping = false;
             this.waterSourceSelected = false;
 
             this.actionableBuilding = null;
@@ -1783,16 +1771,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (this.startNode.IsSameNode(this.clickedNode))
                 {
-                    this.invalidTarget.X = this.invalidTarget.Y = -1;
-
-                    Warp warp = this.clickedNode.GetWarp(this.IgnoreWarps);
-                    if (warp is not null && (Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival))
+                    if (!Game1.isFestival() && this.clickedNode.GetWarp(this.IgnoreWarps) is Warp warp)
                     {
-                        this.GameLocation.WarpIfInRange(warp);
+                        Game1.player.warpFarmer(warp);
                     }
 
                     this.Reset();
-
+                    this.invalidTarget.X = this.invalidTarget.Y = -1;
                     return;
                 }
 
@@ -2069,8 +2054,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             {
                                 this.AutoSelectTool("Axe");
                             }
-
-                            if (resourceClump is GiantCrop giantCrop)
+                            else if (resourceClump is GiantCrop giantCrop)
                             {
                                 if (giantCrop.tile.X + 1 == node.X
                                     && giantCrop.tile.Y + 1 == node.Y)
@@ -2953,14 +2937,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         private void OnClickToMoveComplete()
         {
-            if ((Game1.CurrentEvent is null || !Game1.CurrentEvent.isFestival)
+            if (!Game1.isFestival()
                 && !Game1.player.UsingTool
                 && this.clickedHorse is null
-                && !this.warping
-                && !this.IgnoreWarps
-                && this.GameLocation.WarpIfInRange(this.ClickVector))
+                && !this.IgnoreWarps)
             {
-                this.warping = true;
+                this.GameLocation.WarpIfInRange(this.ClickVector);
             }
 
             this.Reset();
@@ -3274,7 +3256,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private void StopMovingAfterReachingEndOfPath()
         {
             this.ClickKeyStates.SetMovement(WalkDirection.None);
-
             this.ClickKeyStates.ActionButtonPressed = false;
 
             if (this.ClickKeyStates.RealClickHeld
@@ -3284,9 +3265,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         && (Game1.player.CurrentTool is WateringCan or Hoe))))
             {
                 this.ClickKeyStates.SetUseTool(true);
-
                 this.phase = ClickToMovePhase.PendingComplete;
-
                 return;
             }
 

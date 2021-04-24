@@ -808,33 +808,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Warps the player through the given <see cref="Warp"/> if it's in range.
-        /// </summary>
-        /// <param name="gameLocation">The current game location.</param>
-        /// <param name="warp">The warp to use.</param>
-        /// <returns>
-        ///     Returns <see langword="true"/> if the player is successfully warped. return <see
-        ///     langword="false"/> otherwise.
-        /// </returns>
-        public static bool WarpIfInRange(this GameLocation gameLocation, Warp warp)
-        {
-            Vector2 warpVector = new Vector2(warp.X * Game1.tileSize, warp.Y * Game1.tileSize);
-
-            if (Vector2.Distance(warpVector, Game1.player.position.Value) < gameLocation.WarpRange())
-            {
-                Game1.player.warpFarmer(warp);
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
         ///     Warps the player through a <see cref="Warp"/> that's in range of both the player and
-        ///     the clicked point, if such a warp exists.
+        ///     a clicked point, if such a warp exists.
         /// </summary>
         /// <param name="gameLocation">The current game location.</param>
-        /// <param name="clickPoint">The point clicked.</param>
+        /// <param name="clickPoint">The point clicked in absolute coordinates.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if the player is successfully warped. return <see
         ///     langword="false"/> otherwise.
@@ -842,16 +820,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         public static bool WarpIfInRange(this GameLocation gameLocation, Vector2 clickPoint)
         {
             float warpRange = gameLocation.WarpRange();
-
             foreach (Warp warp in gameLocation.warps)
             {
                 Vector2 warpVector = new Vector2(warp.X * Game1.tileSize, warp.Y * Game1.tileSize);
 
                 if (Vector2.Distance(warpVector, clickPoint) < warpRange
-                    && Vector2.Distance(warpVector, Game1.player.position.Value) < warpRange)
+                    && Vector2.Distance(warpVector, Game1.player.Position) < warpRange)
                 {
                     Game1.player.warpFarmer(warp);
-
                     return true;
                 }
             }
@@ -859,14 +835,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
+        /// <summary>
+        ///     Gets the distance at which a <see cref="Warp"/> is out of range at this <see cref="GameLocation"/>.
+        /// </summary>
+        /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
+        /// <returns>
+        ///     The maximum distance for a <see cref="Warp"/> to be in range.
+        /// </returns>
         public static float WarpRange(this GameLocation gameLocation)
         {
-            if (gameLocation is not null && (gameLocation.IsOutdoors || gameLocation is BathHousePool))
-            {
-                return Game1.tileSize * 2;
-            }
-
-            return Game1.tileSize * 1.5f;
+            return gameLocation.IsOutdoors || gameLocation is BathHousePool
+                ? Game1.tileSize * 2
+                : Game1.tileSize * 1.5f;
         }
     }
 }

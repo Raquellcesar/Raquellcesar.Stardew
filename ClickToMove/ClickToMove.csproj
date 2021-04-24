@@ -86,6 +86,9 @@
     <Compile Include="Framework\SGamePatcher.cs" />
   </ItemGroup>
   <ItemGroup>
+	<AdditionalFiles Include="..\stylecop.json">
+      <Link>stylecop.json</Link>
+    </AdditionalFiles>
     <None Include="manifest.json" />
     <None Include="packages.config" />
     <None Include="README.md" />

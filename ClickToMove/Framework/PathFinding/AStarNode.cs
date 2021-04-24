@@ -643,14 +643,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
                 return null;
             }
 
-            Point nodeCenter = new Point(
-                (this.X * Game1.tileSize) + (Game1.tileSize / 2),
-                (this.Y * Game1.tileSize) + (Game1.tileSize / 2));
-            float warpRange = this.Graph.GameLocation.WarpRange();
             return this.Graph.GameLocation.warps.FirstOrDefault(
-                warp => ClickToMoveHelper.Distance(
-                    new Point(warp.X * Game1.tileSize, warp.Y * Game1.tileSize),
-                    nodeCenter) < warpRange);
+                warp => Vector2.Distance(
+                    new Vector2(warp.X * Game1.tileSize, warp.Y * Game1.tileSize),
+                    this.NodeCenterOnMap) < this.Graph.GameLocation.WarpRange());
         }
 
         /// <summary>
