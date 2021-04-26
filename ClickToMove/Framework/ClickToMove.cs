@@ -2215,11 +2215,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         || (@object is IndoorPot indoorPot && indoorPot.hoeDirt.Value.readyForHarvest()))
                     {
                         this.queueingClicks = true;
-
-                        this.forageItem = this.GameLocation.getObjectAt(
-                            this.clickPoint.X,
-                            this.clickPoint.Y);
-
+                        this.forageItem = @object;
                         this.performActionFromNeighbourTile = true;
                         return true;
                     }
@@ -2333,14 +2329,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         return true;
                     }
 
-                    if (crop.ReadyToHarvest())
+                    if (crop.IsReadyToHarvestAndNotDead())
                     {
                         this.queueingClicks = true;
-
-                        this.forageItem = this.GameLocation.getObjectAt(
-                            this.clickPoint.X,
-                            this.clickPoint.Y);
-
                         this.performActionFromNeighbourTile = true;
                         return true;
                     }

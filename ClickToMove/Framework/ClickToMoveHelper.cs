@@ -724,11 +724,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
-        public static bool ReadyToHarvest(this Crop crop)
+        /// <summary>
+        ///     Checks if this <see cref="Crop"/> is ready to harvest and isn't dead.
+        /// </summary>
+        /// <param name="crop">The <see cref="Crop"/> instance.</param>
+        /// <returns>
+        ///     Returns <see langword="true"/> if this <see cref="Crop"/> is ready to harvest and isn't dead.
+        ///     Returns <see langword="false"/> otherwise.
+        /// </returns>
+        public static bool IsReadyToHarvestAndNotDead(this Crop crop)
         {
             return (!crop.fullyGrown.Value || crop.dayOfCurrentPhase.Value <= 0)
                 && crop.currentPhase.Value >= crop.phaseDays.Count - 1
-                && !crop.dead
                 && (!crop.forageCrop.Value || crop.whichForageCrop.Value != Crop.forageCrop_ginger);
         }
 
