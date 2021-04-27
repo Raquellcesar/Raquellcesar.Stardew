@@ -204,9 +204,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             int tileX = x / Game1.tileSize;
             int tileY = y / Game1.tileSize;
 
-            if (item is Furniture furniture
-                && (!gameLocation.CanPlaceThisFurnitureHere(furniture)
-                    || (!gameLocation.CanFreePlaceFurniture() && !furniture.IsCloseEnoughToFarmer(farmer, tileX, tileY))))
+            if (item is Furniture furniture && !gameLocation.CanPlaceThisFurnitureHere(furniture))
             {
                 return false;
             }

@@ -174,7 +174,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private ClickToMovePhase phase;
 
         /// <summary>
-        ///     Whether the player has picked a previously clicked furniture.
+        ///     Whether the player has picked a previously clicked furniture. This means the player is holding the left mouse button oven the furniture.
         /// </summary>
         private bool pickedFurniture = false;
 
