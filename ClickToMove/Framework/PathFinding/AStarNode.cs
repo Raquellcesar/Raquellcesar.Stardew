@@ -332,7 +332,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public bool ContainsStumpOrBoulder()
         {
-            return this.Graph.GameLocation.IsStumpOrBoulderAt(this.X, this.Y);
+            return this.Graph.GameLocation.IsStumpOrBoulderAt(new Vector2(this.X, this.Y));
         }
 
         /// <summary>
@@ -390,9 +390,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework.PathFinding
         /// </returns>
         public bool ContainsTravellingDesertShop()
         {
-            return this.Graph.GameLocation is Desert desert && desert.IsTravelingMerchantHere()
-                                                            && desert.GetDesertMerchantBounds().Intersects(
-                                                                this.TileRectangle);
+            return this.Graph.GameLocation is Desert desert
+                   && desert.IsTravelingMerchantHere()
+                   && desert.GetMerchantBounds().Intersects(this.TileRectangle);
         }
 
         /// <summary>

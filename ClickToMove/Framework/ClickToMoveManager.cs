@@ -371,7 +371,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (clickKeyStates.UseToolButtonReleased)
             {
-                ClickToMoveManager.OnLeftClickRelease(clickToMove.GameLocation, clickToMove.ClickPoint.X, clickToMove.ClickPoint.Y);
+                ClickToMoveManager.OnLeftClickRelease(clickToMove.GameLocation, (int)clickToMove.ClickPoint.X, (int)clickToMove.ClickPoint.Y);
             }
         }
 

@@ -81,19 +81,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Returns <see langword="true"/> if there's a festival egg at the given point. Returns
         ///     <see langword="false"/> otherwise.
         /// </returns>
-        public static bool ClickedEggAtEggFestival(Point clickPoint)
+        public static bool ClickedEggAtEggFestival(Vector2 clickPoint)
         {
             return Game1.CurrentEvent is not null
                 && Game1.CurrentEvent.FestivalName == "Egg Festival"
-                && Game1.CurrentEvent.festivalProps.Any(prop => prop.ContainsPoint(clickPoint.X, clickPoint.Y));
+                && Game1.CurrentEvent.festivalProps.Any(prop => prop.ContainsPoint((int)clickPoint.X, (int)clickPoint.Y));
         }
 
         /// <summary>
         ///     Checks whether this farmer was clicked.
         /// </summary>
         /// <param name="farmer">The <see cref="Farmer"/> instance.</param>
-        /// <param name="x">The x coordinate of the clicked position.</param>
-        /// <param name="y">The y coordinate of the clicked position.</param>
+        /// <param name="x">The x absolute coordinate of the clicked position.</param>
+        /// <param name="y">The y absolute coordinate of the clicked position.</param>
         /// <returns>Returns <see langword="true"/> if the farmer was clicked, false otherwise.</returns>
         public static bool ClickedOn(this Farmer farmer, int x, int y)
         {
@@ -105,59 +105,50 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if a point is within the bounding box of this <see cref="Prop"/>.
         /// </summary>
         /// <param name="prop">The <see cref="Prop"/> instance.</param>
-        /// <param name="pointX">The x absolute coordinate of the point to check.</param>
-        /// <param name="pointY">The y absolute coordinate of the point to check.</param>
+        /// <param name="x">The x absolute coordinate of the point to check.</param>
+        /// <param name="y">The y absolute coordinate of the point to check.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if the given point is within the bounding box of this
         ///     <see cref="Prop"/>. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool ContainsPoint(this Prop prop, int pointX, int pointY)
+        public static bool ContainsPoint(this Prop prop, int x, int y)
         {
             Rectangle boundingRect = ClickToMoveManager.Reflection.GetField<Rectangle>(prop, "boundingRect").GetValue();
-            return boundingRect.Contains(pointX, pointY);
+            return boundingRect.Contains(x, y);
         }
 
         /// <summary>
-        ///     Checks if the travelling cart is occupying the given tile coordinates in the given
-        ///     game location.
+        ///     Checks if the travelling cart is occupying the given coordinates in this game location.
         /// </summary>
         /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="tileX">The tile x coordinate.</param>
-        /// <param name="tileY">The tile y coordinate.</param>
+        /// <param name="x">The x absolute coordinate to check.</param>
+        /// <param name="y">The y absolute coordinate to check.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the travelling cart is occupying the given tile
-        ///     coordinates in the given game location. Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the travelling cart is occupying the given coordinates in this game
+        ///     location. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool ContainsTravellingCart(this GameLocation gameLocation, int tileX, int tileY)
+        public static bool ContainsTravellingCart(this GameLocation gameLocation, int x, int y)
         {
-            if (gameLocation is Forest { travelingMerchantBounds: { } } forest)
-            {
-                foreach (Rectangle travelingMerchantBounds in forest.travelingMerchantBounds)
-                {
-                    if (travelingMerchantBounds.Contains(tileX, tileY))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+            return gameLocation is Forest {travelingMerchantBounds: { }} forest
+                   && forest.travelingMerchantBounds.Any(
+                       travelingMerchantBounds => travelingMerchantBounds.Contains(x, y));
         }
 
         /// <summary>
-        ///     Checks if the travelling desert shop is occupying the given tile coordinates in the
-        ///     given game location.
+        ///     Checks if the travelling desert shop is occupying the given coordinates in the given game location.
         /// </summary>
         /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="tileX">The tile x coordinate.</param>
-        /// <param name="tileY">The tile y coordinate.</param>
+        /// <param name="x">The x absolute coordinate to check.</param>
+        /// <param name="y">The y absolute coordinate to check.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the travelling desert shop is occupying the given tile coordinates
-        ///     in the given game location. Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true"/> if the travelling desert shop is occupying the given coordinates in this
+        ///     game location. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool ContainsTravellingDesertShop(this GameLocation gameLocation, int tileX, int tileY)
+        public static bool ContainsTravellingDesertShop(this GameLocation gameLocation, int x, int y)
         {
-            return gameLocation is Desert desert && desert.IsTravelingMerchantHere() && desert.GetDesertMerchantBounds().Contains(tileX, tileY);
+            return gameLocation is Desert desert
+                   && desert.IsTravelingMerchantHere()
+                   && desert.GetMerchantBounds().Contains(x, y);
         }
 
         /// <summary>
@@ -230,7 +221,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </summary>
         /// <param name="desert">The <see cref="Desert"/> instance.</param>
         /// <returns>The Bounding box for the Desert Merchant.</returns>
-        public static Rectangle GetDesertMerchantBounds(this Desert desert)
+        public static Rectangle GetMerchantBounds(this Desert desert)
         {
             return new Rectangle(2112, 1280, 836, 280);
         }
@@ -311,13 +302,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 furniture => furniture.getBoundingBox(furniture.tileLocation.Value).Contains(x, y));
         }
 
-        public static bool HoeSelectedAndTileHoeable(GameLocation gameLocation, Point tile)
+        public static bool HoeSelectedAndTileHoeable(GameLocation gameLocation, Vector2 tile)
         {
             if (Game1.player.CurrentTool is Hoe
-                && gameLocation.doesTileHaveProperty(tile.X, tile.Y, "Diggable", "Back") is not null
-                && !gameLocation.isTileOccupied(new Vector2(tile.X, tile.Y)))
+                && gameLocation.doesTileHaveProperty((int)tile.X, (int)tile.Y, "Diggable", "Back") is not null
+                && !gameLocation.isTileOccupied(tile))
             {
-                return gameLocation.isTilePassable(new Location(tile.X, tile.Y), Game1.viewport);
+                return gameLocation.isTilePassable(new Location((int)tile.X, (int)tile.Y), Game1.viewport);
             }
 
             return false;
@@ -396,9 +387,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Returns <see langword="true"/> if there's something that can be chopped or mined at
         ///     the given tile in this <see cref="GameLocation"/>. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool IsChoppableOrMinable(this GameLocation gameLocation, Point tile)
+        public static bool IsChoppableOrMinable(this GameLocation gameLocation, Vector2 tile)
         {
-            gameLocation.terrainFeatures.TryGetValue(new Vector2(tile.X, tile.Y), out TerrainFeature terrainFeature);
+            gameLocation.terrainFeatures.TryGetValue(tile, out TerrainFeature terrainFeature);
 
             if (terrainFeature is Tree
                 || terrainFeature is FruitTree
@@ -411,14 +402,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if (largeTerrainFeature is Bush bush2
                     && bush2.getRenderBounds(new Vector2(bush2.tilePosition.X, bush2.tilePosition.Y)).Contains(
-                        tile.X * Game1.tileSize,
-                        tile.Y * Game1.tileSize) && bush2.IsDestroyable(gameLocation, tile))
+                        (int)(tile.X * Game1.tileSize),
+                        (int)(tile.Y * Game1.tileSize))
+                    && bush2.IsDestroyable(gameLocation, tile))
                 {
                     return true;
                 }
             }
 
-            return gameLocation.IsStumpOrBoulderAt(tile.X, tile.Y);
+            return gameLocation.IsStumpOrBoulderAt(tile);
         }
 
         /// <summary>
@@ -432,9 +424,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Returns <see langword="true"/> if the bush can be destroyed by the player, <see
         ///     langword="false"/> otherwise.
         /// </returns>
-        public static bool IsDestroyable(this Bush bush, GameLocation gameLocation, Point tile)
+        public static bool IsDestroyable(this Bush bush, GameLocation gameLocation, Vector2 tile)
         {
-            if (bush.isDestroyable(gameLocation, new Vector2(tile.X, tile.Y)))
+            if (bush.isDestroyable(gameLocation, tile))
             {
                 return true;
             }
@@ -463,11 +455,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             return false;
         }
 
-        public static bool IsOreAt(this GameLocation location, Point tile)
+        public static bool IsOreAt(this GameLocation location, Vector2 tile)
         {
             return location.orePanPoint.Value != Point.Zero
-                && location.orePanPoint.X == tile.X
-                && location.orePanPoint.Y == tile.Y;
+                && location.orePanPoint.X == (int)tile.X
+                && location.orePanPoint.Y == (int)tile.Y;
         }
 
         /// <summary>
@@ -501,32 +493,31 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Checks if there's a tree stump or a boulder at a tile in a game location.
         /// </summary>
         /// <param name="gameLocation">The <see cref="GameLocation"/> instance.</param>
-        /// <param name="tileX">The tile x coordinate.</param>
-        /// <param name="tileY">The tile y coordinate.</param>
+        /// <param name="tile">The tile to check.</param>
         /// <returns>
         ///     Returns <see langword="true"/> if there's a tree stump or a boulder at the given
         ///     tile in this game location. Returns <see langword="false"/> otherwise.
         /// </returns>
-        public static bool IsStumpOrBoulderAt(this GameLocation gameLocation, int tileX, int tileY)
+        public static bool IsStumpOrBoulderAt(this GameLocation gameLocation, Vector2 tile)
         {
             switch (gameLocation)
             {
                 case Woods woods:
-                    if (woods.stumps.Any(stump => stump.occupiesTile(tileX, tileY)))
+                    if (woods.stumps.Any(stump => stump.occupiesTile((int)tile.X, (int)tile.Y)))
                     {
                         return true;
                     }
 
                     break;
                 case Forest forest:
-                    if (forest.log is not null && forest.log.occupiesTile(tileX, tileY))
+                    if (forest.log is not null && forest.log.occupiesTile((int)tile.X, (int)tile.Y))
                     {
                         return true;
                     }
 
                     break;
                 default:
-                    if (gameLocation.resourceClumps.Any(resourceClump => resourceClump.occupiesTile(tileX, tileY)))
+                    if (gameLocation.resourceClumps.Any(resourceClump => resourceClump.occupiesTile((int)tile.X, (int)tile.Y)))
                     {
                         return true;
                     }
@@ -534,9 +525,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     break;
             }
 
-            gameLocation.objects.TryGetValue(new Vector2(tileX, tileY), out SObject @object);
+            gameLocation.objects.TryGetValue(tile, out SObject @object);
 
-            return @object is not null && (@object.Name is "Stone" or "Boulder");
+            return @object?.Name is "Stone" or "Boulder";
         }
 
         /// <summary>
@@ -635,9 +626,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         /// </returns>
         public static bool IsTreeLogAt(this GameLocation gameLocation, int tileX, int tileY)
         {
-            return gameLocation is Forest forest
-                && forest.log is not null
-                && forest.log.occupiesTile(tileX, tileY);
+            return gameLocation is Forest {log: { }} forest && forest.log.occupiesTile(tileX, tileY);
         }
 
         public static bool IsWizardBuilding(this GameLocation gameLocation, Vector2 tile)

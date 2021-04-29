@@ -7,44 +7,54 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+
+using Harmony;
+
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+
+using Raquellcesar.Stardew.Common;
+
+using StardewModdingAPI;
+
+using StardewValley;
+using StardewValley.Locations;
+using StardewValley.Menus;
+using StardewValley.Objects;
+using StardewValley.Tools;
+using StardewValley.Util;
+
+using xTile.Dimensions;
+
+using Rectangle = Microsoft.Xna.Framework.Rectangle;
+using SObject = StardewValley.Object;
+
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Reflection.Emit;
-
-    using Harmony;
-
-    using Microsoft.Xna.Framework;
-    using Microsoft.Xna.Framework.Input;
-
-    using Raquellcesar.Stardew.Common;
-
-    using StardewModdingAPI;
-
-    using StardewValley;
-    using StardewValley.Locations;
-    using StardewValley.Menus;
-    using StardewValley.Tools;
-    using StardewValley.Util;
-
     /// <summary>
-    ///     Encapsulates Harmony patches for the <see cref="Game1"/> class.
+    ///     Encapsulates Harmony patches for the <see cref="Game1" /> class.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
+    [SuppressMessage(
+        "StyleCop.CSharp.NamingRules",
+        "SA1313:Parameter names should begin with lower-case letter",
+        Justification = "Harmony naming rules.")]
     public static class GamePatcher
     {
         /// <summary>
-        ///     A reference to the private method <see cref="Game1"/>.addHour. Needed for the
-        ///     reimplementation of <see cref="Game1"/>.UpdateControlInput.
+        ///     A reference to the private method <see cref="Game1" />.addHour. Needed for the
+        ///     reimplementation of <see cref="Game1" />.UpdateControlInput.
         /// </summary>
         private static IReflectedMethod addHour;
 
         /// <summary>
-        ///     A reference to the private method <see cref="Game1"/>.addMinute. Needed for the
-        ///     reimplementation of <see cref="Game1"/>.UpdateControlInput.
+        ///     A reference to the private method <see cref="Game1" />.addMinute. Needed for the
+        ///     reimplementation of <see cref="Game1" />.UpdateControlInput.
         /// </summary>
         private static IReflectedMethod addMinute;
 
@@ -55,8 +65,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         private static bool lastMouseLeftButtonDown;
 
         /// <summary>
-        ///     A reference to the private property <see cref="Game1"/>.thumbstickToMouseModifier.
-        ///     Needed for the reimplementation of <see cref="Game1"/>.UpdateControlInput.
+        ///     A reference to the private property <see cref="Game1" />.thumbstickToMouseModifier.
+        ///     Needed for the reimplementation of <see cref="Game1" />.UpdateControlInput.
         /// </summary>
         private static IReflectedProperty<float> thumbstickToMouseModifier;
 
@@ -100,9 +110,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 AccessTools.Method(typeof(Game1), nameof(Game1.pressActionButton)),
                 transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspilePressActionButton)));
 
+            /*harmony.Patch(
+                AccessTools.Method(typeof(Game1), nameof(Game1.pressUseToolButton)),
+                transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspilePressUseToolButton)));*/
+
             harmony.Patch(
                 AccessTools.Method(typeof(Game1), nameof(Game1.pressUseToolButton)),
-                transpiler: new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.TranspilePressUseToolButton)));
+                new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforePressUseToolButton)));
 
             harmony.Patch(
                 AccessTools.Method(typeof(Game1), "UpdateControlInput"),
@@ -112,13 +126,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 AccessTools.Method(
                     typeof(Game1),
                     "warpFarmer",
-                    new[] { typeof(LocationRequest), typeof(int), typeof(int), typeof(int) }),
+                    new[] {typeof(LocationRequest), typeof(int), typeof(int), typeof(int)}),
                 new HarmonyMethod(typeof(GamePatcher), nameof(GamePatcher.BeforeWarpFarmer)));
         }
 
         /// <summary>
-        ///     Method called via Harmony after <see cref="Game1.didPlayerJustLeftClick"/>. It
-        ///     checks the state of the simulated input <see cref="ClickToMoveKeyStates.UseToolButtonPressed"/>.
+        ///     Method called via Harmony after <see cref="Game1.didPlayerJustLeftClick" />. It
+        ///     checks the state of the simulated input <see cref="ClickToMoveKeyStates.UseToolButtonPressed" />.
         /// </summary>
         /// <param name="__result">A reference to the result of the original method.</param>
         private static void AfterDidPlayerJustLeftClick(ref bool __result)
@@ -127,15 +141,15 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 if (Game1.currentLocation is not null)
                 {
-                    __result = ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickKeyStates
-                        .UseToolButtonPressed;
+                    __result =
+                        ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickKeyStates.UseToolButtonPressed;
                 }
             }
         }
 
         /// <summary>
-        ///     Method called via Harmony after <see cref="Game1.didPlayerJustRightClick"/>. It
-        ///     checks the state of the simulated input <see cref="ClickToMoveKeyStates.ActionButtonPressed"/>.
+        ///     Method called via Harmony after <see cref="Game1.didPlayerJustRightClick" />. It
+        ///     checks the state of the simulated input <see cref="ClickToMoveKeyStates.ActionButtonPressed" />.
         /// </summary>
         /// <param name="__result">A reference to the result of the original method.</param>
         private static void AfterDidPlayerJustRightClick(ref bool __result)
@@ -150,8 +164,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Method called via Harmony after <see cref="Game1.drawObjectDialogue"/>. It resets
-        ///     the state of the <see cref="ClickToMove"/> object for the current location.
+        ///     Method called via Harmony after <see cref="Game1.drawObjectDialogue" />. It resets
+        ///     the state of the <see cref="ClickToMove" /> object for the current location.
         /// </summary>
         private static void AfterDrawObjectDialogue()
         {
@@ -159,8 +173,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="Game1.exitActiveMenu"/>. It sets <see
-        ///     cref="ClickToMoveManager.IgnoreClick"/> so the current click and subsequent
+        ///     A method called via Harmony after <see cref="Game1.exitActiveMenu" />. It sets
+        ///     <see
+        ///         cref="ClickToMoveManager.IgnoreClick" />
+        ///     so the current click and subsequent
         ///     click release can be ignored.
         /// </summary>
         private static void AfterExitActiveMenu()
@@ -192,19 +208,318 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             }
         }
 
+        private static bool BeforePressUseToolButton(ref bool __result)
+        {
+            IReflectedField<bool> didInitiateItemStowField =
+                ClickToMoveManager.Reflection.GetField<bool>(Game1.game1, "_didInitiateItemStow");
+            
+            bool stow_was_initialized = didInitiateItemStowField.GetValue();
+            didInitiateItemStowField.SetValue(false);
+            if (Game1.fadeToBlack)
+            {
+                __result = false;
+                return false;
+            }
+
+            Game1.player.toolPower = 0;
+            Game1.player.toolHold = 0;
+            bool did_attempt_object_removal = false;
+            if (Game1.player.CurrentTool == null && Game1.player.ActiveObject == null)
+            {
+                Vector2 c = Game1.player.GetToolLocation() / 64f;
+                c.X = (int) c.X;
+                c.Y = (int) c.Y;
+                if (Game1.currentLocation.Objects.ContainsKey(c))
+                {
+                    SObject o = Game1.currentLocation.Objects[c];
+                    if (!o.readyForHarvest
+                        && o.heldObject.Value == null
+                        && !(o is Fence)
+                        && !(o is CrabPot)
+                        && o.type != null
+                        && (o.type.Equals("Crafting") || o.type.Equals("interactive"))
+                        && !o.name.Equals("Twig"))
+                    {
+                        did_attempt_object_removal = true;
+                        o.setHealth(o.getHealth() - 1);
+                        o.shakeTimer = 300;
+                        Game1.currentLocation.playSound("hammer");
+                        if (o.getHealth() < 2)
+                        {
+                            Game1.currentLocation.playSound("hammer");
+                            if (o.getHealth() < 1)
+                            {
+                                Tool t = new Pickaxe();
+                                t.DoFunction(Game1.currentLocation, -1, -1, 0, Game1.player);
+                                if (o.performToolAction(t, Game1.currentLocation))
+                                {
+                                    o.performRemoveAction(o.tileLocation, Game1.currentLocation);
+                                    if (o.type.Equals("Crafting") && (int) o.fragility != 2)
+                                    {
+                                        Game1.currentLocation.debris.Add(
+                                            new Debris(
+                                                o.bigCraftable ? (-o.ParentSheetIndex) : o.ParentSheetIndex,
+                                                Game1.player.GetToolLocation(),
+                                                new Vector2(
+                                                    Game1.player.GetBoundingBox().Center.X,
+                                                    Game1.player.GetBoundingBox().Center.Y)));
+                                    }
+
+                                    Game1.currentLocation.Objects.Remove(c);
+                                    __result = true;
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (Game1.currentMinigame == null
+                && !Game1.player.UsingTool
+                && (Game1.player.IsSitting()
+                    || Game1.player.isRidingHorse()
+                    || Game1.player.onBridge.Value
+                    || Game1.dialogueUp
+                    || (Game1.eventUp
+                        && !Game1.CurrentEvent.canPlayerUseTool()
+                        && (!Game1.currentLocation.currentEvent.playerControlSequence
+                            || (Game1.activeClickableMenu == null && Game1.currentMinigame == null)))
+                    || (Game1.player.CurrentTool != null
+                        && Game1.currentLocation.doesPositionCollideWithCharacter(
+                            Utility.getRectangleCenteredAt(Game1.player.GetToolLocation(), 64),
+                            ignoreMonsters: true)
+                        != null
+                        && Game1.currentLocation
+                            .doesPositionCollideWithCharacter(
+                                Utility.getRectangleCenteredAt(Game1.player.GetToolLocation(), 64),
+                                ignoreMonsters: true).isVillager())))
+            {
+                Game1.pressActionButton(
+                    Game1.GetKeyboardState(),
+                    Game1.input.GetMouseState(),
+                    Game1.input.GetGamePadState());
+                __result = false;
+                return false;
+            }
+
+            if (Game1.player.canOnlyWalk)
+            {
+                __result = true;
+                return false;
+            }
+
+            Vector2 position;
+            if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1
+                && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+            {
+                position = !Game1.wasMouseVisibleThisFrame
+                    ? Game1.player.GetToolLocation()
+                    : new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y);
+            }
+            else
+            {
+                position = !Game1.wasMouseVisibleThisFrame
+                    ? Game1.player.GetToolLocation()
+                    : ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint;
+            }
+
+            if (Utility.canGrabSomethingFromHere((int) position.X, (int) position.Y, Game1.player))
+            {
+                Vector2 tile = new Vector2(position.X / Game1.tileSize, position.Y / Game1.tileSize);
+
+                if (Game1.currentLocation.checkAction(
+                    new Location((int) tile.X, (int) tile.Y),
+                    Game1.viewport,
+                    Game1.player))
+                {
+                    Game1.updateCursorTileHint();
+                    __result = true;
+                    return false;
+                }
+
+                if (Game1.currentLocation.terrainFeatures.ContainsKey(tile))
+                {
+                    Game1.currentLocation.terrainFeatures[tile].performUseAction(tile, Game1.currentLocation);
+                    __result = true;
+                    return false;
+                }
+
+                __result = false;
+                return false;
+            }
+
+            if (Game1.currentLocation.leftClick((int) position.X, (int) position.Y, Game1.player))
+            {
+                __result = true;
+                return false;
+            }
+
+            Game1.isCheckingNonMousePlacement = !Game1.IsPerformingMousePlacement();
+            if (Game1.player.ActiveObject != null)
+            {
+                if (Game1.options.allowStowing && Game1.CanPlayerStowItem(Game1.GetPlacementGrabTile()))
+                {
+                    if (Game1.didPlayerJustLeftClick() || stow_was_initialized)
+                    {
+                        didInitiateItemStowField.SetValue(true);
+                        Game1.playSound("stoneStep");
+                        Game1.player.netItemStowed.Set(newValue: true);
+                        __result = true;
+                        return false;
+                    }
+
+                    __result = true;
+                    return false;
+                }
+
+                if (Utility.withinRadiusOfPlayer((int) position.X, (int) position.Y, 1, Game1.player)
+                    && Game1.currentLocation.checkAction(
+                        new Location((int) position.X / 64, (int) position.Y / 64),
+                        Game1.viewport,
+                        Game1.player))
+                {
+                    __result = true;
+                    return false;
+                }
+
+                Vector2 grabTile;
+                if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Vector2.Zero)
+                {
+                    grabTile = ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile;
+                    ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Vector2.Zero;
+                }
+                else
+                {
+                    grabTile = Game1.GetPlacementGrabTile();
+                }
+
+                Vector2 valid_position = Utility.GetNearbyValidPlacementPosition(
+                    Game1.player,
+                    Game1.currentLocation,
+                    Game1.player.ActiveObject,
+                    (int) grabTile.X * 64,
+                    (int) grabTile.Y * 64);
+                if (Utility.tryToPlaceItem(
+                    Game1.currentLocation,
+                    Game1.player.ActiveObject,
+                    (int) valid_position.X,
+                    (int) valid_position.Y))
+                {
+                    Game1.isCheckingNonMousePlacement = false;
+                    __result = true;
+                    return false;
+                }
+
+                Game1.isCheckingNonMousePlacement = false;
+            }
+
+            if (Game1.currentLocation.LowPriorityLeftClick((int) position.X, (int) position.Y, Game1.player))
+            {
+                __result = true;
+                return false;
+            }
+
+            if (Game1.options.allowStowing
+                && Game1.player.netItemStowed.Value
+                && !did_attempt_object_removal
+                && (stow_was_initialized || Game1.didPlayerJustLeftClick(ignoreNonMouseHeldInput: true)))
+            {
+                didInitiateItemStowField.SetValue(true);
+                Game1.playSound("toolSwap");
+                Game1.player.netItemStowed.Set(newValue: false);
+                __result = true;
+                return false;
+            }
+
+            if (Game1.player.UsingTool)
+            {
+                Game1.player.lastClick = new Vector2((int) position.X, (int) position.Y);
+                Game1.player.CurrentTool.DoFunction(
+                    Game1.player.currentLocation,
+                    (int) Game1.player.lastClick.X,
+                    (int) Game1.player.lastClick.Y,
+                    1,
+                    Game1.player);
+                __result = true;
+                return false;
+            }
+
+            if (Game1.player.ActiveObject == null && !Game1.player.isEating && Game1.player.CurrentTool != null)
+            {
+                if (Game1.player.Stamina <= 20f
+                    && Game1.player.CurrentTool != null
+                    && !(Game1.player.CurrentTool is MeleeWeapon)
+                    && !Game1.eventUp)
+                {
+                    Game1.staminaShakeTimer = 1000;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        Game1.uiOverlayTempSprites.Add(
+                            new TemporaryAnimatedSprite(
+                                "LooseSprites\\Cursors",
+                                new Rectangle(366, 412, 5, 6),
+                                new Vector2(
+                                    Game1.random.Next(32) + Game1.uiViewport.Width - 56,
+                                    Game1.uiViewport.Height
+                                    - 224
+                                    - 16
+                                    - (int) ((double) (Game1.player.MaxStamina - 270) * 0.715)),
+                                flipped: false,
+                                0.012f,
+                                Color.SkyBlue)
+                            {
+                                motion = new Vector2(-2f, -10f),
+                                acceleration = new Vector2(0f, 0.5f),
+                                local = true,
+                                scale = 4 + Game1.random.Next(-1, 0),
+                                delayBeforeAnimationStart = i * 30
+                            });
+                    }
+                }
+
+                if (Game1.player.CurrentTool == null
+                    || !(Game1.player.CurrentTool is MeleeWeapon)
+                    || Game1.didPlayerJustLeftClick(ignoreNonMouseHeldInput: true))
+                {
+                    int old_direction = Game1.player.FacingDirection;
+                    Vector2 tool_location = Game1.player.GetToolLocation(position);
+                    Game1.player.FacingDirection =
+                        Game1.player.getGeneralDirectionTowards(
+                            new Vector2(
+                                (int) tool_location.X,
+                                (int) tool_location.Y));
+                    Game1.player.lastClick = new Vector2((int) position.X, (int) position.Y);
+                    Game1.player.BeginUsingTool();
+                    if (!Game1.player.usingTool)
+                    {
+                        Game1.player.FacingDirection = old_direction;
+                    }
+                    else if (Game1.player.FarmerSprite.IsPlayingBasicAnimation(old_direction, carrying: true)
+                             || Game1.player.FarmerSprite.IsPlayingBasicAnimation(old_direction, carrying: false))
+                    {
+                        Game1.player.FarmerSprite.StopAnimation();
+                    }
+                }
+            }
+
+            __result = false;
+            return false;
+        }
+
         /// <summary>
-        ///     A method called via Harmony before <see cref="Game1"/>.UpdateControlInput. It
+        ///     A method called via Harmony before <see cref="Game1" />.UpdateControlInput. It
         ///     replicates the game's control input processing with some changes so we can implement
         ///     the path finding functionality.
         /// </summary>
-        /// <param name="__instance">The <see cref="Game1"/> instance.</param>
-        /// <param name="time">The time passed since the last call to <see cref="Game1.Update"/>.</param>
-        /// <param name="____activatedTick">The private field <see cref="Game1"/>._activatedTick.</param>
-        /// <param name="___inputSimulator">The private field <see cref="Game1"/>.inputSimulator.</param>
-        /// <param name="____didInitiateItemStow">The private field <see cref="Game1"/>._didInitiateItemStow.</param>
-        /// <param name="___multiplayer">The private field <see cref="Game1"/>.multiplayer.</param>
+        /// <param name="__instance">The <see cref="Game1" /> instance.</param>
+        /// <param name="time">The time passed since the last call to <see cref="Game1.Update" />.</param>
+        /// <param name="____activatedTick">The private field <see cref="Game1" />._activatedTick.</param>
+        /// <param name="___inputSimulator">The private field <see cref="Game1" />.inputSimulator.</param>
+        /// <param name="____didInitiateItemStow">The private field <see cref="Game1" />._didInitiateItemStow.</param>
+        /// <param name="___multiplayer">The private field <see cref="Game1" />.multiplayer.</param>
         /// <returns>
-        ///     Returns <see langword="false"/>, which terminates prefixes and skips the execution
+        ///     Returns <see langword="false" />, which terminates prefixes and skips the execution
         ///     of the original method, effectively replacing the original method.
         /// </returns>
         private static bool BeforeUpdateControlInput(
@@ -244,8 +559,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     float thumbstickToMouseModifier = GamePatcher.thumbstickToMouseModifier.GetValue();
                     Game1.setMousePositionRaw(
-                        (int)(currentMouseState.X + (currentPadState.ThumbSticks.Right.X * thumbstickToMouseModifier)),
-                        (int)(currentMouseState.Y - (currentPadState.ThumbSticks.Right.Y * thumbstickToMouseModifier)));
+                        (int) (currentMouseState.X + (currentPadState.ThumbSticks.Right.X * thumbstickToMouseModifier)),
+                        (int) (currentMouseState.Y
+                               - (currentPadState.ThumbSticks.Right.Y * thumbstickToMouseModifier)));
                     noMouse = true;
                 }
 
@@ -255,7 +571,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 if (((Game1.getMouseX() != Game1.getOldMouseX() || Game1.getMouseY() != Game1.getOldMouseY())
-                     && Game1.getMouseX() != 0 && Game1.getMouseY() != 0) || noMouse)
+                     && Game1.getMouseX() != 0
+                     && Game1.getMouseY() != 0)
+                    || noMouse)
                 {
                     if (noMouse)
                     {
@@ -417,8 +735,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.options.gamepadControls)
             {
-                if (currentKbState.GetPressedKeys().Length != 0 || currentMouseState.LeftButton == ButtonState.Pressed
-                                                                || currentMouseState.RightButton == ButtonState.Pressed)
+                if (currentKbState.GetPressedKeys().Length != 0
+                    || currentMouseState.LeftButton == ButtonState.Pressed
+                    || currentMouseState.RightButton == ButtonState.Pressed)
                 {
                     Game1.timerUntilMouseFade = 4000;
                 }
@@ -591,11 +910,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 if (__instance.controllerSlingshotSafeTime > 0)
                 {
-                    if (!currentPadState.IsButtonDown(Buttons.DPadUp) && !currentPadState.IsButtonDown(Buttons.DPadDown)
-                                                                      && !currentPadState.IsButtonDown(Buttons.DPadLeft)
-                                                                      && !currentPadState.IsButtonDown(Buttons.DPadRight)
-                                                                      && Math.Abs(currentPadState.ThumbSticks.Left.X) < 0.04f
-                                                                      && Math.Abs(currentPadState.ThumbSticks.Left.Y) < 0.04f)
+                    if (!currentPadState.IsButtonDown(Buttons.DPadUp)
+                        && !currentPadState.IsButtonDown(Buttons.DPadDown)
+                        && !currentPadState.IsButtonDown(Buttons.DPadLeft)
+                        && !currentPadState.IsButtonDown(Buttons.DPadRight)
+                        && Math.Abs(currentPadState.ThumbSticks.Left.X) < 0.04f
+                        && Math.Abs(currentPadState.ThumbSticks.Left.Y) < 0.04f)
                     {
                         __instance.controllerSlingshotSafeTime = 0;
                     }
@@ -606,7 +926,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     }
                     else
                     {
-                        __instance.controllerSlingshotSafeTime -= (float)time.ElapsedGameTime.TotalSeconds;
+                        __instance.controllerSlingshotSafeTime -= (float) time.ElapsedGameTime.TotalSeconds;
 
                         moveUpPressed = false;
                         moveDownPressed = false;
@@ -630,9 +950,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             clickToMove.Update();
 
-            if (moveUpPressed || moveDownPressed || moveLeftPressed || moveRightPressed || moveUpReleased
-                || moveDownReleased || moveLeftReleased || moveRightReleased || moveUpHeld || moveDownHeld
-                || moveLeftHeld || moveRightHeld)
+            if (moveUpPressed
+                || moveDownPressed
+                || moveLeftPressed
+                || moveRightPressed
+                || moveUpReleased
+                || moveDownReleased
+                || moveLeftReleased
+                || moveRightReleased
+                || moveUpHeld
+                || moveDownHeld
+                || moveLeftHeld
+                || moveRightHeld)
             {
                 clickToMove.Reset();
 
@@ -694,7 +1023,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.mouseClickPolling = 0;
             }
 
-            if (Game1.isOneOfTheseKeysDown(currentKbState, Game1.options.toolbarSwap) && Game1.areAllOfTheseKeysUp(Game1.oldKBState, Game1.options.toolbarSwap))
+            if (Game1.isOneOfTheseKeysDown(currentKbState, Game1.options.toolbarSwap)
+                && Game1.areAllOfTheseKeysUp(Game1.oldKBState, Game1.options.toolbarSwap))
             {
                 Game1.player.shiftToolbar(!currentKbState.IsKeyDown(Keys.LeftControl));
             }
@@ -703,10 +1033,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             foreach (IClickableMenu menu in Game1.onScreenMenus)
             {
-                if ((Game1.displayHUD || menu == Game1.chatBox) && Game1.wasMouseVisibleThisFrame
-                                                                && menu.isWithinBounds(
-                                                                    Game1.getMouseX(),
-                                                                    Game1.getMouseY()))
+                if ((Game1.displayHUD || menu == Game1.chatBox)
+                    && Game1.wasMouseVisibleThisFrame
+                    && menu.isWithinBounds(
+                        Game1.getMouseX(),
+                        Game1.getMouseY()))
                 {
                     menu.performHoverAction(Game1.getMouseX(), Game1.getMouseY());
                 }
@@ -714,8 +1045,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             Game1.PopUIMode();
 
-            if (Game1.chatBox is not null && Game1.chatBox.chatBox.Selected
-                                      && Game1.oldMouseState.ScrollWheelValue != currentMouseState.ScrollWheelValue)
+            if (Game1.chatBox is not null
+                && Game1.chatBox.chatBox.Selected
+                && Game1.oldMouseState.ScrollWheelValue != currentMouseState.ScrollWheelValue)
             {
                 Game1.chatBox.receiveScrollWheelAction(
                     currentMouseState.ScrollWheelValue - Game1.oldMouseState.ScrollWheelValue);
@@ -723,7 +1055,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.panMode)
             {
-                ClickToMoveManager.Helper.Reflection.GetMethod(__instance, "updatePanModeControls").Invoke(currentMouseState, currentKbState);
+                ClickToMoveManager.Helper.Reflection.GetMethod(__instance, "updatePanModeControls")
+                    .Invoke(currentMouseState, currentKbState);
 
                 return false;
             }
@@ -759,8 +1092,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            if (useToolButtonReleased && Game1.player.CurrentTool is not null && Game1.CurrentEvent is null
-                && Game1.pauseTime <= 0 && Game1.player.CurrentTool.onRelease(
+            if (useToolButtonReleased
+                && Game1.player.CurrentTool is not null
+                && Game1.CurrentEvent is null
+                && Game1.pauseTime <= 0
+                && Game1.player.CurrentTool.onRelease(
                     Game1.currentLocation,
                     Game1.getMouseX(),
                     Game1.getMouseY(),
@@ -788,7 +1124,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (((currentMouseState.LeftButton == ButtonState.Pressed
                   && Game1.oldMouseState.LeftButton == ButtonState.Released)
                  || (useToolButtonPressed && !Game1.isAnyGamePadButtonBeingPressed())
-                 || (actionButtonPressed && Game1.isAnyGamePadButtonBeingPressed())) && Game1.pauseTime <= 0f
+                 || (actionButtonPressed && Game1.isAnyGamePadButtonBeingPressed()))
+                && Game1.pauseTime <= 0f
                 && Game1.wasMouseVisibleThisFrame)
             {
                 Game1.PushUIMode();
@@ -853,10 +1190,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             if (Game1.paused || Game1.HostPaused)
             {
-                if (!Game1.HostPaused || !Game1.IsMasterGame
-                                      || (!Game1.isOneOfTheseKeysDown(currentKbState, Game1.options.menuButton)
-                                          && !currentPadState.IsButtonDown(Buttons.B)
-                                          && !currentPadState.IsButtonDown(Buttons.Back)))
+                if (!Game1.HostPaused
+                    || !Game1.IsMasterGame
+                    || (!Game1.isOneOfTheseKeysDown(currentKbState, Game1.options.menuButton)
+                        && !currentPadState.IsButtonDown(Buttons.B)
+                        && !currentPadState.IsButtonDown(Buttons.Back)))
                 {
                     Game1.oldMouseState = currentMouseState;
 
@@ -891,10 +1229,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 foreach (IClickableMenu menu in Game1.onScreenMenus)
                 {
-                    if (Game1.wasMouseVisibleThisFrame && (Game1.displayHUD || menu == Game1.chatBox)
-                                                       && menu.isWithinBounds(Game1.getMouseX(), Game1.getMouseY())
-                                                       && (!(menu is LevelUpMenu)
-                                                           || (menu as LevelUpMenu).informationUp))
+                    if (Game1.wasMouseVisibleThisFrame
+                        && (Game1.displayHUD || menu == Game1.chatBox)
+                        && menu.isWithinBounds(Game1.getMouseX(), Game1.getMouseY())
+                        && (!(menu is LevelUpMenu)
+                            || (menu as LevelUpMenu).informationUp))
                     {
                         menu.receiveRightClick(Game1.getMouseX(), Game1.getMouseY());
 
@@ -936,7 +1275,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     && Game1.farmEvent is null
                     && (Game1.player.CanMove || Game1.player.CurrentTool is FishingRod or MeleeWeapon))
                 {
-                    if (Game1.player.CurrentTool is not null && (Game1.player.CurrentTool is not MeleeWeapon || Game1.didPlayerJustLeftClick(ignoreNonMouseHeldInput: true)))
+                    if (Game1.player.CurrentTool is not null
+                        && (Game1.player.CurrentTool is not MeleeWeapon
+                            || Game1.didPlayerJustLeftClick(ignoreNonMouseHeldInput: true)))
                     {
                         Game1.player.FireTool();
                     }
@@ -958,13 +1299,19 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     ____didInitiateItemStow = false;
                 }
 
-                if (useToolButtonReleased && Game1.player.canReleaseTool && Game1.player.UsingTool
+                if (useToolButtonReleased
+                    && Game1.player.canReleaseTool
+                    && Game1.player.UsingTool
                     && Game1.player.CurrentTool is not null)
                 {
                     Game1.player.EndUsingTool();
                 }
-                else if (switchToolButtonPressed && !Game1.player.UsingTool && !Game1.dialogueUp
-                         && (Game1.pickingTool || Game1.player.CanMove) && !Game1.player.areAllItemsNull() && !eventUp)
+                else if (switchToolButtonPressed
+                         && !Game1.player.UsingTool
+                         && !Game1.dialogueUp
+                         && (Game1.pickingTool || Game1.player.CanMove)
+                         && !Game1.player.areAllItemsNull()
+                         && !eventUp)
                 {
                     Game1.pressSwitchToolButton();
                 }
@@ -985,8 +1332,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            if (Game1.player.CurrentTool is not null && useToolButtonHeld && Game1.player.canReleaseTool && !eventUp
-                && !Game1.dialogueUp && !Game1.menuUp && Game1.player.Stamina >= 1
+            if (Game1.player.CurrentTool is not null
+                && useToolButtonHeld
+                && Game1.player.canReleaseTool
+                && !eventUp
+                && !Game1.dialogueUp
+                && !Game1.menuUp
+                && Game1.player.Stamina >= 1
                 && Game1.player.CurrentTool is not FishingRod)
             {
                 int toolPower = Game1.player.CurrentTool.UpgradeLevel
@@ -996,7 +1348,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 {
                     if (Game1.player.toolHold <= 0)
                     {
-                        Game1.player.toolHold = (int)(Game1.toolHoldPerPowerupLevel * Game1.player.CurrentTool.AnimationSpeedModifier);
+                        Game1.player.toolHold = (int) (Game1.toolHoldPerPowerupLevel
+                                                       * Game1.player.CurrentTool.AnimationSpeedModifier);
                     }
                     else
                     {
@@ -1025,7 +1378,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 Game1.leftPolling -= 100f;
             }
-            else if (!Game1.nameSelectUp && Game1.pauseTime <= 0 && Game1.locationRequest is null
+            else if (!Game1.nameSelectUp
+                     && Game1.pauseTime <= 0
+                     && Game1.locationRequest is null
                      && !Game1.player.UsingTool
                      && (!eventUp || (Game1.CurrentEvent is not null && Game1.CurrentEvent.playerControlSequence)))
             {
@@ -1053,7 +1408,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 if (clickToMove.ClickKeyStates.MoveUpReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Up.Value) && !clickToMove.ClickKeyStates.MoveUpHeld))
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Up.Value)
+                        && !clickToMove.ClickKeyStates.MoveUpHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.up);
 
@@ -1064,7 +1420,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 if (clickToMove.ClickKeyStates.MoveRightReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Right.Value) && !clickToMove.ClickKeyStates.MoveRightHeld))
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Right.Value)
+                        && !clickToMove.ClickKeyStates.MoveRightHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.right);
 
@@ -1075,7 +1432,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 if (clickToMove.ClickKeyStates.MoveDownReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Down.Value) && !clickToMove.ClickKeyStates.MoveDownHeld))
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Down.Value)
+                        && !clickToMove.ClickKeyStates.MoveDownHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.down);
 
@@ -1086,7 +1444,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
 
                 if (clickToMove.ClickKeyStates.MoveLeftReleased
-                    || (Game1.player.movementDirections.Contains(WalkDirection.Left.Value) && !clickToMove.ClickKeyStates.MoveLeftHeld))
+                    || (Game1.player.movementDirections.Contains(WalkDirection.Left.Value)
+                        && !clickToMove.ClickKeyStates.MoveLeftHeld))
                 {
                     Game1.player.setMoving(Farmer.release + Farmer.left);
 
@@ -1132,7 +1491,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     "flutePitch" => 26,
                     "drumTone" => 6,
                     "jukebox" => Game1.player.songsHeard.Count - 1,
-                    "Fuel" => 100 - ((Lantern)Game1.player.getToolFromName("Lantern")).fuelLeft,
+                    "Fuel" => 100 - ((Lantern) Game1.player.getToolFromName("Lantern")).fuelLeft,
                     _ => 99
                 };
 
@@ -1406,10 +1765,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 }
             }
 
-            if (((Game1.options.gamepadControls && Game1.rightStickHoldTime >= Game1.emoteMenuShowTime
-                                                && Game1.activeClickableMenu is null)
+            if (((Game1.options.gamepadControls
+                  && Game1.rightStickHoldTime >= Game1.emoteMenuShowTime
+                  && Game1.activeClickableMenu is null)
                  || (Game1.isOneOfTheseKeysDown(Game1.input.GetKeyboardState(), Game1.options.emoteButton)
-                     && Game1.areAllOfTheseKeysUp(Game1.oldKBState, Game1.options.emoteButton))) && !Game1.debugMode
+                     && Game1.areAllOfTheseKeysUp(Game1.oldKBState, Game1.options.emoteButton)))
+                && !Game1.debugMode
                 && Game1.player.CanEmote())
             {
                 if (Game1.player.CanMove)
@@ -1419,7 +1780,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                 Game1.emoteMenu = new EmoteMenu
                 {
-                    gamepadMode = Game1.options.gamepadControls && Game1.rightStickHoldTime >= Game1.emoteMenuShowTime,
+                    gamepadMode = Game1.options.gamepadControls && Game1.rightStickHoldTime >= Game1.emoteMenuShowTime
                 };
 
                 Game1.timerUntilMouseFade = 0;
@@ -1499,7 +1860,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 Game1.activeClickableMenu ??= new QuestLog();
             }
-            else if (eventUp && Game1.CurrentEvent is not null && journalButtonPressed && !Game1.CurrentEvent.skipped
+            else if (eventUp
+                     && Game1.CurrentEvent is not null
+                     && journalButtonPressed
+                     && !Game1.CurrentEvent.skipped
                      && Game1.CurrentEvent.skippable)
             {
                 Game1.CurrentEvent.skipped = true;
@@ -1507,8 +1871,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 Game1.freezeControls = false;
             }
 
-            if (Game1.options.gamepadControls && Game1.dayOfMonth > 0 && Game1.player.CanMove
-                && Game1.isAnyGamePadButtonBeingPressed() && mapButtonPressed && !Game1.dialogueUp && !eventUp)
+            if (Game1.options.gamepadControls
+                && Game1.dayOfMonth > 0
+                && Game1.player.CanMove
+                && Game1.isAnyGamePadButtonBeingPressed()
+                && mapButtonPressed
+                && !Game1.dialogueUp
+                && !eventUp)
             {
                 if (Game1.activeClickableMenu is null)
                 {
@@ -1519,7 +1888,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     Game1.PopUIMode();
                 }
             }
-            else if (Game1.dayOfMonth > 0 && Game1.player.CanMove && mapButtonPressed && !Game1.dialogueUp && !eventUp
+            else if (Game1.dayOfMonth > 0
+                     && Game1.player.CanMove
+                     && mapButtonPressed
+                     && !Game1.dialogueUp
+                     && !eventUp
                      && Game1.activeClickableMenu is null)
             {
                 Game1.PushUIMode();
@@ -1537,8 +1910,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="Game1"/>.warpFarmer(int, int, int). It
-        ///     resets the <see cref="ClickToMove"/> object associated to the current game location.
+        ///     A method called via Harmony before <see cref="Game1" />.warpFarmer(int, int, int). It
+        ///     resets the <see cref="ClickToMove" /> object associated to the current game location.
         /// </summary>
         private static void BeforeWarpFarmer()
         {
@@ -1549,13 +1922,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         ///     Handles the mouse left button input.
         /// </summary>
         /// <param name="clickToMove">
-        ///     The <see cref="ClickToMove"/> object associated with the current location.
+        ///     The <see cref="ClickToMove" /> object associated with the current location.
         /// </param>
         private static void HandleLeftClick(ClickToMove clickToMove)
         {
             SButtonState clickState = SButtonState.None;
 
-            bool mouseLeftButtonDown = ClickToMoveManager.Helper.Input.IsDown(SButton.MouseLeft) || ClickToMoveManager.Helper.Input.IsSuppressed(SButton.MouseLeft);
+            bool mouseLeftButtonDown = ClickToMoveManager.Helper.Input.IsDown(SButton.MouseLeft)
+                                       || ClickToMoveManager.Helper.Input.IsSuppressed(SButton.MouseLeft);
 
             if (mouseLeftButtonDown)
             {
@@ -1586,7 +1960,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 case SButtonState.None:
                     if (clickToMove.DeferredClick.X != -1)
                     {
-                        clickToMove.DeferredClick = new Point(-1, -1);
+                        clickToMove.DeferredClick = new Vector2(-1, -1);
                         clickToMove.OnClickRelease();
                     }
 
@@ -1595,12 +1969,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1.pressActionButton"/>.
+        ///     A method called via Harmony to modify <see cref="Game1.pressActionButton" />.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         /// <param name="ilGenerator">Generates MSIL instructions.</param>
         private static IEnumerable<CodeInstruction> TranspilePressActionButton(
-            IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
+            IEnumerable<CodeInstruction> instructions,
+            ILGenerator ilGenerator)
         {
             // Initialize the grab tile with the current clicked tile from the path finding controller.
 
@@ -1632,13 +2007,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             *     }
             *     else
             *     {
-            *         grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
+            *         grabTile = ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile;
             *         cursorTile = grabTile;
             *     }
             */
 
-            FieldInfo pointX = AccessTools.Field(typeof(Point), nameof(Point.X));
-            FieldInfo pointY = AccessTools.Field(typeof(Point), nameof(Point.Y));
+            FieldInfo vector2X = AccessTools.Field(typeof(Vector2), nameof(Vector2.X));
+            FieldInfo vector2Y = AccessTools.Field(typeof(Vector2), nameof(Vector2.Y));
 
             MethodInfo getCurrentLocation =
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
@@ -1647,8 +2022,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 nameof(ClickToMoveManager.GetOrCreate));
             MethodInfo clickedTile =
                 AccessTools.Property(typeof(ClickToMove), nameof(ClickToMove.ClickedTile)).GetGetMethod();
-            MethodInfo pointToVector2 =
-                AccessTools.Method(typeof(Utility), nameof(Utility.PointToVector2));
 
             List<CodeInstruction> codeInstructions = instructions.ToList();
 
@@ -1657,7 +2030,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             for (int i = 0; i < codeInstructions.Count; i++)
             {
-                if (count < 2 && codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is MethodInfo { Name: "getOldMouseX" })
+                if (count < 2
+                    && codeInstructions[i].opcode == OpCodes.Call
+                    && codeInstructions[i].operand is MethodInfo {Name: "getOldMouseX"})
                 {
                     count++;
 
@@ -1667,22 +2042,21 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         Label jumpElseBlock = ilGenerator.DefineLabel();
                         Label jumpUnconditional = ilGenerator.DefineLabel();
 
-                        // if ((ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X
-                        // == -1 &&
-                        // ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y ==
-                        // -1) || Game1.controlpadActionButtonPressed)
-                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                        // if (ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.X == -1
+                        //     && ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile.Y == -1)
+                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation)
+                            {labels = codeInstructions[i].labels};
                         yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                         yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
-                        yield return new CodeInstruction(OpCodes.Ldfld, pointX);
-                        yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                        yield return new CodeInstruction(OpCodes.Ldfld, vector2X);
+                        yield return new CodeInstruction(OpCodes.Ldc_R4, -1f);
                         yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpElseBlock);
 
                         yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                         yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                         yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
-                        yield return new CodeInstruction(OpCodes.Ldfld, pointY);
-                        yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                        yield return new CodeInstruction(OpCodes.Ldfld, vector2Y);
+                        yield return new CodeInstruction(OpCodes.Ldc_R4, -1f);
                         yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpElseBlock);
 
                         // If block.
@@ -1693,7 +2067,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         {
                             yield return codeInstructions[i];
 
-                            if (codeInstructions[i].opcode == OpCodes.Callvirt && codeInstructions[i].operand is MethodInfo { Name: "GetGrabTile" } && i + 1 < codeInstructions.Count
+                            if (codeInstructions[i].opcode == OpCodes.Callvirt
+                                && codeInstructions[i].operand is MethodInfo {Name: "GetGrabTile"}
+                                && i + 1 < codeInstructions.Count
                                 && codeInstructions[i + 1].opcode == OpCodes.Stloc_3)
                             {
                                 i++;
@@ -1703,11 +2079,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             }
                         }
 
-                        // Else block. grabTile = Utility.PointToVector2(ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile);
-                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpElseBlock } };
+                        // Else block.
+                        // grabTile = ClickToMoveManager.getOrCreate(Game1.currentLocation).ClickedTile;
+                        yield return new CodeInstruction(OpCodes.Call, getCurrentLocation)
+                            {labels = new List<Label>() {jumpElseBlock}};
                         yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                         yield return new CodeInstruction(OpCodes.Callvirt, clickedTile);
-                        yield return new CodeInstruction(OpCodes.Call, pointToVector2);
                         yield return new CodeInstruction(OpCodes.Stloc_3);
 
                         // cursorTile = grabTile;
@@ -1742,18 +2119,20 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1.pressUseToolButton"/>. It
-        ///     makes use of the information stored by the <see cref="ClickToMove"/> object
-        ///     associated to the current location relative to the clicked tile.
+        ///     A method called via Harmony to modify <see cref="Game1.pressUseToolButton" />. It
+        ///     makes use of the information stored by the <see cref="ClickToMove" /> object
+        ///     associated to the current location relative to the clicked point.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         /// <param name="ilGenerator">Generates MSIL instructions.</param>
         private static IEnumerable<CodeInstruction> TranspilePressUseToolButton(
-            IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
+            IEnumerable<CodeInstruction> instructions,
+            ILGenerator ilGenerator)
         {
-            FieldInfo pointX = AccessTools.Field(typeof(Point), nameof(Point.X));
-            FieldInfo pointY = AccessTools.Field(typeof(Point), nameof(Point.Y));
-            FieldInfo wasMouseVisibleThisFrame = AccessTools.Field(typeof(Game1), nameof(Game1.wasMouseVisibleThisFrame));
+            FieldInfo vector2X = AccessTools.Field(typeof(Vector2), nameof(Vector2.X));
+            FieldInfo vector2Y = AccessTools.Field(typeof(Vector2), nameof(Vector2.Y));
+            FieldInfo wasMouseVisibleThisFrame =
+                AccessTools.Field(typeof(Game1), nameof(Game1.wasMouseVisibleThisFrame));
 
             MethodInfo getCurrentLocation =
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
@@ -1762,10 +2141,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             MethodInfo getToolLocation =
                 AccessTools.Method(typeof(Farmer), nameof(Farmer.GetToolLocation), new Type[] { typeof(bool) });
             MethodInfo getPlacementGrabTile = AccessTools.Method(typeof(Game1), nameof(Game1.GetPlacementGrabTile));
-            MethodInfo getPointZero = AccessTools.Property(typeof(Point), nameof(Point.Zero)).GetGetMethod();
-            MethodInfo pointInequality = AccessTools.Method(typeof(Point), "op_Inequality");
-            MethodInfo pointToVector2 =
-                AccessTools.Method(typeof(Utility), nameof(Utility.PointToVector2));
+            MethodInfo getVector2Zero = AccessTools.Property(typeof(Vector2), nameof(Vector2.Zero)).GetGetMethod();
+            MethodInfo vector2Inequality = AccessTools.Method(typeof(Vector2), "op_Inequality");
 
             MethodInfo getOrCreate = AccessTools.Method(
                 typeof(ClickToMoveManager),
@@ -1796,33 +2173,36 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 *     Vector2 position;
                 *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
                 *     {
-                *         position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y);
+                *         position = !Game1.wasMouseVisibleThisFrame ? Game1.player.GetToolLocation() : new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y);
                 *     }
                 *     else
                 *     {
-                *         position = (!Game1.wasMouseVisibleThisFrame) ? Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
+                *         position = !Game1.wasMouseVisibleThisFrame ? Game1.player.GetToolLocation() : ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint;
                 *     }
                 */
 
-                if (!found && codeInstructions[i].opcode == OpCodes.Ldsfld && codeInstructions[i].operand is FieldInfo { Name: "wasMouseVisibleThisFrame" })
+                if (!found
+                    && codeInstructions[i].opcode == OpCodes.Ldsfld
+                    && codeInstructions[i].operand is FieldInfo {Name: "wasMouseVisibleThisFrame"})
                 {
                     Label jumpFalse = ilGenerator.DefineLabel();
                     Label jumpEndIf = ilGenerator.DefineLabel();
 
                     // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1
-                    // && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                    //     && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation)
+                        {labels = codeInstructions[i].labels};
                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                     yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                    yield return new CodeInstruction(OpCodes.Ldfld, pointX);
-                    yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                    yield return new CodeInstruction(OpCodes.Ldfld, vector2X);
+                    yield return new CodeInstruction(OpCodes.Ldc_R4, -1f);
                     yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
 
                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                     yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                    yield return new CodeInstruction(OpCodes.Ldfld, pointY);
-                    yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                    yield return new CodeInstruction(OpCodes.Ldfld, vector2Y);
+                    yield return new CodeInstruction(OpCodes.Ldc_R4, -1f);
                     yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
 
                     // If block. Replicate the original code.
@@ -1840,9 +2220,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         }
                     }
 
-                    // Else block. position = (!Game1.wasMouseVisibleThisFrame) ?
-                    // Game1.player.GetToolLocation() : Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint);
-                    yield return new CodeInstruction(OpCodes.Ldsfld, wasMouseVisibleThisFrame) { labels = new List<Label>() { jumpFalse } };
+                    // Else block.
+                    // position = !Game1.wasMouseVisibleThisFrame
+                    //     ? Game1.player.GetToolLocation()
+                    //     : ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint;
+                    yield return new CodeInstruction(OpCodes.Ldsfld, wasMouseVisibleThisFrame)
+                        {labels = new List<Label>() {jumpFalse}};
 
                     jumpFalse = ilGenerator.DefineLabel();
                     Label jumpUnconditional = ilGenerator.DefineLabel();
@@ -1851,12 +2234,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                     yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                    yield return new CodeInstruction(OpCodes.Call, pointToVector2);
                     yield return new CodeInstruction(OpCodes.Br_S, jumpUnconditional);
-                    yield return new CodeInstruction(OpCodes.Call, getPlayer) { labels = new List<Label>() { jumpFalse } };
+                    yield return new CodeInstruction(OpCodes.Call, getPlayer) {labels = new List<Label>() {jumpFalse}};
                     yield return new CodeInstruction(OpCodes.Ldc_I4_0);
                     yield return new CodeInstruction(OpCodes.Callvirt, getToolLocation);
-                    yield return new CodeInstruction(OpCodes.Stloc_2) { labels = new List<Label>() { jumpUnconditional } };
+                    yield return new CodeInstruction(OpCodes.Stloc_2) {labels = new List<Label>() {jumpUnconditional}};
 
                     // Next modification.
                     bool first = true;
@@ -1878,35 +2260,38 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                         *
                         * Replace with:
                         *     Vector2 tile;
-                        *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1 && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                        *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1
+                        *         && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
                         *     {
                         *         tile = new Vector2(position.X / Game1.tileSize, position.Y / Game1.tileSize);
                         *     }
                         *     else
                         *     {
-                        *         tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
+                        *         tile = ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile;
                         *     }
                         */
 
-                        if (!found && codeInstructions[i].opcode == OpCodes.Ldloca_S && (codeInstructions[i].operand as LocalBuilder).LocalIndex == 7)
+                        if (!found
+                            && codeInstructions[i].opcode == OpCodes.Ldloca_S
+                            && (codeInstructions[i].operand as LocalBuilder).LocalIndex == 7)
                         {
                             jumpFalse = ilGenerator.DefineLabel();
 
-                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X
-                            // == -1 &&
-                            // ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
-                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                            // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.X == -1
+                            //     && ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickPoint.Y == -1)
+                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation)
+                                {labels = codeInstructions[i].labels};
                             yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                             yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                            yield return new CodeInstruction(OpCodes.Ldfld, pointX);
-                            yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                            yield return new CodeInstruction(OpCodes.Ldfld, vector2X);
+                            yield return new CodeInstruction(OpCodes.Ldc_R4, -1f);
                             yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
 
                             yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                             yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                             yield return new CodeInstruction(OpCodes.Callvirt, getClickPoint);
-                            yield return new CodeInstruction(OpCodes.Ldfld, pointY);
-                            yield return new CodeInstruction(OpCodes.Ldc_I4_M1);
+                            yield return new CodeInstruction(OpCodes.Ldfld, vector2Y);
+                            yield return new CodeInstruction(OpCodes.Ldc_R4, -1f);
                             yield return new CodeInstruction(OpCodes.Bne_Un_S, jumpFalse);
 
                             // If block. Replicate original code.
@@ -1917,7 +2302,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                             {
                                 yield return codeInstructions[i];
 
-                                if (codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is ConstructorInfo)
+                                if (codeInstructions[i].opcode == OpCodes.Call
+                                    && codeInstructions[i].operand is ConstructorInfo)
                                 {
                                     jumpEndIf = ilGenerator.DefineLabel();
                                     yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
@@ -1925,11 +2311,12 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                 }
                             }
 
-                            // Else block. tile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile);
-                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = new List<Label>() { jumpFalse } };
+                            // Else block.
+                            // tile = ClickToMoveManager.GetOrCreate(Game1.currentLocation).ClickedTile;
+                            yield return new CodeInstruction(OpCodes.Call, getCurrentLocation)
+                                {labels = new List<Label>() {jumpFalse}};
                             yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                             yield return new CodeInstruction(OpCodes.Callvirt, getClickedTile);
-                            yield return new CodeInstruction(OpCodes.Call, pointToVector2);
                             yield return new CodeInstruction(OpCodes.Stloc_S, 7);
 
                             // Next modification.
@@ -1951,10 +2338,10 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                 *
                                 * Replace with:
                                 *     Vector2 grabTile;
-                                *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Point.Zero)
+                                *     if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Vector2.Zero)
                                 *     {
-                                *         grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
-                                *         ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Point.Zero;
+                                *         grabTile = ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile;
+                                *         ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Vector2.Zero;
                                 *     }
                                 *     else
                                 *     {
@@ -1962,44 +2349,43 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                                 *     }
                                 */
 
-                                if (!found && codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is MethodInfo { Name: "GetPlacementGrabTile" }
-                                && i + 2 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
+                                if (!found
+                                    && codeInstructions[i].opcode == OpCodes.Call
+                                    && codeInstructions[i].operand is MethodInfo {Name: "GetPlacementGrabTile"}
+                                    && i + 2 < codeInstructions.Count
+                                    && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
                                 {
                                     jumpFalse = ilGenerator.DefineLabel();
 
-                                    // if
-                                    // (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile
-                                    // != Point.Zero)
-                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation) { labels = codeInstructions[i].labels };
+                                    // if (ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile != Vector2.Zero)
+                                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation)
+                                        {labels = codeInstructions[i].labels};
                                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                                     yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
-                                    yield return new CodeInstruction(OpCodes.Call, getPointZero);
-                                    yield return new CodeInstruction(OpCodes.Call, pointInequality);
+                                    yield return new CodeInstruction(OpCodes.Call, getVector2Zero);
+                                    yield return new CodeInstruction(OpCodes.Call, vector2Inequality);
                                     yield return new CodeInstruction(OpCodes.Brfalse_S, jumpFalse);
 
-                                    // If block. grabTile = Utility.PointToVector2(ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile);
+                                    // If block.
+                                    // grabTile = ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile;
                                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
                                     yield return new CodeInstruction(OpCodes.Callvirt, getGrabTile);
-                                    yield return new CodeInstruction(OpCodes.Call, pointToVector2);
                                     yield return new CodeInstruction(OpCodes.Stloc_S, 8);
 
-                                    // ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile
-                                    // = Point.Zero;
+                                    // ClickToMoveManager.GetOrCreate(Game1.currentLocation).GrabTile = Vector2.Zero;
                                     yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
                                     yield return new CodeInstruction(OpCodes.Call, getOrCreate);
-                                    yield return new CodeInstruction(OpCodes.Call, getPointZero);
+                                    yield return new CodeInstruction(OpCodes.Call, getVector2Zero);
                                     yield return new CodeInstruction(OpCodes.Callvirt, setGrabTile);
 
                                     jumpEndIf = ilGenerator.DefineLabel();
                                     yield return new CodeInstruction(OpCodes.Br_S, jumpEndIf);
 
                                     // Else block. Return original code.
-                                    codeInstructions[i].labels = new List<Label>() { jumpFalse };
-                                    yield return codeInstructions[i];
-                                    i++;
-                                    yield return codeInstructions[i];
-                                    i++;
+                                    codeInstructions[i].labels = new List<Label>() {jumpFalse};
+                                    yield return codeInstructions[i++];
+                                    yield return codeInstructions[i++];
                                     codeInstructions[i].labels.Add(jumpEndIf);
                                     yield return codeInstructions[i];
 
@@ -2032,7 +2418,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify the setter for <see cref="Game1.currentMinigame"/>.
+        ///     A method called via Harmony to modify the setter for <see cref="Game1.currentMinigame" />.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileSetCurrentMinigame(
@@ -2064,8 +2450,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             for (int i = 0; i < codeInstructions.Count; i++)
             {
-                if (!found && codeInstructions[i].opcode == OpCodes.Call && codeInstructions[i].operand is MethodInfo { Name: "get_currentLocation" }
-                && i + 1 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Brfalse)
+                if (!found
+                    && codeInstructions[i].opcode == OpCodes.Call
+                    && codeInstructions[i].operand is MethodInfo {Name: "get_currentLocation"}
+                    && i + 1 < codeInstructions.Count
+                    && codeInstructions[i + 1].opcode == OpCodes.Brfalse)
                 {
                     yield return codeInstructions[i];
                     i++;
@@ -2087,13 +2476,13 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (!found)
             {
                 ClickToMoveManager.Monitor.Log(
-                        $"Failed to patch the setter for {nameof(Game1)}.{nameof(Game1.currentMinigame)}.\nThe point of injection was not found.",
-                        LogLevel.Error);
+                    $"Failed to patch the setter for {nameof(Game1)}.{nameof(Game1.currentMinigame)}.\nThe point of injection was not found.",
+                    LogLevel.Error);
             }
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1"/>._update. It updates the
+        ///     A method called via Harmony to modify <see cref="Game1" />._update. It updates the
         ///     inputs for controlling the farmer when they're playing a minigame.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
@@ -2121,8 +2510,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             for (int i = 0; i < codeInstructions.Count; i++)
             {
-                if (!found && codeInstructions[i].opcode == OpCodes.Callvirt && codeInstructions[i].operand is MethodInfo { Name: "GetMouseState" }
-                && i + 1 < codeInstructions.Count && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
+                if (!found
+                    && codeInstructions[i].opcode == OpCodes.Callvirt
+                    && codeInstructions[i].operand is MethodInfo {Name: "GetMouseState"}
+                    && i + 1 < codeInstructions.Count
+                    && codeInstructions[i + 1].opcode == OpCodes.Stloc_S)
                 {
                     object mouseStateLocIndex = codeInstructions[i + 1].operand;
 
@@ -2144,8 +2536,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             if (!found)
             {
                 ClickToMoveManager.Monitor.Log(
-                        $"Failed to patch {nameof(Game1)}._update.\nThe point of injection was not found.",
-                        LogLevel.Error);
+                    $"Failed to patch {nameof(Game1)}._update.\nThe point of injection was not found.",
+                    LogLevel.Error);
             }
         }
     }
