@@ -7,24 +7,24 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-
-using Harmony;
-
-using StardewModdingAPI;
-
-using StardewValley;
-using StardewValley.Locations;
-using StardewValley.Menus;
-using StardewValley.Tools;
-
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
+    using System.Reflection;
+    using System.Reflection.Emit;
+
+    using Harmony;
+
+    using StardewModdingAPI;
+
+    using StardewValley;
+    using StardewValley.Locations;
+    using StardewValley.Menus;
+    using StardewValley.Tools;
+
     /// <summary>
     ///     Encapsulates Harmony patches for Menus in the game.
     /// </summary>
@@ -133,42 +133,42 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 return false;
             }
 
-            int nextToolIndex = -1;
+            int toolIndex = -1;
             foreach (ClickableComponent button in ___buttons)
             {
                 if (button.containsPoint(x, y))
                 {
                     ClickToMoveManager.IgnoreClick = true;
-                    nextToolIndex = Convert.ToInt32(button.name);
+                    toolIndex = Convert.ToInt32(button.name);
                     break;
                 }
             }
 
-            if (nextToolIndex == -1)
+            if (toolIndex == -1)
             {
                 return false;
             }
 
             if (Game1.player.UsingTool)
             {
-                if (Game1.player.CurrentToolIndex == nextToolIndex)
+                if (Game1.player.CurrentToolIndex == toolIndex)
                 {
                     MenusPatcher.nextToolIndex = -1;
                 }
                 else
                 {
-                    MenusPatcher.nextToolIndex = nextToolIndex;
+                    MenusPatcher.nextToolIndex = toolIndex;
                 }
             }
             else
             {
-                if (Game1.player.CurrentToolIndex == nextToolIndex)
+                if (Game1.player.CurrentToolIndex == toolIndex)
                 {
                     Game1.player.CurrentToolIndex = -1;
                 }
                 else
                 {
-                    MenusPatcher.EquipTool(nextToolIndex);
+                    MenusPatcher.EquipTool(toolIndex);
 
                     if (Game1.player.ActiveObject != null)
                     {
@@ -204,8 +204,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
         /// <summary>
         ///     A method called via Harmony to modify <see cref="NumberSelectionMenu.receiveLeftClick" />. It sets
-        ///     <see cref="Game1.player.canMove" /> to <see langword="true" /> when exiting the menu by clicking
-        ///     the ok button.
+        ///     Game1.player.canMove to <see langword="true" /> when exiting the menu by clicking the ok button.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspileNumberSelectionMenuReceiveLeftClick(
@@ -220,7 +219,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
              * Code to insert before:
              *      Game1.player.canMove = true;
              */
-
+            
             FieldInfo canMove = AccessTools.Field(typeof(Farmer), nameof(Farmer.canMove));
 
             MethodInfo getPlayer = AccessTools.Property(typeof(Game1), nameof(Game1.player)).GetGetMethod();
@@ -235,7 +234,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                     && codeInstructions[i].opcode == OpCodes.Ldarg_0
                     && i + 1 < codeInstructions.Count
                     && codeInstructions[i + 1].opcode == OpCodes.Ldfld
-                    && codeInstructions[i + 1].operand is FieldInfo {Name: "cancelButton"})
+                    && codeInstructions[i + 1].operand is FieldInfo { Name: "cancelButton", })
                 {
                     yield return new CodeInstruction(OpCodes.Call, getPlayer);
                     yield return new CodeInstruction(OpCodes.Ldc_I4_1);

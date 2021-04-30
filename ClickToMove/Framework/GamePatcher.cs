@@ -1028,6 +1028,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             {
                 Game1.player.shiftToolbar(!currentKbState.IsKeyDown(Keys.LeftControl));
             }
+            
+            if (Game1.mouseClickPolling > 250
+                && (Game1.player.CurrentTool is null or not FishingRod
+                    || (int)Game1.player.CurrentTool.upgradeLevel <= 0))
+            {
+                useToolButtonPressed = true;
+                Game1.mouseClickPolling = 100;
+            }
 
             Game1.PushUIMode();
 
@@ -1969,7 +1977,7 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="Game1.pressActionButton" />.
+        ///     A method called via Harmony to modify <see cref="Game1.pressActionButton" />. It Initializes the grab tile with the current clicked tile from the <see cref="ClickToMove"/> object associated to the current game location.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         /// <param name="ilGenerator">Generates MSIL instructions.</param>
@@ -1977,8 +1985,6 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
             IEnumerable<CodeInstruction> instructions,
             ILGenerator ilGenerator)
         {
-            // Initialize the grab tile with the current clicked tile from the path finding controller.
-
             /*
             * Relevant CIL code:
             *     Vector2 grabTile = new Vector2(Game1.getOldMouseX() + Game1.viewport.X, Game1.getOldMouseY() + Game1.viewport.Y) / Game1.tileSize;
@@ -2061,8 +2067,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
                         // If block.
                         codeInstructions[i].labels = new List<Label>();
-                        yield return codeInstructions[i];
-                        i++;
+                        yield return codeInstructions[i++];
+                        
                         for (; i < codeInstructions.Count; i++)
                         {
                             yield return codeInstructions[i];

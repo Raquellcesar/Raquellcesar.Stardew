@@ -10,6 +10,7 @@
 namespace Raquellcesar.Stardew.ClickToMove.Framework
 {
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
@@ -18,16 +19,18 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
     using Microsoft.Xna.Framework;
 
-    using Netcode;
-
     using StardewModdingAPI;
 
     using StardewValley;
+    using StardewValley.Objects;
 
     /// <summary>
-    ///     Applies Harmony patches to the <see cref="GameLocation"/> class.
+    ///     Applies Harmony patches to the <see cref="GameLocation" /> class.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "Harmony naming rules.")]
+    [SuppressMessage(
+        "StyleCop.CSharp.NamingRules",
+        "SA1313:Parameter names should begin with lower-case letter",
+        Justification = "Harmony naming rules.")]
     internal static class GameLocationPatcher
     {
         /// <summary>
@@ -74,8 +77,8 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="GameLocation.answerDialogueAction"/>.
-        ///     It resets the <see cref="ClickToMove"/> object associated to the current game location.
+        ///     A method called via Harmony after <see cref="GameLocation.answerDialogueAction" />.
+        ///     It resets the <see cref="ClickToMove" /> object associated to the current game location.
         /// </summary>
         /// <param name="questionAndAnswer">The string identifying a dialogue answer.</param>
         private static void AfterAnswerDialogueAction(string questionAndAnswer)
@@ -87,21 +90,25 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see
-        ///     cref="GameLocation.cleanupBeforePlayerExit"/>. It resets the <see
-        ///     cref="ClickToMove"/> object associated to this <see cref="GameLocation"/>.
+        ///     A method called via Harmony after
+        ///     <see
+        ///         cref="GameLocation.cleanupBeforePlayerExit" />
+        ///     . It resets the
+        ///     <see
+        ///         cref="ClickToMove" />
+        ///     object associated to this <see cref="GameLocation" />.
         /// </summary>
-        /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="__instance">The <see cref="GameLocation" /> instance.</param>
         private static void AfterCleanupBeforePlayerExit(GameLocation __instance)
         {
             ClickToMoveManager.GetOrCreate(__instance).Reset();
         }
 
         /// <summary>
-        ///     A method called via Harmony after <see cref="GameLocation.resetLocalState"/>. It
-        ///     resets the stored map information in the search graph associated to this <see cref="GameLocation"/>.
+        ///     A method called via Harmony after <see cref="GameLocation.resetLocalState" />. It
+        ///     resets the stored map information in the search graph associated to this <see cref="GameLocation" />.
         /// </summary>
-        /// <param name="__instance">The <see cref="GameLocation"/> instance.</param>
+        /// <param name="__instance">The <see cref="GameLocation" /> instance.</param>
         private static void AfterResetLocalState(GameLocation __instance)
         {
             if (ClickToMoveManager.GetOrCreate(__instance) is not null
@@ -112,14 +119,16 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony before <see cref="GameLocation.answerDialogueAction"/>.
-        ///     It sets <see cref="ClickToMove.PreventMountingHorse"/> to false.
+        ///     A method called via Harmony before <see cref="GameLocation.answerDialogueAction" />.
+        ///     It sets <see cref="ClickToMove.PreventMountingHorse" /> to false.
         /// </summary>
         /// <param name="questionAndAnswer">The string identifying a dialogue answer.</param>
         /// <param name="questionParams">The question parameters.</param>
         private static void BeforeAnswerDialogueAction(string questionAndAnswer, string[] questionParams)
         {
-            if (questionAndAnswer is not null && questionParams is not null && questionParams.Length != 0
+            if (questionAndAnswer is not null
+                && questionParams is not null
+                && questionParams.Length != 0
                 && questionParams[0] == "Minecart")
             {
                 ClickToMoveManager.GetOrCreate(Game1.currentLocation).PreventMountingHorse = false;
@@ -127,31 +136,67 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     Method to be called by <see
-        ///     cref="GameLocationPatcher.TranspileIsTileOccupiedForPlacement(IEnumerable{CodeInstruction})"/>.
+        ///     Method to be called by
+        ///     <see
+        ///         cref="GameLocationPatcher.TranspileIsTileOccupiedForPlacement(System.Collections.Generic.IEnumerable{Harmony.CodeInstruction})" />
+        ///     .
         ///     For some reason the patch generates invalid code when I attempt to insert directly
         ///     the code wraped in this method, causing either one of these two exceptions:
         ///     "System.InvalidProgramException: JIT Compiler encountered an internal limitation."
         ///     or a "System.InvalidProgramException: Common Language Runtime detected an invalid program.".
         /// </summary>
         /// <param name="gameLocation">
-        ///     The <see cref="GameLocation"/> where the object is being placed.
+        ///     The <see cref="GameLocation" /> where the object is being placed.
         /// </param>
         /// <param name="tileLocation">The tile coordinates of the placement position.</param>
-        /// <param name="toPlace">The <see cref="Object"/> to place.</param>
+        /// <param name="toPlace">The <see cref="Object" /> to place.</param>
         /// <returns>
-        ///     Returns <see langword="true"/> if the tile is occupied by a <see cref="Farmer"/> and
-        ///     there is no object to place or it's furniture. Returns <see langword="false"/> otherwise.
+        ///     Returns <see langword="true" /> if the tile is occupied by a <see cref="Farmer" /> and
+        ///     there is no object to place or it's furniture. Returns <see langword="false" /> otherwise.
         /// </returns>
-        private static bool IsTileOccupiedForPlacementTranspiler(GameLocation gameLocation, Vector2 tileLocation, Object toPlace)
+        private static bool IsTileOccupiedForPlacementTranspiler(
+            GameLocation gameLocation,
+            Vector2 tileLocation,
+            Object toPlace)
         {
             return gameLocation.isTileOccupiedByFarmer(tileLocation) is not null
-                && (toPlace is null || (!toPlace.isPassable() && (toPlace.Category is Object.furnitureCategory or 0)));
+                   && (toPlace is null
+                       || (!toPlace.isPassable() && (toPlace.Category is Object.furnitureCategory or 0)));
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see
-        ///     cref="GameLocation.isTileOccupiedForPlacement"/>. It restricts the check for the
+        ///     Activates the dialog for going to sleep when appropriate.
+        /// </summary>
+        /// <param name="gameLocation">The current <see cref="GameLocation" />.</param>
+        /// <param name="playerStandingPosition">The current absolute position of the Farmer.</param>
+        private static void PerformSleepTouchAction(GameLocation gameLocation, Vector2 playerStandingPosition)
+        {
+            ClickToMove clickToMove = ClickToMoveManager.GetOrCreate(Game1.currentLocation);
+            if (!Game1.newDay
+                && Game1.shouldTimePass()
+                && Game1.player.hasMoved
+                && !Game1.player.passedOut
+                && clickToMove.TargetBed is not null
+                && clickToMove.TargetBed
+                == BedFurniture.GetBedAtTile(
+                    gameLocation,
+                    (int)playerStandingPosition.X,
+                    (int)playerStandingPosition.Y))
+            {
+                clickToMove.Reset();
+                gameLocation.createQuestionDialogue(
+                    Game1.content.LoadString("Strings\\Locations:FarmHouse_Bed_GoToSleep"),
+                    gameLocation.createYesNoResponses(),
+                    "Sleep",
+                    null);
+            }
+        }
+
+        /// <summary>
+        ///     A method called via Harmony to modify
+        ///     <see
+        ///         cref="GameLocation.isTileOccupiedForPlacement" />
+        ///     . It restricts the check for the
         ///     Farmer occupying the placement position to the situation where the object has type
         ///     furniture or has no defined type.
         /// </summary>
@@ -176,7 +221,9 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
              *     if (this.isTileOccupiedByFarmer(tileLocation) != null && (toPlace == null || (!toPlace.isPassable() && (toPlace.Category == Object.furnitureCategory || toPlace.Category == 0))))
              */
 
-            MethodInfo isTileOccupiedForPlacementTranspiler = AccessTools.Method(typeof(GameLocationPatcher), nameof(GameLocationPatcher.IsTileOccupiedForPlacementTranspiler));
+            MethodInfo isTileOccupiedForPlacementTranspiler = AccessTools.Method(
+                typeof(GameLocationPatcher),
+                nameof(GameLocationPatcher.IsTileOccupiedForPlacementTranspiler));
 
             List<CodeInstruction> codeInstructions = instructions.ToList();
 
@@ -214,14 +261,14 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
         }
 
         /// <summary>
-        ///     A method called via Harmony to modify <see cref="GameLocation.performTouchAction"/>.
+        ///     A method called via Harmony to modify <see cref="GameLocation.performTouchAction" />. It reset the
+        ///     ClickToMove object associated with the current game location at specific points. It also checks if
+        ///     the player has selected a bed before activating the sleep action.
         /// </summary>
         /// <param name="instructions">The method instructions to transpile.</param>
         private static IEnumerable<CodeInstruction> TranspilePerformTouchAction(
             IEnumerable<CodeInstruction> instructions)
         {
-            /* Reset the ClickToMove object associated with the current game location at specific points. */
-
             MethodInfo getCurrentLocation =
                 AccessTools.Property(typeof(Game1), nameof(Game1.currentLocation)).GetGetMethod();
             MethodInfo getOrCreate = AccessTools.Method(
@@ -231,9 +278,11 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
 
             List<CodeInstruction> codeInstructions = instructions.ToList();
 
-            bool error = false;
+            bool found1 = false;
+            bool found2 = false;
+            bool eliminateInstruction = false;
 
-            while (true)
+            for (int i = 0; i < codeInstructions.Count; i++)
             {
                 /*
                 * Relevant CIL code:
@@ -247,70 +296,83 @@ namespace Raquellcesar.Stardew.ClickToMove.Framework
                 *     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
                 */
 
-                int index = codeInstructions.FindIndex(
-                    0,
-                    ins => ins.opcode == OpCodes.Ldstr && ins.operand is string str && str == "debuffHit");
-
-                if (index < 0 || index + 2 >= codeInstructions.Count
-                              || !(codeInstructions[index + 2].opcode == OpCodes.Call
-                                   && codeInstructions[index + 2].operand is MethodInfo { Name: "playSound" }))
+                if (!found1
+                    && codeInstructions[i].opcode == OpCodes.Ldstr
+                    && codeInstructions[i].operand is "debuffHit"
+                    && i + 3 < codeInstructions.Count
+                    && codeInstructions[i + 2].opcode == OpCodes.Call
+                    && codeInstructions[i + 2].operand is MethodInfo { Name: "playSound", })
                 {
-                    error = true;
-                    break;
-                }
+                    yield return codeInstructions[i++];
+                    yield return codeInstructions[i++];
+                    yield return codeInstructions[i++];
 
-                codeInstructions.Insert(index + 3, new CodeInstruction(OpCodes.Call, getCurrentLocation));
-                codeInstructions.Insert(index + 4, new CodeInstruction(OpCodes.Call, getOrCreate));
-                codeInstructions.Insert(index + 5, new CodeInstruction(OpCodes.Ldc_I4_1));
-                codeInstructions.Insert(index + 6, new CodeInstruction(OpCodes.Callvirt, reset));
+                    yield return new CodeInstruction(OpCodes.Call, getCurrentLocation);
+                    yield return new CodeInstruction(OpCodes.Call, getOrCreate);
+                    yield return new CodeInstruction(OpCodes.Ldc_I4_1);
+                    yield return new CodeInstruction(OpCodes.Callvirt, reset);
+
+                    found1 = true;
+                }
 
                 /*
                 * Relevant CIL code:
-                *     if (!Game1.newDay && Game1.shouldTimePass() && Game1.player.hasMoved && !Game1.player.passedOut)
-                *         ...
-                *         IL_0c82: ldfld bool StardewValley.Farmer::passedOut
-                *         IL_0c87: brtrue.s IL_0caf
+                *     case "Sleep":
+                *         if (!Game1.newDay && Game1.shouldTimePass() && Game1.player.hasMoved && !Game1.player.passedOut)
+                *         {
+                *             this.createQuestionDialogue(Game1.content.LoadString("Strings\\Locations:FarmHouse_Bed_GoToSleep"), this.createYesNoResponses(), "Sleep", null);
+                *         }
+                *         break;
                 *
-                * Code to include after:
-                *     ClickToMoveManager.GetOrCreate(Game1.currentLocation).Reset();
+                *         ...
+                *         IL_0c62: ldsfld bool StardewValley.Game1::newDay
+		        *         ...
+                *         IL_0caa: br IL_10d5
+                *
+                * Replace with:
+                *     case "Sleep":
+                *         GameLocationPatcher.PerformSleepTouchAction();
+                *         break; 
                 */
 
-                index += 7;
-
-                if (index >= codeInstructions.Count)
+                if (found1 && !found2)
                 {
-                    error = true;
-                    break;
+                    List<Label> labels = null;
+                    if (!eliminateInstruction
+                        && codeInstructions[i].opcode == OpCodes.Ldfld
+                        && codeInstructions[i].operand is FieldInfo { Name: "newDay", })
+                    {
+                        labels = codeInstructions[i].labels;
+                        eliminateInstruction = true;
+                        continue;
+                    }
+
+                    if (codeInstructions[i].opcode == OpCodes.Br)
+                    {
+                        MethodInfo performSleepTouchAction = AccessTools.Method(
+                            typeof(GameLocationPatcher),
+                            nameof(GameLocationPatcher.PerformSleepTouchAction));
+
+                        yield return new CodeInstruction(OpCodes.Ldarg_0) { labels = labels, };
+                        yield return new CodeInstruction(OpCodes.Ldarg_2);
+                        yield return new CodeInstruction(OpCodes.Call, performSleepTouchAction);
+
+                        found2 = true;
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
 
-                index = codeInstructions.FindIndex(
-                    index,
-                    ins => ins.opcode == OpCodes.Ldfld && ins.operand is FieldInfo { Name: "passedOut" });
-
-                if (index < 0 || index + 1 >= codeInstructions.Count)
-                {
-                    error = true;
-                    break;
-                }
-
-                codeInstructions.Insert(index + 2, new CodeInstruction(OpCodes.Call, getCurrentLocation));
-                codeInstructions.Insert(index + 3, new CodeInstruction(OpCodes.Call, getOrCreate));
-                codeInstructions.Insert(index + 4, new CodeInstruction(OpCodes.Ldc_I4_1));
-                codeInstructions.Insert(index + 5, new CodeInstruction(OpCodes.Callvirt, reset));
-
-                break;
+                yield return codeInstructions[i];
             }
 
-            if (error)
+            if (!found1 || !found2)
             {
                 ClickToMoveManager.Monitor.Log(
-                    $"Failed to patch {nameof(GameLocation)}.{nameof(GameLocation.performTouchAction)}.\nThe point of injection was not found.",
+                    $"Failed to patch {nameof(GameLocation)}.{nameof(GameLocation.performTouchAction)}.\nThe points of injection were not all found.",
                     LogLevel.Error);
-            }
-
-            foreach (CodeInstruction instruction in codeInstructions)
-            {
-                yield return instruction;
             }
         }
     }
